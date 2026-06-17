@@ -11,19 +11,25 @@ export default function CopyMessage({ title, text }) {
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3 mb-2">
+    <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/80 p-4 shadow-sm hover:border-upa-200 transition-colors">
+      <div className="flex items-start justify-between gap-3 mb-3">
         <h4 className="font-medium text-slate-800 text-sm">{title}</h4>
         <button
           type="button"
           onClick={handleCopy}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-upa-50 px-3 py-1.5 text-xs font-medium text-upa-700 hover:bg-upa-100 transition-colors shrink-0"
+          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors shrink-0 ${
+            copied
+              ? 'bg-emerald-50 text-emerald-700'
+              : 'bg-upa-50 text-upa-700 hover:bg-upa-100'
+          }`}
         >
           {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
           {copied ? 'Copiado!' : 'Copiar'}
         </button>
       </div>
-      <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{text}</p>
+      <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap bg-white/70 rounded-lg p-3 border border-slate-100">
+        {text}
+      </p>
     </div>
   );
 }
