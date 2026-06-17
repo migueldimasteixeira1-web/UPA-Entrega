@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  --color-upa-50: #eff6ff;
+  --color-upa-100: #dbeafe;
+  --color-upa-200: #bfdbfe;
+  --color-upa-300: #93c5fd;
+  --color-upa-400: #60a5fa;
+  --color-upa-500: #3b82f6;
+  --color-upa-600: #2563eb;
+  --color-upa-700: #1d4ed8;
+  --color-upa-800: #1e4d8c;
+  --color-upa-900: #1e3a5f;
+}
+
+body {
+  @apply bg-slate-50 text-slate-800 antialiased;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full;
+}
+
+input, select, textarea, button {
+  font: inherit;
+}

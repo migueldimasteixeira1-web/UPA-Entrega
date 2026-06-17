@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "deliveryNotes" TEXT;
+ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "pinSkipReason" TEXT;

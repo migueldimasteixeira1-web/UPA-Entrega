@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  OPERADOR
+}
+
+enum OrderStatus {
+  PEDIDO_CRIADO
+  AGUARDANDO_PAGAMENTO
+  FRETE_PAGO
+  AGUARDANDO_RETIRADA
+  EM_ROTA
+  ENTREGUE
+  CANCELADO
+}
+
+enum DeliveryService {
+  UBER_FLASH
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(OPERADOR)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ordersCreated  Order[]        @relation("CreatedBy")
+  historyEntries OrderHistory[]
+}
+
+model Medication {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  unit        String   @default("unidade")
+  quantity    Int      @default(0)
+  minStock    Int      @default(5)
+  active      Boolean  @default(true)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems OrderItem[]
+}
+
+model Order {
+  id                   String           @id @default(uuid())
+  orderNumber          String           @unique
+  patientName          String
+  patientPhone         String
+  patientCpf           String?
+  address              String
+  neighborhood         String
+  city                 String           @default("")
+  state                String           @default("")
+  zipCode              String?
+  referencePoint       String?
+  internalNotes        String?
+  patientNotes         String?
+  freightValue         Decimal          @db.Decimal(10, 2)
+  paymentConfirmed     Boolean          @default(false)
+  paymentConfirmedAt   DateTime?
+  paymentConfirmedById String?
+  deliveryService      DeliveryService?
+  deliveryPin          String?
+  trackingLink         String?
+  deliveryNotes        String?
+  status               OrderStatus      @default(PEDIDO_CRIADO)
+  publicToken          String           @unique @default(uuid())
+  deliveredAt          DateTime?
+  deliveredById        String?
+  cancelReason         String?
+  stockReserved        Boolean          @default(false)
+  createdById          String
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  createdBy User         @relation("CreatedBy", fields: [createdById], references: [id])
+  items     OrderItem[]
+  history   OrderHistory[]
+}
+
+model OrderItem {
+  id             String @id @default(uuid())
+  orderId        String
+  medicationId   String
+  quantity       Int
+  medicationName String
+  unit           String
+
+  order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  medication Medication @relation(fields: [medicationId], references: [id])
+}
+
+model OrderHistory {
+  id         String       @id @default(uuid())
+  orderId    String
+  userId     String?
+  action     String
+  fromStatus OrderStatus?
+  toStatus   OrderStatus?
+  details    String?
+  createdAt  DateTime     @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id])
+}
