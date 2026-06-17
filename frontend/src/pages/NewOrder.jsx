@@ -1,17 +1,36 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Plus, Trash2, Check } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Check,
+  CreditCard,
+  Truck,
+  ClipboardList,
+} from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { formatCurrency } from '../lib/constants';
+import {
+  maskCep,
+  maskCpf,
+  maskCurrency,
+  maskPhone,
+  onlyDigits,
+  parseCurrency,
+} from '../lib/masks';
+import { fetchAddressByCep } from '../lib/viacep';
 import Alert from '../components/Alert';
+import FormField, { inputClassName } from '../components/FormField';
 
 const STEPS = [
-  'Dados do paciente',
-  'Endereço',
-  'Medicamentos',
-  'Frete e observações',
-  'Revisão',
+  { label: 'Dados do paciente', icon: ClipboardList },
+  { label: 'Endereço', icon: Truck },
+  { label: 'Medicamentos', icon: Plus },
+  { label: 'Frete e observações', icon: CreditCard },
+  { label: 'Revisão', icon: Check },
 ];
 
 const emptyForm = {
@@ -34,6 +53,10 @@ export default function NewOrder() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepMessage, setCepMessage] = useState('');
+  const [touchedAddressFields, setTouchedAddressFields] = useState(() => new Set());
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -55,6 +78,10 @@ export default function NewOrder() {
 
   const updateField = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
+  const markAddressTouched = (field) => {
+    setTouchedAddressFields((prev) => new Set(prev).add(field));
+  };
+
   const updateItem = (index, field, value) => {
     setForm((f) => ({
       ...f,
@@ -67,32 +94,69 @@ export default function NewOrder() {
   const removeItem = (index) =>
     setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
 
+  const handleCepChange = async (rawValue) => {
+    const masked = maskCep(rawValue);
+    updateField('zipCode', masked);
+    setCepMessage('');
+
+    const digits = onlyDigits(masked);
+    if (digits.length !== 8) return;
+
+    setCepLoading(true);
+    try {
+      const result = await fetchAddressByCep(digits);
+      if (result?.error) {
+        setCepMessage(result.error);
+        return;
+      }
+
+      setForm((current) => ({
+        ...current,
+        zipCode: masked,
+        address: touchedAddressFields.has('address') ? current.address : result.address || current.address,
+        neighborhood: touchedAddressFields.has('neighborhood') ? current.neighborhood : result.neighborhood || current.neighborhood,
+        city: touchedAddressFields.has('city') ? current.city : result.city || current.city,
+        state: touchedAddressFields.has('state') ? current.state : result.state || current.state,
+      }));
+      setCepMessage('Endereço preenchido automaticamente. Confira e ajuste se necessário.');
+    } catch {
+      setCepMessage('Não foi possível consultar o CEP. Preencha o endereço manualmente.');
+    } finally {
+      setCepLoading(false);
+    }
+  };
+
   const validateStep = () => {
     setError('');
+    const errors = {};
+
     if (step === 0) {
-      if (!form.patientName.trim() || !form.patientPhone.trim()) {
-        setError('Nome e telefone são obrigatórios');
-        return false;
-      }
+      if (!form.patientName.trim()) errors.patientName = 'Nome do paciente é obrigatório';
+      const phoneDigits = onlyDigits(form.patientPhone);
+      if (phoneDigits.length < 10) errors.patientPhone = 'Informe um telefone válido com DDD';
     }
+
     if (step === 1) {
-      if (!form.address.trim() || !form.neighborhood.trim()) {
-        setError('Endereço e bairro são obrigatórios');
-        return false;
-      }
+      if (!form.address.trim()) errors.address = 'Endereço é obrigatório';
+      if (!form.neighborhood.trim()) errors.neighborhood = 'Bairro é obrigatório';
     }
+
     if (step === 2) {
-      const validItems = form.items.filter((i) => i.medicationId && i.quantity > 0);
-      if (!validItems.length) {
-        setError('Selecione ao menos um medicamento');
-        return false;
+      const validItems = form.items.filter((i) => i.medicationId && Number(i.quantity) > 0);
+      if (!validItems.length) errors.items = 'Selecione ao menos um medicamento';
+    }
+
+    if (step === 3) {
+      const freight = parseCurrency(form.freightValue);
+      if (!freight || freight <= 0) {
+        errors.freightValue = 'Informe um valor de frete maior que zero';
       }
     }
-    if (step === 3) {
-      if (!form.freightValue || Number(form.freightValue) < 0) {
-        setError('Informe o valor do frete');
-        return false;
-      }
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      setError('Revise os campos destacados antes de continuar.');
+      return false;
     }
     return true;
   };
@@ -107,18 +171,18 @@ export default function NewOrder() {
     if (!validateStep()) return;
 
     mutation.mutate({
-      patientName: form.patientName,
-      patientPhone: form.patientPhone,
-      patientCpf: form.patientCpf,
-      address: form.address,
-      neighborhood: form.neighborhood,
-      city: form.city,
-      state: form.state,
-      zipCode: form.zipCode,
-      referencePoint: form.referencePoint,
-      internalNotes: form.internalNotes,
-      patientNotes: form.patientNotes,
-      freightValue: Number(form.freightValue),
+      patientName: form.patientName.trim(),
+      patientPhone: onlyDigits(form.patientPhone),
+      patientCpf: onlyDigits(form.patientCpf) || undefined,
+      address: form.address.trim(),
+      neighborhood: form.neighborhood.trim(),
+      city: form.city.trim(),
+      state: form.state.trim(),
+      zipCode: onlyDigits(form.zipCode) || undefined,
+      referencePoint: form.referencePoint.trim() || undefined,
+      internalNotes: form.internalNotes.trim() || undefined,
+      patientNotes: form.patientNotes.trim() || undefined,
+      freightValue: parseCurrency(form.freightValue),
       items: form.items
         .filter((i) => i.medicationId)
         .map((i) => ({ medicationId: i.medicationId, quantity: Number(i.quantity) })),
@@ -132,32 +196,48 @@ export default function NewOrder() {
       return { ...med, quantity: i.quantity };
     });
 
+  const progress = ((step + 1) / STEPS.length) * 100;
+
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-800">Novo pedido</h1>
-        <p className="text-slate-500 mt-1">Cadastre a solicitação. Dados do Uber Flash serão registrados depois do pagamento.</p>
+        <p className="text-slate-500 mt-1">
+          Cadastre a solicitação. O pedido nascerá aguardando pagamento do frete. Dados do Uber Flash só depois.
+        </p>
       </div>
 
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
-          {STEPS.map((label, i) => (
-            <div key={label} className={`hidden sm:flex flex-1 items-center ${i < STEPS.length - 1 ? 'mr-2' : ''}`}>
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium shrink-0 ${
-                  i <= step ? 'bg-upa-800 text-white' : 'bg-slate-200 text-slate-500'
-                }`}
-              >
-                {i < step ? <Check className="w-4 h-4" /> : i + 1}
-              </div>
-              {i < STEPS.length - 1 && (
-                <div className={`flex-1 h-0.5 mx-2 ${i < step ? 'bg-upa-800' : 'bg-slate-200'}`} />
-              )}
+        <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-4">
+          <div
+            className="h-full bg-upa-800 transition-all duration-300 ease-out rounded-full"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        <div className="hidden sm:grid sm:grid-cols-5 gap-2">
+          {STEPS.map(({ label }, i) => (
+            <div
+              key={label}
+              className={`rounded-xl px-2 py-2 text-center text-xs font-medium transition-colors ${
+                i === step
+                  ? 'bg-upa-800 text-white shadow-sm'
+                  : i < step
+                    ? 'bg-upa-50 text-upa-800'
+                    : 'bg-slate-50 text-slate-400'
+              }`}
+            >
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/20 mb-1 text-[11px]">
+                {i < step ? <Check className="w-3.5 h-3.5" /> : i + 1}
+              </span>
+              <p className="leading-tight">{label}</p>
             </div>
           ))}
         </div>
-        <p className="text-sm font-medium text-upa-800 sm:hidden">Etapa {step + 1}: {STEPS[step]}</p>
-        <p className="text-sm text-slate-500 hidden sm:block text-center mt-2">{STEPS[step]}</p>
+
+        <p className="text-sm font-medium text-upa-800 sm:hidden mt-2">
+          Etapa {step + 1} de {STEPS.length}: {STEPS[step].label}
+        </p>
       </div>
 
       {error && <Alert message={error} onDismiss={() => setError('')} className="mb-4" />}
@@ -165,130 +245,180 @@ export default function NewOrder() {
       <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
         {step === 0 && (
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Nome do paciente *</label>
+            <FormField label="Nome do paciente" required error={fieldErrors.patientName} htmlFor="patientName">
               <input
+                id="patientName"
                 value={form.patientName}
                 onChange={(e) => updateField('patientName', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none"
+                className={inputClassName(fieldErrors.patientName)}
+                autoComplete="name"
               />
-            </div>
+            </FormField>
+
             <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Telefone *</label>
+              <FormField
+                label="Telefone"
+                required
+                error={fieldErrors.patientPhone}
+                hint="Formato: (00) 00000-0000"
+                htmlFor="patientPhone"
+              >
                 <input
+                  id="patientPhone"
                   value={form.patientPhone}
-                  onChange={(e) => updateField('patientPhone', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none"
+                  onChange={(e) => updateField('patientPhone', maskPhone(e.target.value))}
+                  className={inputClassName(fieldErrors.patientPhone)}
                   placeholder="(00) 00000-0000"
+                  inputMode="tel"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">CPF (opcional)</label>
+              </FormField>
+
+              <FormField label="CPF" hint="Opcional — apenas números" htmlFor="patientCpf">
                 <input
+                  id="patientCpf"
                   value={form.patientCpf}
-                  onChange={(e) => updateField('patientCpf', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none"
+                  onChange={(e) => updateField('patientCpf', maskCpf(e.target.value))}
+                  className={inputClassName()}
+                  placeholder="000.000.000-00"
+                  inputMode="numeric"
                 />
-              </div>
+              </FormField>
             </div>
           </div>
         )}
 
         {step === 1 && (
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Endereço completo *</label>
+            <FormField
+              label="CEP"
+              loading={cepLoading}
+              hint="Digite apenas números. O endereço será preenchido automaticamente."
+              htmlFor="zipCode"
+            >
               <input
-                value={form.address}
-                onChange={(e) => updateField('address', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none"
+                id="zipCode"
+                value={form.zipCode}
+                onChange={(e) => handleCepChange(e.target.value)}
+                className={inputClassName(false, cepLoading ? 'pr-10' : '')}
+                placeholder="00000-000"
+                inputMode="numeric"
               />
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Bairro *</label>
-                <input
-                  value={form.neighborhood}
-                  onChange={(e) => updateField('neighborhood', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">CEP</label>
-                <input
-                  value={form.zipCode}
-                  onChange={(e) => updateField('zipCode', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none"
-                />
-              </div>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Cidade</label>
-                <input
-                  value={form.city}
-                  onChange={(e) => updateField('city', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Estado</label>
-                <input
-                  value={form.state}
-                  onChange={(e) => updateField('state', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none"
-                  maxLength={2}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Ponto de referência</label>
+            </FormField>
+            {cepMessage && (
+              <p className={`text-xs ${cepMessage.includes('não') ? 'text-amber-700' : 'text-emerald-700'}`}>
+                {cepMessage}
+              </p>
+            )}
+
+            <FormField label="Endereço completo" required error={fieldErrors.address} htmlFor="address">
               <input
+                id="address"
+                value={form.address}
+                onChange={(e) => {
+                  markAddressTouched('address');
+                  updateField('address', e.target.value);
+                }}
+                className={inputClassName(fieldErrors.address)}
+              />
+            </FormField>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <FormField label="Bairro" required error={fieldErrors.neighborhood} htmlFor="neighborhood">
+                <input
+                  id="neighborhood"
+                  value={form.neighborhood}
+                  onChange={(e) => {
+                    markAddressTouched('neighborhood');
+                    updateField('neighborhood', e.target.value);
+                  }}
+                  className={inputClassName(fieldErrors.neighborhood)}
+                />
+              </FormField>
+
+              <FormField label="Cidade" htmlFor="city">
+                <input
+                  id="city"
+                  value={form.city}
+                  onChange={(e) => {
+                    markAddressTouched('city');
+                    updateField('city', e.target.value);
+                  }}
+                  className={inputClassName()}
+                />
+              </FormField>
+            </div>
+
+            <FormField label="Estado (UF)" htmlFor="state">
+              <input
+                id="state"
+                value={form.state}
+                onChange={(e) => {
+                  markAddressTouched('state');
+                  updateField('state', e.target.value.toUpperCase().slice(0, 2));
+                }}
+                className={inputClassName()}
+                maxLength={2}
+                placeholder="SP"
+              />
+            </FormField>
+
+            <FormField label="Ponto de referência" htmlFor="referencePoint">
+              <input
+                id="referencePoint"
                 value={form.referencePoint}
                 onChange={(e) => updateField('referencePoint', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none"
+                className={inputClassName()}
               />
-            </div>
+            </FormField>
           </div>
         )}
 
         {step === 2 && (
           <div className="space-y-4">
+            {fieldErrors.items && <p className="text-xs text-red-600">{fieldErrors.items}</p>}
+
             {form.items.map((item, index) => (
               <div key={index} className="flex gap-3 items-end">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Medicamento</label>
-                  <select
-                    value={item.medicationId}
-                    onChange={(e) => updateItem(index, 'medicationId', e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-upa-500"
-                  >
-                    <option value="">Selecione...</option>
-                    {medications.map((med) => (
-                      <option key={med.id} value={med.id} disabled={med.quantity <= 0}>
-                        {med.name} — {med.quantity} {med.unit}(s) disponível
-                      </option>
-                    ))}
-                  </select>
+                  <FormField label="Medicamento">
+                    <select
+                      value={item.medicationId}
+                      onChange={(e) => updateItem(index, 'medicationId', e.target.value)}
+                      className={inputClassName(false, 'bg-white')}
+                    >
+                      <option value="">Selecione...</option>
+                      {medications.map((med) => (
+                        <option key={med.id} value={med.id} disabled={med.quantity <= 0}>
+                          {med.name} — {med.quantity} {med.unit}(s) disponível
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
                 </div>
                 <div className="w-24">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Qtd</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-upa-500"
-                  />
+                  <FormField label="Qtd">
+                    <input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                      className={inputClassName()}
+                    />
+                  </FormField>
                 </div>
                 {form.items.length > 1 && (
-                  <button type="button" onClick={() => removeItem(index)} className="p-3 text-red-500 hover:bg-red-50 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => removeItem(index)}
+                    className="p-3 text-red-500 hover:bg-red-50 rounded-xl"
+                    aria-label="Remover medicamento"
+                  >
                     <Trash2 className="w-5 h-5" />
                   </button>
                 )}
               </div>
             ))}
+
             <button
               type="button"
               onClick={addItem}
@@ -296,70 +426,102 @@ export default function NewOrder() {
             >
               <Plus className="w-4 h-4" /> Adicionar medicamento
             </button>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Observações internas</label>
+
+            <FormField label="Observações internas" htmlFor="internalNotes">
               <textarea
+                id="internalNotes"
                 value={form.internalNotes}
                 onChange={(e) => updateField('internalNotes', e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-upa-500 resize-none"
+                className={`${inputClassName()} resize-none`}
               />
-            </div>
+            </FormField>
           </div>
         )}
 
         {step === 3 && (
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Valor do frete (R$) *</label>
+            <FormField
+              label="Valor do frete"
+              required
+              error={fieldErrors.freightValue}
+              hint="O paciente paga apenas o frete. Medicamento é gratuito."
+              htmlFor="freightValue"
+            >
               <input
-                type="number"
-                step="0.01"
-                min="0"
+                id="freightValue"
                 value={form.freightValue}
-                onChange={(e) => updateField('freightValue', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-upa-500"
+                onChange={(e) => updateField('freightValue', maskCurrency(e.target.value))}
+                className={inputClassName(fieldErrors.freightValue)}
+                placeholder="R$ 0,00"
+                inputMode="numeric"
               />
-              <p className="text-xs text-slate-500 mt-1">O paciente paga apenas o frete. Medicamento é gratuito.</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Observação para o paciente</label>
+            </FormField>
+
+            <FormField label="Observação para o paciente" htmlFor="patientNotes">
               <textarea
+                id="patientNotes"
                 value={form.patientNotes}
                 onChange={(e) => updateField('patientNotes', e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-upa-500 resize-none"
+                className={`${inputClassName()} resize-none`}
               />
+            </FormField>
+
+            <div className="rounded-xl border border-amber-100 bg-amber-50/80 p-4 text-sm text-amber-900 space-y-2">
+              <p className="font-medium flex items-center gap-2">
+                <CreditCard className="w-4 h-4 shrink-0" />
+                Após criar, o pedido ficará aguardando pagamento do frete
+              </p>
+              <p className="text-amber-800/90">
+                Copie a mensagem de pagamento e envie manualmente ao paciente. Os dados do Uber Flash serão registrados
+                somente depois da confirmação do pagamento.
+              </p>
             </div>
-            <p className="text-sm text-slate-500 bg-slate-50 rounded-xl p-4">
-              Após criar o pedido, copie a mensagem de pagamento e envie manualmente ao paciente. Os dados do Uber Flash serão registrados somente depois da confirmação do pagamento.
-            </p>
           </div>
         )}
 
         {step === 4 && (
           <div className="space-y-6">
-            <div className="grid sm:grid-cols-2 gap-4 text-sm">
-              <div className="bg-slate-50 rounded-xl p-4">
-                <h3 className="font-semibold text-slate-800 mb-2">Paciente</h3>
-                <p>{form.patientName}</p>
-                <p className="text-slate-500">{form.patientPhone}</p>
+            <div className="rounded-xl border border-upa-100 bg-upa-50/60 p-4 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-upa-800 text-white flex items-center justify-center shrink-0">
+                <Check className="w-5 h-5" />
               </div>
-              <div className="bg-slate-50 rounded-xl p-4">
+              <div>
+                <p className="font-semibold text-upa-900">Pronto para registrar</p>
+                <p className="text-sm text-upa-800/90 mt-1">
+                  Status inicial: <strong>Aguardando pagamento do frete</strong>. Uber Flash será registrado depois.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4 text-sm">
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <h3 className="font-semibold text-slate-800 mb-2">Paciente</h3>
+                <p className="font-medium">{form.patientName}</p>
+                <p className="text-slate-500">{maskPhone(form.patientPhone)}</p>
+                {form.patientCpf && <p className="text-slate-500 text-xs mt-1">CPF: {form.patientCpf}</p>}
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                 <h3 className="font-semibold text-slate-800 mb-2">Endereço</h3>
                 <p>{form.address}</p>
-                <p className="text-slate-500">{form.neighborhood}</p>
+                <p className="text-slate-500">
+                  {form.neighborhood}
+                  {form.city ? ` · ${form.city}` : ''}
+                  {form.state ? `/${form.state}` : ''}
+                </p>
+                {form.zipCode && <p className="text-slate-400 text-xs mt-1">CEP {form.zipCode}</p>}
               </div>
-              <div className="bg-slate-50 rounded-xl p-4">
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                 <h3 className="font-semibold text-slate-800 mb-2">Medicamentos</h3>
                 {selectedMeds.map((m) => (
                   <p key={m.id}>{m.quantity}x {m.name}</p>
                 ))}
               </div>
-              <div className="bg-slate-50 rounded-xl p-4">
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
                 <h3 className="font-semibold text-slate-800 mb-2">Frete</h3>
-                <p className="text-lg font-bold text-upa-800">{formatCurrency(form.freightValue)}</p>
-                <p className="text-slate-500 text-xs mt-1">Status inicial: Aguardando pagamento do frete</p>
+                <p className="text-2xl font-bold text-emerald-800">{formatCurrency(parseCurrency(form.freightValue))}</p>
+                <p className="text-emerald-700/80 text-xs mt-2">Medicamento sem custo para o paciente</p>
               </div>
             </div>
           </div>
@@ -379,7 +541,7 @@ export default function NewOrder() {
             <button
               type="button"
               onClick={next}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 shadow-sm"
             >
               Próximo <ChevronRight className="w-4 h-4" />
             </button>
@@ -388,9 +550,9 @@ export default function NewOrder() {
               type="button"
               onClick={handleSubmit}
               disabled={mutation.isPending}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
-              {mutation.isPending ? 'Salvando...' : 'Criar pedido'}
+              {mutation.isPending ? 'Salvando pedido...' : 'Criar pedido'}
             </button>
           )}
         </div>
