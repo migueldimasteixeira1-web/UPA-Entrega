@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Truck, Package, ExternalLink, Key, Info, CreditCard, ShieldCheck } from 'lucide-react';
 import { api } from '../lib/api';
 import StatusBadge from '../components/StatusBadge';
-import AppBrand, { CaboFrioLogo } from '../components/AppBrand';
+import AppBrand, { MunicipalityBrand } from '../components/AppBrand';
 
 export default function PublicTracking() {
   const { token } = useParams();
@@ -123,12 +123,7 @@ export default function PublicTracking() {
           </div>
         </div>
 
-        <footer className="pt-2 pb-6 flex flex-col items-center gap-3">
-          <p className="text-xs text-slate-400 uppercase tracking-wide">Institucional</p>
-          <div className="rounded-xl bg-slate-900 px-4 py-3">
-            <CaboFrioLogo className="h-9 w-auto max-w-[200px]" />
-          </div>
-        </footer>
+        <MunicipalityBrand className="pt-4 pb-2" logoClassName="h-9 w-auto max-w-[200px]" />
       </main>
     </div>
   );

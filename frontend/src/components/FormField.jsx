@@ -9,6 +9,14 @@ export function inputClassName(error, extra = '') {
   ].join(' ');
 }
 
+export function readOnlyInputClassName(extra = '') {
+  return [
+    'w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-700',
+    'cursor-not-allowed outline-none',
+    extra,
+  ].join(' ');
+}
+
 export default function FormField({
   label,
   required = false,

@@ -23,7 +23,7 @@ import {
 } from '../lib/masks';
 import { fetchAddressByCep } from '../lib/viacep';
 import Alert from '../components/Alert';
-import FormField, { inputClassName } from '../components/FormField';
+import FormField, { inputClassName, readOnlyInputClassName } from '../components/FormField';
 
 const STEPS = [
   { label: 'Dados do paciente', icon: ClipboardList },
@@ -37,17 +37,22 @@ const emptyForm = {
   patientName: '',
   patientPhone: '',
   patientCpf: '',
-  address: '',
+  street: '',
+  addressNumber: '',
+  complement: '',
   neighborhood: '',
   city: '',
   state: '',
   zipCode: '',
-  referencePoint: '',
   internalNotes: '',
   patientNotes: '',
   freightValue: '',
   items: [{ medicationId: '', quantity: 1 }],
 };
+
+function buildFullAddress(street, number) {
+  return `${street.trim()}, ${number.trim()}`;
+}
 
 export default function NewOrder() {
   const [step, setStep] = useState(0);
@@ -56,6 +61,7 @@ export default function NewOrder() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [cepLoading, setCepLoading] = useState(false);
   const [cepMessage, setCepMessage] = useState('');
+  const [streetFromCep, setStreetFromCep] = useState(false);
   const [touchedAddressFields, setTouchedAddressFields] = useState(() => new Set());
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -107,20 +113,23 @@ export default function NewOrder() {
       const result = await fetchAddressByCep(digits);
       if (result?.error) {
         setCepMessage(result.error);
+        setStreetFromCep(false);
         return;
       }
 
       setForm((current) => ({
         ...current,
         zipCode: masked,
-        address: touchedAddressFields.has('address') ? current.address : result.address || current.address,
+        street: touchedAddressFields.has('street') ? current.street : result.address || current.street,
         neighborhood: touchedAddressFields.has('neighborhood') ? current.neighborhood : result.neighborhood || current.neighborhood,
-        city: touchedAddressFields.has('city') ? current.city : result.city || current.city,
-        state: touchedAddressFields.has('state') ? current.state : result.state || current.state,
+        city: result.city || current.city,
+        state: result.state || current.state,
       }));
-      setCepMessage('Endereço preenchido automaticamente. Confira e ajuste se necessário.');
+      setStreetFromCep(!!result.address);
+      setCepMessage('Rua, bairro, cidade e estado preenchidos pelo CEP. Informe número e complemento.');
     } catch {
-      setCepMessage('Não foi possível consultar o CEP. Preencha o endereço manualmente.');
+      setCepMessage('Não foi possível consultar o CEP. Preencha a rua manualmente.');
+      setStreetFromCep(false);
     } finally {
       setCepLoading(false);
     }
@@ -137,8 +146,14 @@ export default function NewOrder() {
     }
 
     if (step === 1) {
-      if (!form.address.trim()) errors.address = 'Endereço é obrigatório';
+      const cepDigits = onlyDigits(form.zipCode);
+      if (cepDigits.length !== 8) errors.zipCode = 'Informe um CEP válido com 8 dígitos';
+      if (!form.street.trim()) errors.street = 'Informe o CEP para preencher a rua';
+      if (!form.addressNumber.trim()) errors.addressNumber = 'Número é obrigatório';
       if (!form.neighborhood.trim()) errors.neighborhood = 'Bairro é obrigatório';
+      if (!form.city.trim() || !form.state.trim()) {
+        errors.zipCode = errors.zipCode || 'Consulte o CEP para preencher cidade e estado';
+      }
     }
 
     if (step === 2) {
@@ -174,12 +189,12 @@ export default function NewOrder() {
       patientName: form.patientName.trim(),
       patientPhone: onlyDigits(form.patientPhone),
       patientCpf: onlyDigits(form.patientCpf) || undefined,
-      address: form.address.trim(),
+      address: buildFullAddress(form.street, form.addressNumber),
       neighborhood: form.neighborhood.trim(),
       city: form.city.trim(),
       state: form.state.trim(),
       zipCode: onlyDigits(form.zipCode) || undefined,
-      referencePoint: form.referencePoint.trim() || undefined,
+      referencePoint: form.complement.trim() || undefined,
       internalNotes: form.internalNotes.trim() || undefined,
       patientNotes: form.patientNotes.trim() || undefined,
       freightValue: parseCurrency(form.freightValue),
@@ -291,15 +306,17 @@ export default function NewOrder() {
           <div className="space-y-4">
             <FormField
               label="CEP"
+              required
               loading={cepLoading}
-              hint="Digite apenas números. O endereço será preenchido automaticamente."
+              error={fieldErrors.zipCode}
+              hint="Digite o CEP para preencher rua, bairro, cidade e estado."
               htmlFor="zipCode"
             >
               <input
                 id="zipCode"
                 value={form.zipCode}
                 onChange={(e) => handleCepChange(e.target.value)}
-                className={inputClassName(false, cepLoading ? 'pr-10' : '')}
+                className={inputClassName(fieldErrors.zipCode, cepLoading ? 'pr-10' : '')}
                 placeholder="00000-000"
                 inputMode="numeric"
               />
@@ -310,66 +327,82 @@ export default function NewOrder() {
               </p>
             )}
 
-            <FormField label="Endereço completo" required error={fieldErrors.address} htmlFor="address">
+            <FormField
+              label="Rua"
+              required
+              error={fieldErrors.street}
+              hint="Preenchida automaticamente pelo CEP."
+              htmlFor="street"
+            >
               <input
-                id="address"
-                value={form.address}
+                id="street"
+                value={form.street}
+                readOnly={streetFromCep}
                 onChange={(e) => {
-                  markAddressTouched('address');
-                  updateField('address', e.target.value);
+                  if (streetFromCep) return;
+                  markAddressTouched('street');
+                  updateField('street', e.target.value);
                 }}
-                className={inputClassName(fieldErrors.address)}
+                className={streetFromCep ? readOnlyInputClassName() : inputClassName(fieldErrors.street)}
+                placeholder="Informe o CEP acima"
               />
             </FormField>
 
             <div className="grid sm:grid-cols-2 gap-4">
-              <FormField label="Bairro" required error={fieldErrors.neighborhood} htmlFor="neighborhood">
+              <FormField label="Número" required error={fieldErrors.addressNumber} htmlFor="addressNumber">
                 <input
-                  id="neighborhood"
-                  value={form.neighborhood}
-                  onChange={(e) => {
-                    markAddressTouched('neighborhood');
-                    updateField('neighborhood', e.target.value);
-                  }}
-                  className={inputClassName(fieldErrors.neighborhood)}
+                  id="addressNumber"
+                  value={form.addressNumber}
+                  onChange={(e) => updateField('addressNumber', e.target.value)}
+                  className={inputClassName(fieldErrors.addressNumber)}
+                  placeholder="Ex.: 123, s/n"
                 />
               </FormField>
 
-              <FormField label="Cidade" htmlFor="city">
+              <FormField label="Complemento" hint="Opcional — apto, bloco, casa..." htmlFor="complement">
                 <input
-                  id="city"
-                  value={form.city}
-                  onChange={(e) => {
-                    markAddressTouched('city');
-                    updateField('city', e.target.value);
-                  }}
+                  id="complement"
+                  value={form.complement}
+                  onChange={(e) => updateField('complement', e.target.value)}
                   className={inputClassName()}
+                  placeholder="Ex.: Casa, Bloco B"
                 />
               </FormField>
             </div>
 
-            <FormField label="Estado (UF)" htmlFor="state">
+            <FormField label="Bairro" required error={fieldErrors.neighborhood} htmlFor="neighborhood">
               <input
-                id="state"
-                value={form.state}
+                id="neighborhood"
+                value={form.neighborhood}
                 onChange={(e) => {
-                  markAddressTouched('state');
-                  updateField('state', e.target.value.toUpperCase().slice(0, 2));
+                  markAddressTouched('neighborhood');
+                  updateField('neighborhood', e.target.value);
                 }}
-                className={inputClassName()}
-                maxLength={2}
-                placeholder="SP"
+                className={inputClassName(fieldErrors.neighborhood)}
               />
             </FormField>
 
-            <FormField label="Ponto de referência" htmlFor="referencePoint">
-              <input
-                id="referencePoint"
-                value={form.referencePoint}
-                onChange={(e) => updateField('referencePoint', e.target.value)}
-                className={inputClassName()}
-              />
-            </FormField>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <FormField label="Cidade" hint="Preenchida pelo CEP." htmlFor="city">
+                <input
+                  id="city"
+                  value={form.city}
+                  readOnly
+                  className={readOnlyInputClassName()}
+                  placeholder="—"
+                />
+              </FormField>
+
+              <FormField label="Estado (UF)" hint="Preenchido pelo CEP." htmlFor="state">
+                <input
+                  id="state"
+                  value={form.state}
+                  readOnly
+                  className={readOnlyInputClassName()}
+                  placeholder="—"
+                />
+              </FormField>
+            </div>
           </div>
         )}
 
@@ -504,7 +537,10 @@ export default function NewOrder() {
               </div>
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                 <h3 className="font-semibold text-slate-800 mb-2">Endereço</h3>
-                <p>{form.address}</p>
+                <p>{buildFullAddress(form.street, form.addressNumber)}</p>
+                {form.complement && (
+                  <p className="text-slate-600 text-sm">Complemento: {form.complement}</p>
+                )}
                 <p className="text-slate-500">
                   {form.neighborhood}
                   {form.city ? ` · ${form.city}` : ''}

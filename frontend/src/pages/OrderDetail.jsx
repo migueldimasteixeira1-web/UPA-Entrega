@@ -222,7 +222,7 @@ export default function OrderDetail() {
                   <p className="text-sm text-slate-500">Endereço</p>
                   <p className="font-medium">{order.address}</p>
                   <p className="text-sm text-slate-600">{order.neighborhood}{order.city ? `, ${order.city}` : ''}</p>
-                  {order.referencePoint && <p className="text-sm text-slate-500 mt-1">Ref: {order.referencePoint}</p>}
+                  {order.referencePoint && <p className="text-sm text-slate-500 mt-1">Complemento: {order.referencePoint}</p>}
                 </div>
               </div>
             </div>

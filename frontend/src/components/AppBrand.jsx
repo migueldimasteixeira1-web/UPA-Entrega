@@ -11,21 +11,6 @@ export function UpaLogo({ className = 'h-10 w-auto', alt = 'UPA 24h — Unidade 
     <img
       src={LOGOS.upa}
       alt={alt}
-      className={`object-contain object-left ${className}`}
-      decoding="async"
-    />
-  );
-}
-
-/**
- * Logo Prefeitura de Cabo Frio — uso secundário (institucional).
- * Fundo escuro na arte; usar sobre fundo escuro ou container escuro.
- */
-export function CaboFrioLogo({ className = 'h-8 w-auto', alt = 'Prefeitura de Cabo Frio' }) {
-  return (
-    <img
-      src={LOGOS.caboFrio}
-      alt={alt}
       className={`object-contain ${className}`}
       decoding="async"
     />
@@ -33,39 +18,45 @@ export function CaboFrioLogo({ className = 'h-8 w-auto', alt = 'Prefeitura de Ca
 }
 
 /**
+ * Logo Prefeitura de Cabo Frio — uso secundário (institucional).
+ * A arte já inclui fundo escuro; exibir sobre fundos claros, sem container extra.
+ */
+export function CaboFrioLogo({ className = 'h-8 w-auto', alt = 'Prefeitura de Cabo Frio' }) {
+  return (
+    <img
+      src={LOGOS.caboFrio}
+      alt={alt}
+      className={`object-contain rounded-md ${className}`}
+      decoding="async"
+    />
+  );
+}
+
+export function MunicipalityBrand({ className = '', logoClassName = 'h-8 w-auto max-w-[160px]' }) {
+  return (
+    <div className={`flex flex-col items-center gap-2 ${className}`}>
+      <p className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">
+        Município de Cabo Frio
+      </p>
+      <CaboFrioLogo className={logoClassName} />
+    </div>
+  );
+}
+
+/**
  * Cabeçalho de marca reutilizável.
- * variant: header | login-hero | login-compact | public
+ * variant: header | login | public
  */
 export default function AppBrand({ variant = 'header', showMunicipality = false, subtitle }) {
-  if (variant === 'login-hero') {
+  if (variant === 'login') {
     return (
-      <div className="space-y-8">
-        <UpaLogo className="h-16 sm:h-20 w-auto max-w-[280px]" />
+      <div className="text-center space-y-4">
+        <UpaLogo className="h-14 sm:h-16 w-auto max-w-[260px] mx-auto" />
         <div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">UPA Entrega</h1>
-          <p className="text-lg text-blue-100 leading-relaxed max-w-md">
-            Sistema interno para organização, registro e controle de entregas de medicamentos a domicílio.
+          <h1 className="text-2xl sm:text-3xl font-bold text-upa-900">UPA Entrega</h1>
+          <p className="text-slate-500 mt-2 text-sm sm:text-base max-w-sm mx-auto leading-relaxed">
+            {subtitle || 'Sistema interno de entregas de medicamentos a domicílio'}
           </p>
-        </div>
-        {showMunicipality && (
-          <div className="pt-6 border-t border-white/20">
-            <p className="text-xs text-blue-200/80 mb-3 uppercase tracking-wide">Município de Cabo Frio</p>
-            <div className="inline-block rounded-xl bg-black/40 p-3">
-              <CaboFrioLogo className="h-10 w-auto max-w-[200px]" />
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (variant === 'login-compact') {
-    return (
-      <div className="flex items-center gap-3">
-        <UpaLogo className="h-11 w-auto max-w-[140px]" />
-        <div>
-          <h1 className="text-xl font-bold text-upa-900">UPA Entrega</h1>
-          <p className="text-sm text-slate-500">{subtitle || 'Acesso restrito à equipe'}</p>
         </div>
       </div>
     );
@@ -88,7 +79,7 @@ export default function AppBrand({ variant = 'header', showMunicipality = false,
   // header (painel interno)
   return (
     <div className="flex items-center gap-3 min-w-0">
-      <UpaLogo className="h-9 w-auto max-w-[130px] sm:max-w-[150px] shrink-0" />
+      <UpaLogo className="h-9 w-auto max-w-[130px] sm:max-w-[150px] shrink-0 object-left" />
       <div className="min-w-0 hidden sm:block">
         <h1 className="font-bold text-upa-900 text-base sm:text-lg leading-tight truncate">UPA Entrega</h1>
         <p className="text-xs text-slate-500 hidden sm:block truncate">
@@ -96,10 +87,8 @@ export default function AppBrand({ variant = 'header', showMunicipality = false,
         </p>
       </div>
       {showMunicipality && (
-        <div className="hidden xl:flex items-center ml-2 pl-3 border-l border-slate-200">
-          <div className="rounded-lg bg-slate-900 px-2 py-1">
-            <CaboFrioLogo className="h-7 w-auto max-w-[120px]" />
-          </div>
+        <div className="hidden xl:flex items-center ml-1 pl-3 border-l border-slate-200 shrink-0">
+          <CaboFrioLogo className="h-8 w-auto max-w-[110px]" />
         </div>
       )}
     </div>

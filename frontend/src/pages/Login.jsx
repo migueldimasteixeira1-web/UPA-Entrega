@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, AlertCircle } from 'lucide-react';
 import { useAuth, ApiError } from '../lib/auth';
-import AppBrand, { CaboFrioLogo } from '../components/AppBrand';
+import AppBrand, { MunicipalityBrand } from '../components/AppBrand';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -28,96 +28,71 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-1/2 bg-upa-800 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-upa-700 to-upa-900" />
-        <div className="relative z-10 flex flex-col justify-between px-16 py-12 text-white w-full">
-          <AppBrand variant="login-hero" showMunicipality />
+    <div className="min-h-screen bg-gradient-to-b from-upa-50 via-white to-slate-100 flex flex-col items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md flex flex-col items-center gap-8">
+        <AppBrand variant="login" subtitle="Acesso restrito à equipe da UPA" />
 
-          <div className="space-y-4 text-blue-100 text-sm">
-            <p>✓ Controle operacional em tempo real</p>
-            <p>✓ Histórico auditável de ações</p>
-            <p>✓ Gestão de estoque integrada</p>
+        <div className="w-full bg-white rounded-2xl shadow-lg border border-slate-200/80 p-8">
+          <div className="mb-6 text-center sm:text-left">
+            <h2 className="text-xl font-bold text-slate-800">Entrar no sistema</h2>
+            <p className="text-slate-500 mt-1 text-sm">Use suas credenciais de operador ou administrador</p>
           </div>
-        </div>
-      </div>
 
-      <div className="flex-1 flex flex-col min-h-screen">
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="w-full max-w-md">
-            <div className="lg:hidden mb-8">
-              <AppBrand variant="login-compact" />
+          {error && (
+            <div className="mb-6 flex items-start gap-3 rounded-xl bg-red-50 border border-red-100 p-4 text-red-700 text-sm">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <span>{error}</span>
             </div>
+          )}
 
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-slate-800">Entrar no sistema</h2>
-                <p className="text-slate-500 mt-1">Use suas credenciais de operador ou administrador</p>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">E-mail</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none transition-all"
+                  placeholder="seu@email.com"
+                  required
+                  autoComplete="email"
+                />
               </div>
-
-              {error && (
-                <div className="mb-6 flex items-start gap-3 rounded-xl bg-red-50 border border-red-100 p-4 text-red-700 text-sm">
-                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">E-mail</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none transition-all"
-                      placeholder="seu@email.com"
-                      required
-                      autoComplete="email"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Senha</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none transition-all"
-                      placeholder="••••••••"
-                      required
-                      autoComplete="current-password"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 px-4 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 focus:ring-4 focus:ring-upa-100 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Entrando...' : 'Acessar sistema'}
-                </button>
-              </form>
             </div>
 
-            <p className="text-center text-xs text-slate-400 mt-6">
-              Sistema interno da UPA — acesso autorizado apenas
-            </p>
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Senha</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none transition-all"
+                  placeholder="••••••••"
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 px-4 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 focus:ring-4 focus:ring-upa-100 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Entrando...' : 'Acessar sistema'}
+            </button>
+          </form>
         </div>
 
-        <footer className="lg:hidden border-t border-slate-200 bg-slate-50 px-6 py-4">
-          <div className="flex items-center justify-center gap-4">
-            <div className="rounded-lg bg-slate-900 px-3 py-2">
-              <CaboFrioLogo className="h-8 w-auto max-w-[160px]" />
-            </div>
-          </div>
-        </footer>
+        <p className="text-center text-xs text-slate-400">
+          Sistema interno da UPA — acesso autorizado apenas
+        </p>
+
+        <MunicipalityBrand className="pt-2" logoClassName="h-9 w-auto max-w-[180px]" />
       </div>
     </div>
   );
