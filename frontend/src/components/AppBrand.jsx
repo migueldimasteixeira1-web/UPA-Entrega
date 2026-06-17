@@ -64,13 +64,13 @@ export default function AppBrand({ variant = 'header', showMunicipality = false,
 
   if (variant === 'public') {
     return (
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-center sm:items-center gap-3 sm:gap-4 text-center sm:text-left">
         <div className="bg-white rounded-xl px-3 py-2 shrink-0 shadow-sm">
-          <UpaLogo className="h-10 w-auto max-w-[140px]" />
+          <UpaLogo className="h-9 sm:h-10 w-auto max-w-[120px] sm:max-w-[140px]" />
         </div>
-        <div>
-          <h1 className="font-bold text-lg text-white">UPA Entrega</h1>
-          <p className="text-blue-100 text-sm">{subtitle || 'Acompanhamento informativo'}</p>
+        <div className="min-w-0">
+          <h1 className="font-bold text-base sm:text-lg text-white">UPA Entrega</h1>
+          <p className="text-blue-100 text-xs sm:text-sm">{subtitle || 'Acompanhamento informativo'}</p>
         </div>
       </div>
     );
@@ -80,7 +80,7 @@ export default function AppBrand({ variant = 'header', showMunicipality = false,
   return (
     <div className="flex items-center gap-3 min-w-0">
       <UpaLogo className="h-9 w-auto max-w-[130px] sm:max-w-[150px] shrink-0 object-left" />
-      <div className="min-w-0 hidden sm:block">
+      <div className="min-w-0 hidden min-[400px]:block">
         <h1 className="font-bold text-upa-900 text-base sm:text-lg leading-tight truncate">UPA Entrega</h1>
         <p className="text-xs text-slate-500 hidden sm:block truncate">
           {subtitle || 'Gestão de entregas de medicamentos'}

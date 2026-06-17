@@ -157,8 +157,8 @@ export default function OrderDetail() {
           <Link to="/" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-upa-800 mb-3">
             <ArrowLeft className="w-4 h-4" /> Voltar ao painel
           </Link>
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold text-slate-800">{order.patientName}</h1>
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-800">{order.patientName}</h1>
             <StatusBadge status={order.status} size="lg" />
           </div>
           <p className="text-slate-500 mt-1">
@@ -171,14 +171,14 @@ export default function OrderDetail() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {order.allowedTransitions?.map((t) => (
             <button
               key={t.to}
               type="button"
               onClick={() => handleStatusAction(t)}
               disabled={confirmPaymentMutation.isPending || updateStatusMutation.isPending}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+              className={`flex-1 sm:flex-none min-h-11 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                 t.to === 'CANCELADO'
                   ? 'bg-red-50 text-red-700 hover:bg-red-100'
                   : 'bg-upa-800 text-white hover:bg-upa-900'
@@ -194,7 +194,7 @@ export default function OrderDetail() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6">
             <h2 className="font-semibold text-slate-800 mb-4">Dados do pedido</h2>
             <div className="grid sm:grid-cols-2 gap-6">
               <div className="space-y-3">
@@ -240,7 +240,7 @@ export default function OrderDetail() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
               <h2 className="font-semibold text-slate-800">Pagamento e Uber Flash</h2>
               {order.canRegisterUberFlash && (
@@ -263,7 +263,7 @@ export default function OrderDetail() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 lg:grid-cols-4 gap-2 mb-5">
               {flowSteps.map((item) => (
                 <div
                   key={item.label}
@@ -357,7 +357,7 @@ export default function OrderDetail() {
               <button
                 type="button"
                 onClick={copyPublicLink}
-                className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200"
+                className="inline-flex items-center justify-center gap-1.5 text-sm min-h-11 px-3 py-2.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 w-full sm:w-auto"
               >
                 {copiedPublicLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 {copiedPublicLink ? 'Link copiado' : 'Copiar link do paciente'}
@@ -365,7 +365,7 @@ export default function OrderDetail() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm">
             <h2 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
               <MessageSquare className="w-5 h-5" /> Mensagens prontas
             </h2>
@@ -378,7 +378,7 @@ export default function OrderDetail() {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6">
             <h2 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
               <Clock className="w-5 h-5" /> Histórico
             </h2>
@@ -395,7 +395,7 @@ export default function OrderDetail() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6">
             <h2 className="font-semibold text-slate-800 mb-3">Adicionar observação</h2>
             <textarea
               value={note}

@@ -59,7 +59,7 @@ export default function Users() {
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900"
+          className="inline-flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 px-5 py-2.5 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900"
         >
           <Plus className="w-4 h-4" /> Novo usuário
         </button>
@@ -71,21 +71,21 @@ export default function Users() {
             <div className="animate-spin rounded-full h-10 w-10 border-4 border-upa-600 border-t-transparent" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-px">
+            <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-left text-slate-500">
-                  <th className="px-6 py-3 font-medium">Usuário</th>
-                  <th className="px-6 py-3 font-medium">Perfil</th>
-                  <th className="px-6 py-3 font-medium">Status</th>
-                  <th className="px-6 py-3 font-medium">Criado em</th>
-                  <th className="px-6 py-3 font-medium">Ações</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">Usuário</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">Perfil</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">Status</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">Criado em</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((user) => (
                   <tr key={user.id} className="border-b border-slate-100">
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-upa-50 flex items-center justify-center">
                           {user.role === 'ADMIN' ? (
@@ -94,20 +94,20 @@ export default function Users() {
                             <User className="w-5 h-5 text-upa-600" />
                           )}
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="font-medium text-slate-800">{user.name}</p>
-                          <p className="text-xs text-slate-500">{user.email}</p>
+                          <p className="text-xs text-slate-500 break-all">{user.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
                         user.role === 'ADMIN' ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'
                       }`}>
                         {user.role === 'ADMIN' ? 'Administrador' : 'Operador'}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4">
                       <button
                         type="button"
                         onClick={() => updateMutation.mutate({ id: user.id, data: { active: !user.active } })}
@@ -118,12 +118,12 @@ export default function Users() {
                         {user.active ? 'Ativo' : 'Inativo'}
                       </button>
                     </td>
-                    <td className="px-6 py-4 text-slate-500">{formatDate(user.createdAt)}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4 text-slate-500 whitespace-nowrap">{formatDate(user.createdAt)}</td>
+                    <td className="px-4 sm:px-6 py-4">
                       <button
                         type="button"
                         onClick={() => setResetModal(user)}
-                        className="text-sm text-upa-700 hover:underline"
+                        className="text-sm text-upa-700 hover:underline min-h-11 inline-flex items-center"
                       >
                         Redefinir senha
                       </button>

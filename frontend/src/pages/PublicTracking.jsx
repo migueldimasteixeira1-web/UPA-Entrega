@@ -36,25 +36,25 @@ export default function PublicTracking() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-upa-50 via-white to-slate-50">
-      <header className="bg-upa-800 text-white py-8 px-4 shadow-md">
+      <header className="bg-upa-800 text-white py-6 sm:py-8 px-4 shadow-md">
         <div className="max-w-lg mx-auto">
           <AppBrand variant="public" />
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-8 space-y-5">
+      <main className="max-w-lg mx-auto px-4 py-6 sm:py-8 space-y-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 flex items-start gap-3 text-sm text-blue-900">
           <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" />
           <p>Esta página é apenas para consulta. Para alterações, entre em contato com a UPA.</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 text-center">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 text-center">
           <StatusBadge status={order.status} size="lg" />
-          <p className="text-xl font-semibold text-slate-800 mt-4 leading-snug">{order.statusMessage}</p>
+          <p className="text-lg sm:text-xl font-semibold text-slate-800 mt-4 leading-snug break-words">{order.statusMessage}</p>
           <p className="text-sm text-slate-500 mt-2">Pedido {order.orderNumber}</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-5">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 space-y-5">
           <div className="flex items-start gap-3 pb-4 border-b border-slate-100">
             <Package className="w-5 h-5 text-upa-600 mt-0.5 shrink-0" />
             <div>
@@ -101,13 +101,16 @@ export default function PublicTracking() {
           )}
         </div>
 
-        {order.hasPin && (
-          <div className="bg-blue-50 rounded-2xl border border-blue-100 p-6">
+        {order.deliveryPin && (
+          <div className="bg-upa-50 rounded-2xl border border-upa-200 p-5 sm:p-6">
             <div className="flex items-start gap-3">
-              <Key className="w-5 h-5 text-blue-700 mt-0.5 shrink-0" />
-              <div>
-                <p className="font-semibold text-blue-900">Sobre o PIN de entrega</p>
-                <p className="text-sm text-blue-800 mt-2 leading-relaxed">{order.pinInstruction}</p>
+              <Key className="w-5 h-5 text-upa-700 mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-upa-900">PIN de entrega</p>
+                <p className="text-sm text-upa-800 mt-1 leading-relaxed">{order.pinInstruction}</p>
+                <p className="mt-4 text-3xl sm:text-4xl font-mono font-bold tracking-widest text-upa-900 text-center sm:text-left break-all">
+                  {order.deliveryPin}
+                </p>
               </div>
             </div>
           </div>

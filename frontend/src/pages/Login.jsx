@@ -28,11 +28,11 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-upa-50 via-white to-slate-100 flex flex-col items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md flex flex-col items-center gap-8">
+    <div className="min-h-screen bg-gradient-to-b from-upa-50 via-white to-slate-100 flex flex-col items-center justify-center px-4 py-8 sm:py-10">
+      <div className="w-full max-w-md flex flex-col items-center gap-6 sm:gap-8">
         <AppBrand variant="login" subtitle="Acesso restrito à equipe da UPA" />
 
-        <div className="w-full bg-white rounded-2xl shadow-lg border border-slate-200/80 p-8">
+        <div className="w-full bg-white rounded-2xl shadow-lg border border-slate-200/80 p-6 sm:p-8">
           <div className="mb-6 text-center sm:text-left">
             <h2 className="text-xl font-bold text-slate-800">Entrar no sistema</h2>
             <p className="text-slate-500 mt-1 text-sm">Use suas credenciais de operador ou administrador</p>

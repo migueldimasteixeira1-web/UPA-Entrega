@@ -215,9 +215,9 @@ export default function NewOrder() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-800">Novo pedido</h1>
-        <p className="text-slate-500 mt-1">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Novo pedido</h1>
+        <p className="text-slate-500 mt-1 text-sm sm:text-base">
           Cadastre a solicitação. O pedido nascerá aguardando pagamento do frete. Dados do Uber Flash só depois.
         </p>
       </div>
@@ -230,7 +230,7 @@ export default function NewOrder() {
           />
         </div>
 
-        <div className="hidden sm:grid sm:grid-cols-5 gap-2">
+        <div className="hidden lg:grid lg:grid-cols-5 gap-2">
           {STEPS.map(({ label }, i) => (
             <div
               key={label}
@@ -250,14 +250,14 @@ export default function NewOrder() {
           ))}
         </div>
 
-        <p className="text-sm font-medium text-upa-800 sm:hidden mt-2">
+        <p className="text-sm font-medium text-upa-800 lg:hidden mt-2">
           Etapa {step + 1} de {STEPS.length}: {STEPS[step].label}
         </p>
       </div>
 
       {error && <Alert message={error} onDismiss={() => setError('')} className="mb-4" />}
 
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-8 shadow-sm">
         {step === 0 && (
           <div className="space-y-4">
             <FormField label="Nome do paciente" required error={fieldErrors.patientName} htmlFor="patientName">
@@ -411,8 +411,8 @@ export default function NewOrder() {
             {fieldErrors.items && <p className="text-xs text-red-600">{fieldErrors.items}</p>}
 
             {form.items.map((item, index) => (
-              <div key={index} className="flex gap-3 items-end">
-                <div className="flex-1">
+              <div key={index} className="flex flex-col sm:flex-row gap-3 sm:items-end">
+                <div className="flex-1 min-w-0 w-full">
                   <FormField label="Medicamento">
                     <select
                       value={item.medicationId}
@@ -428,7 +428,7 @@ export default function NewOrder() {
                     </select>
                   </FormField>
                 </div>
-                <div className="w-24">
+                <div className="w-full sm:w-24">
                   <FormField label="Qtd">
                     <input
                       type="number"
@@ -443,7 +443,7 @@ export default function NewOrder() {
                   <button
                     type="button"
                     onClick={() => removeItem(index)}
-                    className="p-3 text-red-500 hover:bg-red-50 rounded-xl"
+                    className="inline-flex items-center justify-center self-end min-h-11 min-w-11 p-3 text-red-500 hover:bg-red-50 rounded-xl"
                     aria-label="Remover medicamento"
                   >
                     <Trash2 className="w-5 h-5" />
@@ -563,12 +563,12 @@ export default function NewOrder() {
           </div>
         )}
 
-        <div className="flex justify-between mt-8 pt-6 border-t border-slate-100">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 mt-8 pt-6 border-t border-slate-100">
           <button
             type="button"
             onClick={prev}
             disabled={step === 0}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-4 h-4" /> Voltar
           </button>
@@ -577,7 +577,7 @@ export default function NewOrder() {
             <button
               type="button"
               onClick={next}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 shadow-sm"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 px-6 py-2.5 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 shadow-sm"
             >
               Próximo <ChevronRight className="w-4 h-4" />
             </button>
@@ -586,7 +586,7 @@ export default function NewOrder() {
               type="button"
               onClick={handleSubmit}
               disabled={mutation.isPending}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               {mutation.isPending ? 'Salvando pedido...' : 'Criar pedido'}
             </button>

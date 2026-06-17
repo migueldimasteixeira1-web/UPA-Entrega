@@ -656,8 +656,9 @@ export async function getPublicOrder(req, res) {
       deliveryService: order.deliveryService === 'UBER_FLASH' ? 'Uber Flash' : null,
       trackingLink: order.trackingLink,
       hasPin: !!order.deliveryPin,
+      deliveryPin: order.deliveryPin || null,
       pinInstruction: order.deliveryPin
-        ? 'Informe o PIN ao entregador no momento do recebimento. Este código garante a entrega segura.'
+        ? 'Informe este PIN ao entregador no momento do recebimento. Ele garante a entrega segura do medicamento.'
         : order.paymentConfirmed
           ? 'A UPA enviará orientações sobre o PIN quando a entrega for solicitada via Uber Flash.'
           : 'Quando disponível, a UPA enviará orientações sobre o PIN de entrega.',

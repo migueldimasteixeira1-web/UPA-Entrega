@@ -76,22 +76,22 @@ export default function Medications() {
         <button
           type="button"
           onClick={openCreate}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900"
+          className="inline-flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 px-5 py-2.5 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900"
         >
           <Plus className="w-4 h-4" /> Novo medicamento
         </button>
       </div>
 
       {lowStockCount > 0 && (
-        <div className="flex items-center justify-between gap-4 rounded-xl bg-amber-50 border border-amber-200 p-4">
-          <div className="flex items-center gap-3 text-amber-800">
-            <AlertTriangle className="w-5 h-5" />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between rounded-xl bg-amber-50 border border-amber-200 p-4">
+          <div className="flex items-start sm:items-center gap-3 text-amber-800">
+            <AlertTriangle className="w-5 h-5 shrink-0" />
             <p className="text-sm">{lowStockCount} medicamento(s) abaixo do estoque mínimo</p>
           </div>
           <button
             type="button"
             onClick={() => setShowLowStock(!showLowStock)}
-            className="text-sm font-medium text-amber-800 underline"
+            className="text-sm font-medium text-amber-800 underline shrink-0 self-start sm:self-auto"
           >
             {showLowStock ? 'Ver todos' : 'Filtrar alertas'}
           </button>
@@ -104,22 +104,22 @@ export default function Medications() {
             <div className="animate-spin rounded-full h-10 w-10 border-4 border-upa-600 border-t-transparent" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-px">
+            <table className="w-full text-sm min-w-[720px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-left text-slate-500">
-                  <th className="px-6 py-3 font-medium">Medicamento</th>
-                  <th className="px-6 py-3 font-medium">Unidade</th>
-                  <th className="px-6 py-3 font-medium">Quantidade</th>
-                  <th className="px-6 py-3 font-medium">Mínimo</th>
-                  <th className="px-6 py-3 font-medium">Status</th>
-                  <th className="px-6 py-3 font-medium"></th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">Medicamento</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">Unidade</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">Quantidade</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">Mínimo</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium">Status</th>
+                  <th className="px-4 sm:px-6 py-3 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
                 {medications.map((med) => (
                   <tr key={med.id} className={`border-b border-slate-100 ${med.isLowStock ? 'bg-amber-50/50' : ''}`}>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${med.isLowStock ? 'bg-amber-100' : 'bg-upa-50'}`}>
                           <Pill className={`w-5 h-5 ${med.isLowStock ? 'text-amber-600' : 'text-upa-600'}`} />
@@ -130,8 +130,8 @@ export default function Medications() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{med.unit}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4 text-slate-600">{med.unit}</td>
+                    <td className="px-4 sm:px-6 py-4">
                       <span className={`font-semibold ${med.isLowStock ? 'text-amber-700' : 'text-slate-800'}`}>
                         {med.quantity}
                       </span>
@@ -139,19 +139,20 @@ export default function Medications() {
                         <span className="ml-2 text-xs text-amber-600">Baixo</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{med.minStock}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4 text-slate-600">{med.minStock}</td>
+                    <td className="px-4 sm:px-6 py-4">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
                         med.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
                       }`}>
                         {med.active ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4">
                       <button
                         type="button"
                         onClick={() => openEdit(med)}
-                        className="p-2 rounded-lg text-slate-400 hover:text-upa-700 hover:bg-upa-50"
+                        className="inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg text-slate-400 hover:text-upa-700 hover:bg-upa-50"
+                        aria-label={`Editar ${med.name}`}
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -190,7 +191,7 @@ export default function Medications() {
               className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-upa-500"
             />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium mb-1">Unidade</label>
               <input

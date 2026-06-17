@@ -24,11 +24,13 @@ function OrderCard({ order }) {
       className="block bg-white rounded-xl border border-slate-200 p-4 hover:border-upa-300 hover:shadow-md transition-all group"
     >
       <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="font-semibold text-slate-800 group-hover:text-upa-800 truncate">{order.patientName}</p>
           <p className="text-xs text-slate-500">{order.orderNumber}</p>
         </div>
-        <StatusBadge status={order.status} />
+        <div className="shrink-0 max-w-[46%] sm:max-w-[50%]">
+          <StatusBadge status={order.status} />
+        </div>
       </div>
 
       <div className="space-y-2 text-sm text-slate-600">
@@ -118,19 +120,19 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Painel de entregas</h1>
-          <p className="text-slate-500 mt-1">Acompanhe pedidos, pagamentos e entregas via Uber Flash</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Painel de entregas</h1>
+          <p className="text-slate-500 mt-1 text-sm sm:text-base">Acompanhe pedidos, pagamentos e entregas via Uber Flash</p>
         </div>
         <Link
           to="/pedidos/novo"
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 transition-colors shadow-sm"
+          className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 min-h-11 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           Novo pedido
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
           const isWarn = stat.warn && stat.value > 0;
@@ -142,7 +144,7 @@ export default function Dashboard() {
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm text-slate-500 leading-snug">{stat.label}</p>
+                <p className="text-xs sm:text-sm text-slate-500 leading-snug">{stat.label}</p>
                 <span className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${isWarn ? 'bg-upa-100 text-upa-800' : 'bg-upa-50 text-upa-700'}`}>
                   <Icon className="w-4 h-4" />
                 </span>
@@ -176,11 +178,11 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 w-full lg:w-auto">
             <select
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-upa-500 bg-white min-w-[160px]"
+              className="w-full sm:w-auto sm:min-w-[160px] px-3 py-2.5 min-h-11 rounded-xl border border-slate-200 text-sm outline-none focus:border-upa-500 bg-white"
             >
               <option value="">Todos os status</option>
               {Object.entries(STATUS_LABELS).map(([value, label]) => (
@@ -192,15 +194,15 @@ export default function Dashboard() {
               type="date"
               value={filters.dateFrom}
               onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-upa-500"
+              className="w-full sm:w-auto px-3 py-2.5 min-h-11 rounded-xl border border-slate-200 text-sm outline-none focus:border-upa-500"
               aria-label="Data inicial"
             />
 
-            <div className="flex rounded-xl border border-slate-200 overflow-hidden bg-white">
+            <div className="flex rounded-xl border border-slate-200 overflow-hidden bg-white shrink-0">
               <button
                 type="button"
                 onClick={() => setView('kanban')}
-                className={`px-3 py-2.5 ${view === 'kanban' ? 'bg-upa-50 text-upa-800' : 'text-slate-500 hover:bg-slate-50'}`}
+                className={`inline-flex items-center justify-center min-h-11 min-w-11 px-3 ${view === 'kanban' ? 'bg-upa-50 text-upa-800' : 'text-slate-500 hover:bg-slate-50'}`}
                 aria-label="Visualização kanban"
               >
                 <LayoutGrid className="w-4 h-4" />
@@ -208,7 +210,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => setView('list')}
-                className={`px-3 py-2.5 border-l border-slate-200 ${view === 'list' ? 'bg-upa-50 text-upa-800' : 'text-slate-500 hover:bg-slate-50'}`}
+                className={`inline-flex items-center justify-center min-h-11 min-w-11 px-3 border-l border-slate-200 ${view === 'list' ? 'bg-upa-50 text-upa-800' : 'text-slate-500 hover:bg-slate-50'}`}
                 aria-label="Visualização lista"
               >
                 <List className="w-4 h-4" />
@@ -223,13 +225,15 @@ export default function Dashboard() {
             <p className="text-sm text-slate-500">Carregando pedidos...</p>
           </div>
         ) : view === 'kanban' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 overflow-x-auto pb-2">
+          <div className="-mx-4 sm:mx-0">
+            <p className="text-xs text-slate-400 mb-3 px-4 sm:px-0 xl:hidden">Deslize para ver todas as etapas</p>
+            <div className="flex xl:grid xl:grid-cols-5 gap-4 overflow-x-auto pb-2 px-4 sm:px-0 snap-x snap-mandatory xl:snap-none scroll-smooth">
             {KANBAN_COLUMNS.map((status) => {
               const columnOrders = activeOrders.filter((o) => o.status === status);
               return (
-                <div key={status} className="min-w-[260px]">
-                  <div className="flex items-center justify-between mb-3 px-1">
-                    <h3 className="text-sm font-semibold text-slate-700 leading-tight">{STATUS_LABELS[status]}</h3>
+                <div key={status} className="min-w-[82vw] sm:min-w-[300px] xl:min-w-0 shrink-0 xl:shrink snap-start">
+                  <div className="flex items-center justify-between mb-3 px-1 gap-2">
+                    <h3 className="text-sm font-semibold text-slate-700 leading-tight min-w-0">{STATUS_LABELS[status]}</h3>
                     <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
                       {columnOrders.length}
                     </span>
@@ -243,6 +247,7 @@ export default function Dashboard() {
                 </div>
               );
             })}
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto -mx-4 sm:mx-0">

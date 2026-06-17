@@ -57,15 +57,26 @@ npm run dev
 ## Funcionalidades do MVP
 
 - Login seguro com JWT
-- Painel kanban/lista com filtros
-- Cadastro de pedidos em etapas
+- Painel kanban/lista com filtros (paleta visual UPA)
+- Cadastro de pedidos em etapas (stepper), com máscaras de CPF, telefone, CEP e moeda
+- Endereço com consulta automática de CEP (ViaCEP): rua, bairro, cidade e UF; número e complemento informados pelo operador
 - Fluxo de status controlado com histórico auditável
 - Confirmação manual de pagamento do frete
-- Registro manual de dados do Uber Flash (PIN e rastreio)
+- Registro manual de dados do Uber Flash (PIN obrigatório e rastreio)
 - Mensagens prontas para copiar (WhatsApp manual)
 - Controle de estoque com alerta de mínimo
 - Gestão de usuários (admin)
 - Página pública do paciente (`/acompanhar/:token`) — somente leitura
+- Identidade visual UPA 24h e Prefeitura de Cabo Frio (logos em `frontend/public/logos/`)
+
+## Cadastro de endereço (novo pedido)
+
+1. Informe o **CEP** — o sistema preenche **rua**, **bairro**, **cidade** e **estado (UF)**.
+2. **Cidade** e **estado** ficam somente leitura após a consulta.
+3. Informe o **número** (obrigatório) e **complemento** (opcional, ex.: casa, bloco, apto).
+4. No backend, o endereço é salvo como `rua, número` em `address`; o complemento vai em `referencePoint`.
+
+Se o CEP não for encontrado ou não retornar logradouro, a rua pode ser preenchida manualmente.
 
 ## Fluxo operacional
 
@@ -90,15 +101,16 @@ Todo o controle é feito pelo funcionário logado da UPA. O paciente apenas cons
 ## Fluxo de status
 
 ```
-Pedido criado → Aguardando pagamento → Frete pago → Entrega solicitada / aguardando retirada → Em rota → Entregue
-                                                                              ↘ Cancelado
+Pedido criado → Aguardando pagamento → Frete pago → Aguardando retirada → Em rota → Entregue
+                                                                        ↘ Cancelado
 ```
 
 ## Estrutura
 
 ```
-├── backend/          API Express + Prisma
-├── frontend/         React + Vite
+├── backend/                    API Express + Prisma
+├── frontend/                   React + Vite
+│   └── public/logos/           Logos UPA e Cabo Frio
 ├── docker-compose.yml
 └── README.md
 ```
