@@ -45,16 +45,16 @@ function OrderCard({ order }) {
 
       <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100">
         {order.paymentConfirmed ? (
-          <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full ring-1 ring-emerald-100">
+          <span className="inline-flex items-center gap-1 text-xs text-upa-800 bg-upa-50 px-2 py-0.5 rounded-full ring-1 ring-upa-100">
             <CreditCard className="w-3 h-3" /> Pago
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full ring-1 ring-amber-100">
+          <span className="inline-flex items-center gap-1 text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full ring-1 ring-slate-200">
             <CreditCard className="w-3 h-3" /> Pendente
           </span>
         )}
         {order.hasPin ? (
-          <span className="inline-flex items-center gap-1 text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full ring-1 ring-blue-100">
+          <span className="inline-flex items-center gap-1 text-xs text-upa-800 bg-upa-50 px-2 py-0.5 rounded-full ring-1 ring-upa-100">
             <Key className="w-3 h-3" /> PIN
           </span>
         ) : (
@@ -63,7 +63,7 @@ function OrderCard({ order }) {
           </span>
         )}
         {order.uberFlashRegistered && (
-          <span className="text-xs text-upa-700 bg-upa-50 px-2 py-0.5 rounded-full ml-auto">Uber Flash</span>
+          <span className="text-xs text-upa-700 bg-upa-50 px-2 py-0.5 rounded-full ring-1 ring-upa-100 ml-auto">Uber Flash</span>
         )}
       </div>
 
@@ -108,18 +108,11 @@ export default function Dashboard() {
   const activeOrders = orders.filter((o) => o.status !== 'CANCELADO' && o.status !== 'PEDIDO_CRIADO');
 
   const statCards = [
-    { label: 'Aguardando pagamento', value: stats?.pendingPayment ?? 0, icon: CreditCard, tone: 'amber' },
-    { label: 'Aguardando retirada', value: stats?.awaitingPickup ?? 0, icon: Package, tone: 'purple' },
-    { label: 'Em rota', value: stats?.inRoute ?? 0, icon: MapPin, tone: 'cyan' },
-    { label: 'Estoque baixo', value: stats?.lowStockCount ?? 0, icon: AlertTriangle, tone: 'red' },
+    { label: 'Aguardando pagamento', value: stats?.pendingPayment ?? 0, icon: CreditCard },
+    { label: 'Aguardando retirada', value: stats?.awaitingPickup ?? 0, icon: Package },
+    { label: 'Em rota', value: stats?.inRoute ?? 0, icon: MapPin },
+    { label: 'Estoque baixo', value: stats?.lowStockCount ?? 0, icon: AlertTriangle, warn: true },
   ];
-
-  const toneClasses = {
-    amber: 'text-amber-700 bg-amber-50 border-amber-100',
-    purple: 'text-purple-700 bg-purple-50 border-purple-100',
-    cyan: 'text-cyan-700 bg-cyan-50 border-cyan-100',
-    red: 'text-red-700 bg-red-50 border-red-100',
-  };
 
   return (
     <div className="space-y-6">
@@ -140,24 +133,32 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
+          const isWarn = stat.warn && stat.value > 0;
           return (
-            <div key={stat.label} className={`rounded-xl border p-4 ${toneClasses[stat.tone]}`}>
-              <div className="flex items-center justify-between">
-                <p className="text-sm opacity-80">{stat.label}</p>
-                <Icon className="w-4 h-4 opacity-60" />
+            <div
+              key={stat.label}
+              className={`rounded-xl border bg-white p-4 shadow-sm ${
+                isWarn ? 'border-upa-300 ring-1 ring-upa-100' : 'border-slate-200'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm text-slate-500 leading-snug">{stat.label}</p>
+                <span className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${isWarn ? 'bg-upa-100 text-upa-800' : 'bg-upa-50 text-upa-700'}`}>
+                  <Icon className="w-4 h-4" />
+                </span>
               </div>
-              <p className="text-3xl font-bold mt-2">{stat.value}</p>
+              <p className={`text-3xl font-bold mt-3 ${isWarn ? 'text-upa-900' : 'text-slate-800'}`}>{stat.value}</p>
             </div>
           );
         })}
       </div>
 
       {(stats?.lowStockCount ?? 0) > 0 && (
-        <div className="flex items-start sm:items-center gap-3 rounded-xl bg-amber-50 border border-amber-200 p-4 text-amber-900">
-          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 sm:mt-0" />
+        <div className="flex items-start sm:items-center gap-3 rounded-xl bg-upa-50 border border-upa-200 p-4 text-upa-900">
+          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 sm:mt-0 text-upa-700" />
           <p className="text-sm">
             <strong>{stats.lowStockCount}</strong> medicamento(s) com estoque abaixo do mínimo.{' '}
-            <Link to="/estoque" className="font-medium underline hover:text-amber-950">Ver estoque</Link>
+            <Link to="/estoque" className="font-medium text-upa-800 underline hover:text-upa-950">Ver estoque</Link>
           </p>
         </div>
       )}

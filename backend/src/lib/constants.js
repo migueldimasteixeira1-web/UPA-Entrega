@@ -12,7 +12,7 @@ export const STATUS_LABELS = {
   PEDIDO_CRIADO: 'Pedido criado',
   AGUARDANDO_PAGAMENTO: 'Aguardando pagamento do frete',
   FRETE_PAGO: 'Frete pago',
-  AGUARDANDO_RETIRADA: 'Entrega solicitada / aguardando retirada',
+  AGUARDANDO_RETIRADA: 'Aguardando retirada',
   EM_ROTA: 'Em rota',
   ENTREGUE: 'Entregue',
   CANCELADO: 'Cancelado',

@@ -2,7 +2,7 @@ export const STATUS_LABELS = {
   PEDIDO_CRIADO: 'Pedido criado',
   AGUARDANDO_PAGAMENTO: 'Aguardando pagamento do frete',
   FRETE_PAGO: 'Frete pago',
-  AGUARDANDO_RETIRADA: 'Entrega solicitada / aguardando retirada',
+  AGUARDANDO_RETIRADA: 'Aguardando retirada',
   EM_ROTA: 'Em rota',
   ENTREGUE: 'Entregue',
   CANCELADO: 'Cancelado',
@@ -10,11 +10,11 @@ export const STATUS_LABELS = {
 
 export const STATUS_COLORS = {
   PEDIDO_CRIADO: 'bg-slate-100 text-slate-700 ring-slate-200',
-  AGUARDANDO_PAGAMENTO: 'bg-amber-50 text-amber-800 ring-amber-200',
-  FRETE_PAGO: 'bg-blue-50 text-blue-800 ring-blue-200',
-  AGUARDANDO_RETIRADA: 'bg-purple-50 text-purple-800 ring-purple-200',
-  EM_ROTA: 'bg-cyan-50 text-cyan-800 ring-cyan-200',
-  ENTREGUE: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
+  AGUARDANDO_PAGAMENTO: 'bg-slate-50 text-slate-700 ring-slate-200',
+  FRETE_PAGO: 'bg-upa-50 text-upa-800 ring-upa-200',
+  AGUARDANDO_RETIRADA: 'bg-upa-100/70 text-upa-800 ring-upa-200',
+  EM_ROTA: 'bg-upa-100 text-upa-900 ring-upa-300',
+  ENTREGUE: 'bg-upa-800 text-white ring-upa-700',
   CANCELADO: 'bg-red-50 text-red-800 ring-red-200',
 };
 
