@@ -18,6 +18,7 @@ async function request(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers,
+    cache: 'no-store',
   });
 
   const data = await response.json().catch(() => ({}));

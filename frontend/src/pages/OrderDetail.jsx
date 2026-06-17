@@ -38,6 +38,7 @@ export default function OrderDetail() {
   const [note, setNote] = useState('');
   const [deliveryForm, setDeliveryForm] = useState({});
   const [actionError, setActionError] = useState('');
+  const [modalError, setModalError] = useState('');
   const [copiedPublicLink, setCopiedPublicLink] = useState(false);
 
   const { data: order, isLoading, error: loadError } = useQuery({
