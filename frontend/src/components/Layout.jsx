@@ -1,16 +1,15 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Package,
   Pill,
   Users,
   LogOut,
   Menu,
   X,
   Plus,
-  Truck,
 } from 'lucide-react';
 import { useState } from 'react';
+import AppBrand from './AppBrand';
 import { useAuth } from '../lib/auth';
 
 const navItems = [
@@ -45,15 +44,7 @@ export default function Layout() {
               >
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-upa-800 flex items-center justify-center">
-                  <Truck className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="font-bold text-upa-900 text-lg leading-tight">UPA Entrega</h1>
-                  <p className="text-xs text-slate-500 hidden sm:block">Gestão de entregas de medicamentos</p>
-                </div>
-              </div>
+              <AppBrand variant="header" showMunicipality />
             </div>
 
             <nav className="hidden lg:flex items-center gap-1">

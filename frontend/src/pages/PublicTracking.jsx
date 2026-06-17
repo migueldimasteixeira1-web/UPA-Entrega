@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Truck, Package, ExternalLink, Key, Info, CreditCard, ShieldCheck } from 'lucide-react';
 import { api } from '../lib/api';
 import StatusBadge from '../components/StatusBadge';
+import AppBrand, { CaboFrioLogo } from '../components/AppBrand';
 
 export default function PublicTracking() {
   const { token } = useParams();
@@ -36,14 +37,8 @@ export default function PublicTracking() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-upa-50 via-white to-slate-50">
       <header className="bg-upa-800 text-white py-8 px-4 shadow-md">
-        <div className="max-w-lg mx-auto flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 ring-1 ring-white/20">
-            <Truck className="w-7 h-7" />
-          </div>
-          <div>
-            <h1 className="font-bold text-xl">UPA Entrega</h1>
-            <p className="text-blue-100 text-sm mt-0.5">Acompanhamento informativo — somente consulta</p>
-          </div>
+        <div className="max-w-lg mx-auto">
+          <AppBrand variant="public" />
         </div>
       </header>
 
@@ -127,6 +122,13 @@ export default function PublicTracking() {
             </div>
           </div>
         </div>
+
+        <footer className="pt-2 pb-6 flex flex-col items-center gap-3">
+          <p className="text-xs text-slate-400 uppercase tracking-wide">Institucional</p>
+          <div className="rounded-xl bg-slate-900 px-4 py-3">
+            <CaboFrioLogo className="h-9 w-auto max-w-[200px]" />
+          </div>
+        </footer>
       </main>
     </div>
   );
