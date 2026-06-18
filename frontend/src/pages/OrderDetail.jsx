@@ -19,10 +19,12 @@ import {
   Circle,
   Package,
   Save,
+  Share2,
 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { formatCurrency, formatDate, formatPhone } from '../lib/constants';
 import { formatCpfDisplay } from '../lib/masks';
+import { copyToClipboard, canShare, shareText } from '../lib/clipboard';
 import FormField, { inputClassName } from '../components/FormField';
 import StatusBadge from '../components/StatusBadge';
 import CopyMessage from '../components/CopyMessage';
@@ -40,6 +42,8 @@ export default function OrderDetail() {
   const [actionError, setActionError] = useState('');
   const [modalError, setModalError] = useState('');
   const [copiedPublicLink, setCopiedPublicLink] = useState(false);
+  const [copyLinkError, setCopyLinkError] = useState(false);
+  const [sharedPublicLink, setSharedPublicLink] = useState(false);
 
   const { data: order, isLoading, error: loadError } = useQuery({
     queryKey: ['order', id],
@@ -138,9 +142,28 @@ export default function OrderDetail() {
   const publicUrl = order.publicTrackingUrl || `${window.location.origin}/acompanhar/${order.publicToken}`;
 
   const copyPublicLink = async () => {
-    await navigator.clipboard.writeText(publicUrl);
-    setCopiedPublicLink(true);
-    setTimeout(() => setCopiedPublicLink(false), 2000);
+    setCopyLinkError(false);
+    const ok = await copyToClipboard(publicUrl);
+    if (ok) {
+      setCopiedPublicLink(true);
+      setTimeout(() => setCopiedPublicLink(false), 2000);
+    } else {
+      setCopyLinkError(true);
+      setTimeout(() => setCopyLinkError(false), 4000);
+    }
+  };
+
+  const sharePublicLink = async () => {
+    setCopyLinkError(false);
+    const ok = await shareText({
+      title: 'Acompanhamento UPA Entrega',
+      text: `Acompanhe seu pedido: ${publicUrl}`,
+      url: publicUrl,
+    });
+    if (ok) {
+      setSharedPublicLink(true);
+      setTimeout(() => setSharedPublicLink(false), 2000);
+    }
   };
 
   const flowSteps = [
@@ -318,10 +341,23 @@ export default function OrderDetail() {
               </div>
 
               <div className={`rounded-xl border p-4 ${order.deliveryPin ? 'border-blue-200 bg-blue-50/60' : 'border-amber-100 bg-amber-50/50'}`}>
-                <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-                  <Key className="w-4 h-4" /> PIN Uber Flash
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                    <Key className="w-4 h-4" /> PIN Uber Flash
+                  </div>
+                  {order.deliveryPin && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await copyToClipboard(order.deliveryPin);
+                      }}
+                      className="inline-flex items-center gap-1 text-xs text-upa-700 hover:text-upa-900 min-h-9 px-2 rounded-lg hover:bg-white/60"
+                    >
+                      <Copy className="w-3 h-3" /> Copiar
+                    </button>
+                  )}
                 </div>
-                <p className="font-mono font-bold text-lg">{order.deliveryPin || 'Pendente'}</p>
+                <p className="font-mono font-bold text-lg select-text">{order.deliveryPin || 'Pendente'}</p>
               </div>
 
               <div className={`rounded-xl border p-4 ${order.trackingLink ? 'border-upa-100 bg-upa-50/30' : 'border-slate-100'}`}>
@@ -345,23 +381,43 @@ export default function OrderDetail() {
               </div>
             )}
 
-            <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap items-center gap-3">
+            <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
               <a
                 href={publicUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-sm text-upa-700 hover:underline inline-flex items-center gap-1"
+                className="text-sm text-upa-700 hover:underline inline-flex items-center justify-center gap-1 min-h-11 px-3 py-2 rounded-lg bg-upa-50 sm:bg-transparent"
               >
                 Abrir página pública <ExternalLink className="w-3 h-3" />
               </a>
               <button
                 type="button"
                 onClick={copyPublicLink}
-                className="inline-flex items-center justify-center gap-1.5 text-sm min-h-11 px-3 py-2.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 w-full sm:w-auto"
+                className={`inline-flex items-center justify-center gap-1.5 text-sm min-h-11 px-3 py-2.5 rounded-lg flex-1 sm:flex-none ${
+                  copiedPublicLink
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : copyLinkError
+                      ? 'bg-amber-50 text-amber-800'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200 active:bg-slate-200'
+                }`}
               >
                 {copiedPublicLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                {copiedPublicLink ? 'Link copiado' : 'Copiar link do paciente'}
+                {copiedPublicLink ? 'Link copiado' : copyLinkError ? 'Selecione o link' : 'Copiar link'}
               </button>
+              {canShare() && (
+                <button
+                  type="button"
+                  onClick={sharePublicLink}
+                  className={`inline-flex items-center justify-center gap-1.5 text-sm min-h-11 px-3 py-2.5 rounded-lg flex-1 sm:flex-none ${
+                    sharedPublicLink
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'bg-upa-50 text-upa-800 hover:bg-upa-100 active:bg-upa-100'
+                  }`}
+                >
+                  {sharedPublicLink ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+                  {sharedPublicLink ? 'Enviado' : 'Compartilhar link'}
+                </button>
+              )}
             </div>
           </div>
 

@@ -1,12 +1,15 @@
 import { useParams } from 'react-router-dom';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Truck, Package, ExternalLink, Key, Info, CreditCard, ShieldCheck } from 'lucide-react';
+import { Truck, Package, ExternalLink, Key, Info, CreditCard, ShieldCheck, Copy, Check } from 'lucide-react';
 import { api } from '../lib/api';
+import { copyToClipboard } from '../lib/clipboard';
 import StatusBadge from '../components/StatusBadge';
 import AppBrand, { MunicipalityBrand } from '../components/AppBrand';
 
 export default function PublicTracking() {
   const { token } = useParams();
+  const [pinCopied, setPinCopied] = useState(false);
 
   const { data: order, isLoading, error } = useQuery({
     queryKey: ['public-order', token],
@@ -108,9 +111,34 @@ export default function PublicTracking() {
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-upa-900">PIN de entrega</p>
                 <p className="text-sm text-upa-800 mt-1 leading-relaxed">{order.pinInstruction}</p>
-                <p className="mt-4 text-3xl sm:text-4xl font-mono font-bold tracking-widest text-upa-900 text-center sm:text-left break-all">
+                <p className="mt-4 text-3xl sm:text-4xl font-mono font-bold tracking-widest text-upa-900 text-center sm:text-left break-all select-text">
                   {order.deliveryPin}
                 </p>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const ok = await copyToClipboard(order.deliveryPin);
+                    if (ok) {
+                      setPinCopied(true);
+                      setTimeout(() => setPinCopied(false), 2000);
+                    }
+                  }}
+                  className={`mt-4 inline-flex items-center justify-center gap-2 w-full min-h-11 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    pinCopied
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-upa-800 text-white hover:bg-upa-900 active:bg-upa-900'
+                  }`}
+                >
+                  {pinCopied ? (
+                    <>
+                      <Check className="w-4 h-4" /> PIN copiado
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" /> Copiar PIN
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
