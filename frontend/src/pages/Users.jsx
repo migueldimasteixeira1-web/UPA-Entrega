@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Shield, User } from 'lucide-react';
+import { Plus, Shield, User, Truck } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import Modal from '../components/Modal';
 import Alert from '../components/Alert';
@@ -90,6 +90,8 @@ export default function Users() {
                         <div className="w-10 h-10 rounded-full bg-upa-50 flex items-center justify-center">
                           {user.role === 'ADMIN' ? (
                             <Shield className="w-5 h-5 text-upa-700" />
+                          ) : user.role === 'ENTREGADOR' ? (
+                            <Truck className="w-5 h-5 text-upa-600" />
                           ) : (
                             <User className="w-5 h-5 text-upa-600" />
                           )}
@@ -102,9 +104,13 @@ export default function Users() {
                     </td>
                     <td className="px-4 sm:px-6 py-4">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                        user.role === 'ADMIN' ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'
+                        user.role === 'ADMIN'
+                          ? 'bg-purple-50 text-purple-700'
+                          : user.role === 'ENTREGADOR'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-blue-50 text-blue-700'
                       }`}>
-                        {user.role === 'ADMIN' ? 'Administrador' : 'Operador'}
+                        {user.role === 'ADMIN' ? 'Administrador' : user.role === 'ENTREGADOR' ? 'Entregador' : 'Operador'}
                       </span>
                     </td>
                     <td className="px-4 sm:px-6 py-4">
@@ -174,6 +180,7 @@ export default function Users() {
             >
               <option value="OPERADOR">Operador</option>
               <option value="ADMIN">Administrador</option>
+              <option value="ENTREGADOR">Entregador</option>
             </select>
           </div>
           <button

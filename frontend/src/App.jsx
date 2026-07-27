@@ -7,6 +7,9 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import NewOrder from './pages/NewOrder';
 import OrderDetail from './pages/OrderDetail';
+import OrderLabel from './pages/OrderLabel';
+import DeliveryRoutes from './pages/DeliveryRoutes';
+import MyDeliveries from './pages/MyDeliveries';
 import Medications from './pages/Medications';
 import Users from './pages/Users';
 import PublicTracking from './pages/PublicTracking';
@@ -32,18 +35,26 @@ export default function App() {
 
             <Route path="/acompanhar/:token" element={<PublicTracking />} />
 
-            <Route element={<ProtectedRoute />}>
+            <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OPERADOR']} />}>
+              <Route path="/pedidos/:id/etiqueta" element={<OrderLabel />} />
               <Route element={<Layout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="/pedidos/novo" element={<NewOrder />} />
                 <Route path="/pedidos/:id" element={<OrderDetail />} />
-                <Route path="/estoque" element={<Medications />} />
+                <Route path="/rotas" element={<DeliveryRoutes />} />
+                <Route path="/medicamentos" element={<Medications />} />
               </Route>
             </Route>
 
-            <Route element={<ProtectedRoute adminOnly />}>
+            <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
               <Route element={<Layout />}>
                 <Route path="/usuarios" element={<Users />} />
+              </Route>
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['ENTREGADOR']} />}>
+              <Route element={<Layout />}>
+                <Route path="/entregas" element={<MyDeliveries />} />
               </Route>
             </Route>
 

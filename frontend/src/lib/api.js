@@ -54,17 +54,36 @@ export const api = {
   updateOrder: (id, data) =>
     request(`/api/orders/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
-  confirmPayment: (id) =>
-    request(`/api/orders/${id}/confirm-payment`, { method: 'POST' }),
-
   updateStatus: (id, data) =>
     request(`/api/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify(data) }),
 
-  registerUberFlash: (id, data) =>
-    request(`/api/orders/${id}/register-uber-flash`, { method: 'POST', body: JSON.stringify(data) }),
+  confirmDelivery: (id, pin) =>
+    request(`/api/orders/${id}/confirm-delivery`, { method: 'POST', body: JSON.stringify({ pin }) }),
 
   addNote: (id, note) =>
     request(`/api/orders/${id}/notes`, { method: 'POST', body: JSON.stringify({ note }) }),
+
+  getPatientByCpf: (cpf) => request(`/api/patients/by-cpf/${cpf}`),
+
+  getPatient: (id) => request(`/api/patients/${id}`),
+
+  createPatient: (data) =>
+    request('/api/patients', { method: 'POST', body: JSON.stringify(data) }),
+
+  addPatientAddress: (patientId, data) =>
+    request(`/api/patients/${patientId}/addresses`, { method: 'POST', body: JSON.stringify(data) }),
+
+  getDeliveryRoutes: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/api/delivery-routes${query ? `?${query}` : ''}`);
+  },
+
+  getMyDeliveryRoutes: () => request('/api/delivery-routes/mine'),
+
+  getDeliveryRoute: (id) => request(`/api/delivery-routes/${id}`),
+
+  createDeliveryRoute: (data) =>
+    request('/api/delivery-routes', { method: 'POST', body: JSON.stringify(data) }),
 
   getMedications: (params = {}) => {
     const query = new URLSearchParams(params).toString();
@@ -76,12 +95,6 @@ export const api = {
 
   updateMedication: (id, data) =>
     request(`/api/medications/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-
-  adjustStock: (id, adjustment, reason) =>
-    request(`/api/medications/${id}/adjust-stock`, {
-      method: 'POST',
-      body: JSON.stringify({ adjustment, reason }),
-    }),
 
   getUsers: () => request('/api/users'),
 

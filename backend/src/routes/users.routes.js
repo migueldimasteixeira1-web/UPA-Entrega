@@ -1,6 +1,12 @@
 import { hashPassword } from '../lib/password.js';
 import prisma from '../lib/prisma.js';
 
+const VALID_ROLES = ['ADMIN', 'OPERADOR', 'ENTREGADOR'];
+
+function normalizeRole(role) {
+  return VALID_ROLES.includes(role) ? role : 'OPERADOR';
+}
+
 export async function listUsers(req, res) {
   try {
     const users = await prisma.user.findMany({
@@ -46,7 +52,7 @@ export async function createUser(req, res) {
         name: name.trim(),
         email: email.toLowerCase().trim(),
         password: await hashPassword(password),
-        role: role === 'ADMIN' ? 'ADMIN' : 'OPERADOR',
+        role: normalizeRole(role),
       },
       select: {
         id: true,
@@ -84,7 +90,7 @@ export async function updateUser(req, res) {
       data: {
         ...(name && { name: name.trim() }),
         ...(email && { email: email.toLowerCase().trim() }),
-        ...(role && { role: role === 'ADMIN' ? 'ADMIN' : 'OPERADOR' }),
+        ...(role && { role: normalizeRole(role) }),
         ...(typeof active === 'boolean' && { active }),
       },
       select: {

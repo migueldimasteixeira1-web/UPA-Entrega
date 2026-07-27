@@ -30,19 +30,6 @@ export function maskCep(value = '') {
   return `${digits.slice(0, 5)}-${digits.slice(5)}`;
 }
 
-export function maskCurrency(value = '') {
-  const digits = onlyDigits(value);
-  if (!digits) return '';
-  const number = Number(digits) / 100;
-  return number.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
-export function parseCurrency(value = '') {
-  const digits = onlyDigits(value);
-  if (!digits) return 0;
-  return Number(digits) / 100;
-}
-
 export function formatCpfDisplay(value = '') {
   if (!value) return '';
   if (value.includes('*')) return value;

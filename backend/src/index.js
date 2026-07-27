@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 
-import { authenticate, requireAdmin } from './middleware/auth.js';
+import { authenticate, requireAdmin, requireRole } from './middleware/auth.js';
 import { login, me, changePassword } from './routes/auth.routes.js';
 import { listUsers, createUser, updateUser, resetPassword } from './routes/users.routes.js';
 import {
@@ -12,17 +12,27 @@ import {
   getMedication,
   createMedication,
   updateMedication,
-  adjustStock,
 } from './routes/medications.routes.js';
+import {
+  getPatientByCpf,
+  getPatient,
+  createPatient,
+  addPatientAddress,
+} from './routes/patients.routes.js';
+import {
+  listRoutes,
+  getRoute,
+  getMyRoutes,
+  createRoute,
+} from './routes/routes.routes.js';
 import {
   listOrders,
   getOrder,
   createOrder,
   updateOrder,
-  confirmPayment,
   updateStatus,
+  confirmDelivery,
   addNote,
-  registerUberFlash,
   getPublicOrder,
   getDashboardStats,
 } from './routes/orders.routes.js';
@@ -53,22 +63,30 @@ app.post('/api/auth/change-password', authenticate, changePassword);
 // Protected routes
 app.use('/api', authenticate);
 
-app.get('/api/dashboard/stats', getDashboardStats);
+app.get('/api/dashboard/stats', requireRole('ADMIN', 'OPERADOR'), getDashboardStats);
 
-app.get('/api/orders', listOrders);
+app.get('/api/orders', requireRole('ADMIN', 'OPERADOR'), listOrders);
 app.get('/api/orders/:id', getOrder);
-app.post('/api/orders', createOrder);
-app.put('/api/orders/:id', updateOrder);
-app.post('/api/orders/:id/confirm-payment', confirmPayment);
-app.patch('/api/orders/:id/status', updateStatus);
-app.post('/api/orders/:id/register-uber-flash', registerUberFlash);
-app.post('/api/orders/:id/notes', addNote);
+app.post('/api/orders', requireRole('ADMIN', 'OPERADOR'), createOrder);
+app.put('/api/orders/:id', requireRole('ADMIN', 'OPERADOR'), updateOrder);
+app.patch('/api/orders/:id/status', requireRole('ADMIN', 'OPERADOR'), updateStatus);
+app.post('/api/orders/:id/confirm-delivery', requireRole('ADMIN', 'ENTREGADOR'), confirmDelivery);
+app.post('/api/orders/:id/notes', requireRole('ADMIN', 'OPERADOR'), addNote);
 
-app.get('/api/medications', listMedications);
-app.get('/api/medications/:id', getMedication);
-app.post('/api/medications', createMedication);
-app.put('/api/medications/:id', updateMedication);
-app.post('/api/medications/:id/adjust-stock', adjustStock);
+app.get('/api/patients/by-cpf/:cpf', requireRole('ADMIN', 'OPERADOR'), getPatientByCpf);
+app.get('/api/patients/:id', requireRole('ADMIN', 'OPERADOR'), getPatient);
+app.post('/api/patients', requireRole('ADMIN', 'OPERADOR'), createPatient);
+app.post('/api/patients/:id/addresses', requireRole('ADMIN', 'OPERADOR'), addPatientAddress);
+
+app.get('/api/delivery-routes', requireRole('ADMIN', 'OPERADOR'), listRoutes);
+app.get('/api/delivery-routes/mine', requireRole('ADMIN', 'ENTREGADOR'), getMyRoutes);
+app.get('/api/delivery-routes/:id', requireRole('ADMIN', 'OPERADOR'), getRoute);
+app.post('/api/delivery-routes', requireRole('ADMIN', 'OPERADOR'), createRoute);
+
+app.get('/api/medications', requireRole('ADMIN', 'OPERADOR'), listMedications);
+app.get('/api/medications/:id', requireRole('ADMIN', 'OPERADOR'), getMedication);
+app.post('/api/medications', requireRole('ADMIN', 'OPERADOR'), createMedication);
+app.put('/api/medications/:id', requireRole('ADMIN', 'OPERADOR'), updateMedication);
 
 app.get('/api/users', requireAdmin, listUsers);
 app.post('/api/users', requireAdmin, createUser);

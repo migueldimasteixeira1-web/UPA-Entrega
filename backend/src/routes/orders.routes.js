@@ -1,7 +1,8 @@
 import prisma from '../lib/prisma.js';
-import { buildOrderAuditEntries, buildUberFlashAuditEntries } from '../lib/audit.js';
+import { buildOrderAuditEntries } from '../lib/audit.js';
 import {
   canTransition,
+  generateDeliveryPin,
   generateMessages,
   generateOrderNumber,
   getPublicTrackingUrl,
@@ -9,13 +10,21 @@ import {
   maskName,
   STATUS_LABELS,
 } from '../lib/constants.js';
-import { checkStockAvailability, reserveStock, restoreStock } from '../lib/stock.js';
-import { parsePositiveDecimal, parsePositiveInteger } from '../lib/validation.js';
+import { parsePositiveInteger, validateCpf } from '../lib/validation.js';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 const orderInclude = {
   createdBy: { select: { id: true, name: true, email: true } },
+  deliveredBy: { select: { id: true, name: true } },
+  route: {
+    select: {
+      id: true,
+      routeNumber: true,
+      status: true,
+      courier: { select: { id: true, name: true, phone: true } },
+    },
+  },
   items: {
     include: {
       medication: { select: { id: true, name: true, unit: true } },
@@ -29,21 +38,11 @@ const orderInclude = {
 
 function formatOrder(order) {
   const mainMedication = order.items?.[0]?.medicationName || order.items?.[0]?.medication?.name;
-  const uberFlashRegistered = order.deliveryService === 'UBER_FLASH';
   return {
     ...order,
     patientCpf: maskCpf(order.patientCpf),
     mainMedication,
-    deliveryServiceLabel: uberFlashRegistered ? 'Uber Flash' : null,
     statusLabel: STATUS_LABELS[order.status],
-    hasPin: !!order.deliveryPin,
-    hasTracking: !!order.trackingLink,
-    uberFlashRegistered,
-    canRegisterUberFlash:
-      order.paymentConfirmed &&
-      order.status === 'FRETE_PAGO' &&
-      !uberFlashRegistered &&
-      !['ENTREGUE', 'CANCELADO'].includes(order.status),
     publicTrackingUrl: getPublicTrackingUrl(order, FRONTEND_URL),
     messages: generateMessages(order, FRONTEND_URL),
   };
@@ -74,7 +73,7 @@ export async function listOrders(req, res) {
           : {}),
       },
       include: {
-        createdBy: { select: { id: true, name: true } },
+        route: { select: { routeNumber: true, courier: { select: { name: true } } } },
         items: {
           take: 1,
           select: { medicationName: true, quantity: true, unit: true },
@@ -88,10 +87,6 @@ export async function listOrders(req, res) {
         ...order,
         mainMedication: order.items[0]?.medicationName,
         statusLabel: STATUS_LABELS[order.status],
-        deliveryServiceLabel: order.deliveryService === 'UBER_FLASH' ? 'Uber Flash' : null,
-        hasPin: !!order.deliveryPin,
-        hasTracking: !!order.trackingLink,
-        freightValue: Number(order.freightValue),
       }))
     );
   } catch (error) {
@@ -113,7 +108,6 @@ export async function getOrder(req, res) {
 
     res.json({
       ...formatOrder(order),
-      freightValue: Number(order.freightValue),
       allowedTransitions: getAllowedTransitions(order),
     });
   } catch (error) {
@@ -126,25 +120,14 @@ function getAllowedTransitions(order) {
   const base = [];
   const from = order.status;
 
-  if (canTransition(from, 'AGUARDANDO_PAGAMENTO') && from === 'PEDIDO_CRIADO') {
-    base.push({ to: 'AGUARDANDO_PAGAMENTO', label: STATUS_LABELS.AGUARDANDO_PAGAMENTO });
+  if (canTransition(from, 'EM_SEPARACAO')) {
+    base.push({ to: 'EM_SEPARACAO', label: STATUS_LABELS.EM_SEPARACAO });
   }
-  if (canTransition(from, 'FRETE_PAGO') && !order.paymentConfirmed) {
-    base.push({ to: 'FRETE_PAGO', label: 'Confirmar pagamento do frete', action: 'confirm_payment' });
+  if (canTransition(from, 'SEPARADO')) {
+    base.push({ to: 'SEPARADO', label: STATUS_LABELS.SEPARADO });
   }
-  if (
-    canTransition(from, 'AGUARDANDO_RETIRADA') &&
-    order.paymentConfirmed &&
-    order.deliveryService === 'UBER_FLASH' &&
-    order.deliveryPin
-  ) {
-    base.push({ to: 'AGUARDANDO_RETIRADA', label: STATUS_LABELS.AGUARDANDO_RETIRADA });
-  }
-  if (canTransition(from, 'EM_ROTA')) {
-    base.push({ to: 'EM_ROTA', label: STATUS_LABELS.EM_ROTA });
-  }
-  if (canTransition(from, 'ENTREGUE')) {
-    base.push({ to: 'ENTREGUE', label: STATUS_LABELS.ENTREGUE });
+  if (canTransition(from, 'AGUARDANDO_SAIDA')) {
+    base.push({ to: 'AGUARDANDO_SAIDA', label: STATUS_LABELS.AGUARDANDO_SAIDA });
   }
   if (canTransition(from, 'CANCELADO')) {
     base.push({ to: 'CANCELADO', label: STATUS_LABELS.CANCELADO, requiresReason: true });
@@ -157,15 +140,6 @@ async function addHistory(tx, { orderId, userId, action, fromStatus, toStatus, d
   return tx.orderHistory.create({
     data: { orderId, userId, action, fromStatus, toStatus, details },
   });
-}
-
-function hasUberFlashFields(body) {
-  return (
-    body.deliveryService !== undefined ||
-    body.deliveryPin !== undefined ||
-    body.trackingLink !== undefined ||
-    body.deliveryNotes !== undefined
-  );
 }
 
 function validateOrderItems(items) {
@@ -187,41 +161,79 @@ function validateOrderItems(items) {
   });
 }
 
+async function resolvePatient(tx, { patientId, patient }) {
+  if (patientId) {
+    const existing = await tx.patient.findUnique({ where: { id: patientId } });
+    if (!existing) throw new Error('Paciente não encontrado');
+    return existing;
+  }
+
+  if (!patient?.name?.trim() || !patient?.phone?.trim()) {
+    throw new Error('Dados do paciente são obrigatórios');
+  }
+
+  const cpfDigits = validateCpf(patient.cpf);
+  const existingByCpf = await tx.patient.findUnique({ where: { cpf: cpfDigits } });
+  if (existingByCpf) {
+    throw new Error('Já existe um paciente cadastrado com este CPF. Busque pelo CPF antes de criar um novo.');
+  }
+
+  return tx.patient.create({
+    data: {
+      name: patient.name.trim(),
+      cpf: cpfDigits,
+      phone: patient.phone.trim(),
+    },
+  });
+}
+
+async function resolveAddress(tx, { addressId, address }, patientId) {
+  if (addressId) {
+    const existing = await tx.address.findUnique({ where: { id: addressId } });
+    if (!existing || existing.patientId !== patientId) {
+      throw new Error('Endereço inválido para este paciente');
+    }
+    return existing;
+  }
+
+  const required = ['street', 'number', 'neighborhood', 'city', 'state'];
+  for (const field of required) {
+    if (!address?.[field]?.toString().trim()) {
+      throw new Error(`Endereço incompleto: informe ${field}`);
+    }
+  }
+
+  return tx.address.create({
+    data: {
+      patientId,
+      label: address.label?.trim() || 'Endereço',
+      street: address.street.trim(),
+      number: address.number.trim(),
+      complement: address.complement?.trim() || null,
+      neighborhood: address.neighborhood.trim(),
+      city: address.city.trim(),
+      state: address.state.trim(),
+      zipCode: address.zipCode?.trim() || null,
+      referencePoint: address.referencePoint?.trim() || null,
+    },
+  });
+}
+
 export async function createOrder(req, res) {
   try {
-    const {
-      patientName,
-      patientPhone,
-      patientCpf,
-      address,
-      neighborhood,
-      city,
-      state,
-      zipCode,
-      referencePoint,
-      internalNotes,
-      patientNotes,
-      freightValue,
-      items,
-    } = req.body;
-
-    if (!patientName?.trim() || !patientPhone?.trim() || !address?.trim() || !neighborhood?.trim()) {
-      return res.status(400).json({ error: 'Dados do paciente e endereço são obrigatórios' });
-    }
+    const { patientId, patient, addressId, address, internalNotes, patientNotes, items } = req.body;
 
     let validatedItems;
-    let validatedFreight;
     try {
       validatedItems = validateOrderItems(items);
-      validatedFreight = parsePositiveDecimal(freightValue, 'Valor do frete');
     } catch (validationError) {
       return res.status(400).json({ error: validationError.message });
     }
 
-    const orderNumber = await generateOrderNumber(prisma);
-    const initialStatus = 'AGUARDANDO_PAGAMENTO';
-
     const order = await prisma.$transaction(async (tx) => {
+      const resolvedPatient = await resolvePatient(tx, { patientId, patient });
+      const resolvedAddress = await resolveAddress(tx, { addressId, address }, resolvedPatient.id);
+
       const orderItemsData = await Promise.all(
         validatedItems.map(async (item) => {
           const med = await tx.medication.findUnique({ where: { id: item.medicationId } });
@@ -237,26 +249,28 @@ export async function createOrder(req, res) {
         })
       );
 
-      // Verifica disponibilidade sem baixar estoque (baixa ocorre em "Aguardando retirada")
-      await checkStockAvailability(tx, orderItemsData);
+      const orderNumber = await generateOrderNumber(tx);
 
       const created = await tx.order.create({
         data: {
           orderNumber,
-          patientName: patientName.trim(),
-          patientPhone: patientPhone.trim(),
-          patientCpf: patientCpf?.replace(/\D/g, '') || null,
-          address: address.trim(),
-          neighborhood: neighborhood.trim(),
-          city: city?.trim() || '',
-          state: state?.trim() || '',
-          zipCode: zipCode?.trim() || null,
-          referencePoint: referencePoint?.trim() || null,
+          patientId: resolvedPatient.id,
+          addressId: resolvedAddress.id,
+          patientName: resolvedPatient.name,
+          patientPhone: resolvedPatient.phone,
+          patientCpf: resolvedPatient.cpf,
+          street: resolvedAddress.street,
+          number: resolvedAddress.number,
+          complement: resolvedAddress.complement,
+          neighborhood: resolvedAddress.neighborhood,
+          city: resolvedAddress.city,
+          state: resolvedAddress.state,
+          zipCode: resolvedAddress.zipCode,
+          referencePoint: resolvedAddress.referencePoint,
           internalNotes: internalNotes?.trim() || null,
           patientNotes: patientNotes?.trim() || null,
-          freightValue: validatedFreight,
-          status: initialStatus,
-          stockReserved: false,
+          deliveryPin: generateDeliveryPin(),
+          status: 'PEDIDO_RECEBIDO',
           createdById: req.user.id,
           items: { create: orderItemsData },
         },
@@ -267,8 +281,8 @@ export async function createOrder(req, res) {
         orderId: created.id,
         userId: req.user.id,
         action: 'Pedido criado',
-        toStatus: initialStatus,
-        details: `Pedido ${orderNumber} registrado. Aguardando pagamento do frete.`,
+        toStatus: 'PEDIDO_RECEBIDO',
+        details: `Pedido ${orderNumber} registrado para entrega`,
       });
 
       return created;
@@ -277,7 +291,16 @@ export async function createOrder(req, res) {
     res.status(201).json(formatOrder(order));
   } catch (error) {
     console.error('Create order error:', error);
-    if (error.message?.includes('Estoque') || error.message?.includes('Medicamento') || error.message?.includes('Quantidade') || error.message?.includes('item') || error.message?.includes('frete') || error.message?.includes('Valor do frete')) {
+    if (
+      error.message?.includes('Medicamento') ||
+      error.message?.includes('Quantidade') ||
+      error.message?.includes('item') ||
+      error.message?.includes('paciente') ||
+      error.message?.includes('Paciente') ||
+      error.message?.includes('CPF') ||
+      error.message?.includes('Endereço') ||
+      error.message?.includes('endereço')
+    ) {
       return res.status(400).json({ error: error.message });
     }
     res.status(500).json({ error: 'Erro ao criar pedido' });
@@ -294,25 +317,14 @@ export async function updateOrder(req, res) {
       return res.status(404).json({ error: 'Pedido não encontrado' });
     }
 
-    if (['ENTREGUE', 'CANCELADO'].includes(existing.status)) {
-      return res.status(400).json({ error: 'Pedido finalizado não pode ser editado' });
+    if (!['PEDIDO_RECEBIDO', 'EM_SEPARACAO'].includes(existing.status)) {
+      return res.status(400).json({ error: 'Pedido só pode ser editado enquanto está recebido ou em separação' });
     }
 
-    if (hasUberFlashFields(body)) {
-      return res.status(400).json({
-        error: 'Dados do Uber Flash devem ser registrados após confirmação do pagamento',
-      });
-    }
-
-    if (body.freightValue !== undefined) {
-      if (existing.paymentConfirmed) {
-        return res.status(400).json({
-          error: 'Não é possível alterar o valor do frete após a confirmação do pagamento',
-        });
-      }
-
+    let validatedItems;
+    if (body.items !== undefined) {
       try {
-        parsePositiveDecimal(body.freightValue, 'Valor do frete');
+        validatedItems = validateOrderItems(body.items);
       } catch (validationError) {
         return res.status(400).json({ error: validationError.message });
       }
@@ -320,20 +332,27 @@ export async function updateOrder(req, res) {
 
     const order = await prisma.$transaction(async (tx) => {
       const updateData = {};
-
-      if (body.patientName !== undefined) updateData.patientName = body.patientName.trim();
-      if (body.patientPhone !== undefined) updateData.patientPhone = body.patientPhone.trim();
-      if (body.patientCpf !== undefined) updateData.patientCpf = body.patientCpf?.replace(/\D/g, '') || null;
-      if (body.address !== undefined) updateData.address = body.address.trim();
-      if (body.neighborhood !== undefined) updateData.neighborhood = body.neighborhood.trim();
-      if (body.city !== undefined) updateData.city = body.city.trim();
-      if (body.state !== undefined) updateData.state = body.state.trim();
-      if (body.zipCode !== undefined) updateData.zipCode = body.zipCode?.trim() || null;
-      if (body.referencePoint !== undefined) updateData.referencePoint = body.referencePoint?.trim() || null;
       if (body.internalNotes !== undefined) updateData.internalNotes = body.internalNotes?.trim() || null;
       if (body.patientNotes !== undefined) updateData.patientNotes = body.patientNotes?.trim() || null;
-      if (body.freightValue !== undefined) {
-        updateData.freightValue = parsePositiveDecimal(body.freightValue, 'Valor do frete');
+
+      if (validatedItems) {
+        const orderItemsData = await Promise.all(
+          validatedItems.map(async (item) => {
+            const med = await tx.medication.findUnique({ where: { id: item.medicationId } });
+            if (!med || !med.active) {
+              throw new Error(`Medicamento inválido: ${item.medicationId}`);
+            }
+            return {
+              medicationId: med.id,
+              medicationName: med.name,
+              quantity: item.quantity,
+              unit: med.unit,
+            };
+          })
+        );
+
+        await tx.orderItem.deleteMany({ where: { orderId: id } });
+        updateData.items = { create: orderItemsData };
       }
 
       const updated = await tx.order.update({
@@ -342,13 +361,9 @@ export async function updateOrder(req, res) {
         include: orderInclude,
       });
 
-      const auditEntries = buildOrderAuditEntries(existing, body, updated);
+      const auditEntries = buildOrderAuditEntries(existing, body);
       for (const entry of auditEntries) {
-        await addHistory(tx, {
-          orderId: id,
-          userId: req.user.id,
-          ...entry,
-        });
+        await addHistory(tx, { orderId: id, userId: req.user.id, ...entry });
       }
 
       return updated;
@@ -360,58 +375,10 @@ export async function updateOrder(req, res) {
     });
   } catch (error) {
     console.error('Update order error:', error);
+    if (error.message?.includes('Medicamento') || error.message?.includes('Quantidade')) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({ error: 'Erro ao atualizar pedido' });
-  }
-}
-
-export async function confirmPayment(req, res) {
-  try {
-    const { id } = req.params;
-
-    const existing = await prisma.order.findUnique({ where: { id } });
-    if (!existing) {
-      return res.status(404).json({ error: 'Pedido não encontrado' });
-    }
-
-    if (existing.paymentConfirmed) {
-      return res.status(400).json({ error: 'Pagamento já confirmado' });
-    }
-
-    if (!['PEDIDO_CRIADO', 'AGUARDANDO_PAGAMENTO'].includes(existing.status)) {
-      return res.status(400).json({ error: 'Pagamento só pode ser confirmado nesta etapa' });
-    }
-
-    const order = await prisma.$transaction(async (tx) => {
-      const updated = await tx.order.update({
-        where: { id },
-        data: {
-          paymentConfirmed: true,
-          paymentConfirmedAt: new Date(),
-          paymentConfirmedById: req.user.id,
-          status: 'FRETE_PAGO',
-        },
-        include: orderInclude,
-      });
-
-      await addHistory(tx, {
-        orderId: id,
-        userId: req.user.id,
-        action: 'Pagamento do frete confirmado',
-        fromStatus: existing.status,
-        toStatus: 'FRETE_PAGO',
-        details: `Frete de R$ ${Number(existing.freightValue).toFixed(2)} confirmado manualmente`,
-      });
-
-      return tx.order.findUnique({ where: { id }, include: orderInclude });
-    });
-
-    res.json({
-      ...formatOrder(order),
-      allowedTransitions: getAllowedTransitions(order),
-    });
-  } catch (error) {
-    console.error('Confirm payment error:', error);
-    res.status(500).json({ error: 'Erro ao confirmar pagamento' });
   }
 }
 
@@ -424,11 +391,7 @@ export async function updateStatus(req, res) {
       return res.status(400).json({ error: 'Status é obrigatório' });
     }
 
-    const existing = await prisma.order.findUnique({
-      where: { id },
-      include: { items: true },
-    });
-
+    const existing = await prisma.order.findUnique({ where: { id } });
     if (!existing) {
       return res.status(404).json({ error: 'Pedido não encontrado' });
     }
@@ -443,43 +406,11 @@ export async function updateStatus(req, res) {
       return res.status(400).json({ error: 'Motivo do cancelamento é obrigatório' });
     }
 
-    if (status === 'FRETE_PAGO' && !existing.paymentConfirmed) {
-      return res.status(400).json({ error: 'Confirme o pagamento antes de avançar' });
-    }
-
-    if (status === 'AGUARDANDO_RETIRADA') {
-      if (!existing.paymentConfirmed) {
-        return res.status(400).json({ error: 'Confirme o pagamento do frete antes de avançar' });
-      }
-      if (existing.deliveryService !== 'UBER_FLASH') {
-        return res.status(400).json({ error: 'Registre os dados do Uber Flash antes de avançar' });
-      }
-      if (!existing.deliveryPin) {
-        return res.status(400).json({ error: 'Registre o PIN do Uber Flash antes de avançar' });
-      }
-    }
-
     const order = await prisma.$transaction(async (tx) => {
       const updateData = {
         status,
         ...(status === 'CANCELADO' && { cancelReason: cancelReason.trim() }),
-        ...(status === 'ENTREGUE' && {
-          deliveredAt: new Date(),
-          deliveredById: req.user.id,
-        }),
       };
-
-      if (status === 'AGUARDANDO_RETIRADA' && !existing.stockReserved) {
-        await reserveStock(tx, existing.items);
-        updateData.stockReserved = true;
-
-        await addHistory(tx, {
-          orderId: id,
-          userId: req.user.id,
-          action: 'Estoque baixado',
-          details: 'Medicamentos reservados para separação e retirada',
-        });
-      }
 
       const updated = await tx.order.update({
         where: { id },
@@ -487,22 +418,7 @@ export async function updateStatus(req, res) {
         include: orderInclude,
       });
 
-      if (status === 'CANCELADO' && existing.stockReserved) {
-        await restoreStock(tx, existing.items);
-        await addHistory(tx, {
-          orderId: id,
-          userId: req.user.id,
-          action: 'Estoque devolvido',
-          details: 'Quantidades restauradas após cancelamento',
-        });
-      }
-
-      const statusAction =
-        status === 'CANCELADO'
-          ? 'Pedido cancelado'
-          : status === 'ENTREGUE'
-            ? 'Pedido entregue'
-            : 'Status alterado';
+      const statusAction = status === 'CANCELADO' ? 'Pedido cancelado' : 'Status alterado';
 
       await addHistory(tx, {
         orderId: id,
@@ -513,7 +429,7 @@ export async function updateStatus(req, res) {
         details: notes?.trim() || (status === 'CANCELADO' ? cancelReason.trim() : STATUS_LABELS[status]),
       });
 
-      return tx.order.findUnique({ where: { id }, include: orderInclude });
+      return updated;
     });
 
     res.json({
@@ -522,59 +438,70 @@ export async function updateStatus(req, res) {
     });
   } catch (error) {
     console.error('Update status error:', error);
-    if (error.message?.includes('Estoque')) {
-      return res.status(400).json({ error: error.message });
-    }
     res.status(500).json({ error: 'Erro ao atualizar status' });
   }
 }
 
-export async function registerUberFlash(req, res) {
+export async function confirmDelivery(req, res) {
   try {
     const { id } = req.params;
-    const { deliveryPin, trackingLink, deliveryNotes } = req.body;
+    const { pin } = req.body;
 
-    const existing = await prisma.order.findUnique({ where: { id } });
+    if (!pin?.trim()) {
+      return res.status(400).json({ error: 'Informe o PIN de confirmação' });
+    }
+
+    const existing = await prisma.order.findUnique({
+      where: { id },
+      include: { route: true },
+    });
+
     if (!existing) {
       return res.status(404).json({ error: 'Pedido não encontrado' });
     }
 
-    if (!existing.paymentConfirmed) {
-      return res.status(400).json({ error: 'Confirme o pagamento do frete antes de registrar o Uber Flash' });
+    if (existing.status !== 'EM_ROTA') {
+      return res.status(400).json({ error: 'Pedido não está em rota de entrega' });
     }
 
-    if (!['FRETE_PAGO', 'AGUARDANDO_RETIRADA', 'EM_ROTA'].includes(existing.status)) {
-      return res.status(400).json({ error: 'Dados do Uber Flash não podem ser alterados nesta etapa' });
+    const isOwningCourier = existing.route && existing.route.courierId === req.user.id;
+    if (req.user.role !== 'ADMIN' && !isOwningCourier) {
+      return res.status(403).json({ error: 'Você não é o entregador responsável por este pedido' });
     }
 
-    const pin = deliveryPin?.trim() || null;
-
-    if (!pin) {
-      return res.status(400).json({ error: 'PIN do Uber Flash é obrigatório' });
+    if (pin.trim() !== existing.deliveryPin) {
+      return res.status(400).json({ error: 'PIN incorreto' });
     }
 
     const order = await prisma.$transaction(async (tx) => {
       const updated = await tx.order.update({
         where: { id },
-        data: {
-          deliveryService: 'UBER_FLASH',
-          deliveryPin: pin,
-          trackingLink: trackingLink?.trim() || null,
-          deliveryNotes: deliveryNotes?.trim() || null,
-        },
+        data: { status: 'ENTREGUE', deliveredAt: new Date(), deliveredById: req.user.id },
         include: orderInclude,
       });
 
-      const auditBody = { deliveryPin: pin, trackingLink, deliveryNotes };
-      for (const entry of buildUberFlashAuditEntries(existing, auditBody)) {
-        await addHistory(tx, {
-          orderId: id,
-          userId: req.user.id,
-          ...entry,
+      await addHistory(tx, {
+        orderId: id,
+        userId: req.user.id,
+        action: 'Pedido entregue',
+        fromStatus: 'EM_ROTA',
+        toStatus: 'ENTREGUE',
+        details: 'Entrega confirmada com PIN',
+      });
+
+      if (existing.routeId) {
+        const remaining = await tx.order.count({
+          where: { routeId: existing.routeId, status: { notIn: ['ENTREGUE', 'CANCELADO'] } },
         });
+        if (remaining === 0) {
+          await tx.route.update({
+            where: { id: existing.routeId },
+            data: { status: 'FINALIZADA', finishedAt: new Date() },
+          });
+        }
       }
 
-      return tx.order.findUnique({ where: { id }, include: orderInclude });
+      return updated;
     });
 
     res.json({
@@ -582,8 +509,8 @@ export async function registerUberFlash(req, res) {
       allowedTransitions: getAllowedTransitions(order),
     });
   } catch (error) {
-    console.error('Register Uber Flash error:', error);
-    res.status(500).json({ error: 'Erro ao registrar dados do Uber Flash' });
+    console.error('Confirm delivery error:', error);
+    res.status(500).json({ error: 'Erro ao confirmar entrega' });
   }
 }
 
@@ -622,12 +549,27 @@ export async function addNote(req, res) {
   }
 }
 
+const PUBLIC_STATUS_MESSAGES = {
+  PEDIDO_RECEBIDO: 'Seu pedido foi registrado pela UPA e será separado em breve.',
+  EM_SEPARACAO: 'Seu medicamento está sendo separado na farmácia da UPA.',
+  SEPARADO: 'Seu medicamento já foi separado e será encaminhado para entrega.',
+  AGUARDANDO_SAIDA: 'Seu pedido está pronto e aguardando saída para entrega.',
+  EM_ROTA: 'Seu medicamento está a caminho do seu endereço.',
+  ENTREGUE: 'Entrega concluída com sucesso.',
+  CANCELADO: 'Este pedido foi cancelado.',
+};
+
 export async function getPublicOrder(req, res) {
   try {
     const order = await prisma.order.findUnique({
       where: { publicToken: req.params.token },
       include: {
         items: { select: { medicationName: true, quantity: true, unit: true } },
+        route: { select: { courier: { select: { name: true } } } },
+        history: {
+          orderBy: { createdAt: 'asc' },
+          select: { action: true, toStatus: true, createdAt: true },
+        },
       },
     });
 
@@ -635,38 +577,24 @@ export async function getPublicOrder(req, res) {
       return res.status(404).json({ error: 'Pedido não encontrado' });
     }
 
-    const statusMessages = {
-      PEDIDO_CRIADO: 'Seu pedido foi registrado pela UPA.',
-      AGUARDANDO_PAGAMENTO: 'Aguardando confirmação do pagamento do frete.',
-      FRETE_PAGO: 'Pagamento do frete confirmado. A UPA solicitará a entrega via Uber Flash.',
-      AGUARDANDO_RETIRADA: 'Entrega solicitada. Aguardando retirada do medicamento na UPA.',
-      EM_ROTA: 'Seu medicamento está em rota.',
-      ENTREGUE: 'Entrega concluída com sucesso.',
-      CANCELADO: 'Este pedido foi cancelado.',
-    };
-
     res.json({
       orderNumber: order.orderNumber,
       patientName: maskName(order.patientName),
       status: order.status,
       statusLabel: STATUS_LABELS[order.status],
-      statusMessage: statusMessages[order.status],
-      paymentConfirmed: order.paymentConfirmed,
-      uberFlashRegistered: order.deliveryService === 'UBER_FLASH',
-      deliveryService: order.deliveryService === 'UBER_FLASH' ? 'Uber Flash' : null,
-      trackingLink: order.trackingLink,
-      hasPin: !!order.deliveryPin,
-      deliveryPin: order.deliveryPin || null,
-      pinInstruction: order.deliveryPin
-        ? 'Informe este PIN ao entregador no momento do recebimento. Ele garante a entrega segura do medicamento.'
-        : order.paymentConfirmed
-          ? 'A UPA enviará orientações sobre o PIN quando a entrega for solicitada via Uber Flash.'
-          : 'Quando disponível, a UPA enviará orientações sobre o PIN de entrega.',
-      freightInfo: 'O medicamento não possui custo. O valor cobrado é referente apenas ao frete de entrega.',
+      statusMessage: PUBLIC_STATUS_MESSAGES[order.status],
+      courierName: order.route?.courier?.name || null,
+      deliveryPin: order.deliveryPin,
+      pinInstruction: 'Informe este código ao entregador no momento do recebimento. Ele garante a entrega segura do medicamento.',
       items: order.items.map((i) => ({
-        name: 'Medicamento',
+        name: i.medicationName,
         quantity: i.quantity,
         unit: i.unit,
+      })),
+      history: order.history.map((h) => ({
+        action: h.action,
+        statusLabel: h.toStatus ? STATUS_LABELS[h.toStatus] : null,
+        createdAt: h.createdAt,
       })),
       updatedAt: order.updatedAt,
       readOnly: true,
@@ -684,25 +612,21 @@ export async function getDashboardStats(req, res) {
       prisma.order.groupBy({ by: ['status'], _count: true }),
     ]);
 
-    const medications = await prisma.medication.findMany({
-      where: { active: true },
-      select: { quantity: true, minStock: true },
-    });
-    const lowStockCount = medications.filter((m) => m.quantity <= m.minStock).length;
+    const statusCounts = Object.fromEntries(byStatus.map((s) => [s.status, s._count]));
 
-    const pendingPayment = await prisma.order.count({
-      where: { status: 'AGUARDANDO_PAGAMENTO' },
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const deliveredToday = await prisma.order.count({
+      where: { status: 'ENTREGUE', deliveredAt: { gte: startOfToday } },
     });
-    const inRoute = await prisma.order.count({ where: { status: 'EM_ROTA' } });
-    const awaitingPickup = await prisma.order.count({ where: { status: 'AGUARDANDO_RETIRADA' } });
 
     res.json({
       total,
-      byStatus: Object.fromEntries(byStatus.map((s) => [s.status, s._count])),
-      pendingPayment,
-      inRoute,
-      awaitingPickup,
-      lowStockCount,
+      byStatus: statusCounts,
+      emSeparacao: statusCounts.EM_SEPARACAO || 0,
+      aguardandoSaida: statusCounts.AGUARDANDO_SAIDA || 0,
+      emRota: statusCounts.EM_ROTA || 0,
+      deliveredToday,
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);

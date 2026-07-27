@@ -5,7 +5,7 @@ export default function StatusBadge({ status, size = 'sm' }) {
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full font-medium ring-1 ring-inset whitespace-normal text-center leading-tight ${sizeClass} ${STATUS_COLORS[status] || STATUS_COLORS.PEDIDO_CRIADO}`}
+      className={`inline-flex items-center justify-center rounded-full font-medium ring-1 ring-inset whitespace-normal text-center leading-tight ${sizeClass} ${STATUS_COLORS[status] || STATUS_COLORS.PEDIDO_RECEBIDO}`}
     >
       {STATUS_LABELS[status] || status}
     </span>

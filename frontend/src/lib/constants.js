@@ -1,29 +1,22 @@
 export const STATUS_LABELS = {
-  PEDIDO_CRIADO: 'Pedido criado',
-  AGUARDANDO_PAGAMENTO: 'Aguardando frete',
-  FRETE_PAGO: 'Frete pago',
-  AGUARDANDO_RETIRADA: 'Aguardando retirada',
+  PEDIDO_RECEBIDO: 'Pedido recebido',
+  EM_SEPARACAO: 'Em separação',
+  SEPARADO: 'Separado',
+  AGUARDANDO_SAIDA: 'Aguardando saída',
   EM_ROTA: 'Em rota',
   ENTREGUE: 'Entregue',
   CANCELADO: 'Cancelado',
 };
 
 export const STATUS_COLORS = {
-  PEDIDO_CRIADO: 'bg-slate-100 text-slate-700 ring-slate-200',
-  AGUARDANDO_PAGAMENTO: 'bg-slate-50 text-slate-700 ring-slate-200',
-  FRETE_PAGO: 'bg-upa-50 text-upa-800 ring-upa-200',
-  AGUARDANDO_RETIRADA: 'bg-upa-100/70 text-upa-800 ring-upa-200',
+  PEDIDO_RECEBIDO: 'bg-slate-100 text-slate-700 ring-slate-200',
+  EM_SEPARACAO: 'bg-slate-50 text-slate-700 ring-slate-200',
+  SEPARADO: 'bg-upa-50 text-upa-800 ring-upa-200',
+  AGUARDANDO_SAIDA: 'bg-upa-100/70 text-upa-800 ring-upa-200',
   EM_ROTA: 'bg-upa-100 text-upa-900 ring-upa-300',
   ENTREGUE: 'bg-upa-800 text-white ring-upa-700',
   CANCELADO: 'bg-red-50 text-red-800 ring-red-200',
 };
-
-export function formatCurrency(value) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(Number(value) || 0);
-}
 
 export function formatDate(date) {
   if (!date) return '-';
@@ -49,9 +42,10 @@ export function formatPhone(phone) {
 }
 
 export const KANBAN_COLUMNS = [
-  'AGUARDANDO_PAGAMENTO',
-  'FRETE_PAGO',
-  'AGUARDANDO_RETIRADA',
+  'PEDIDO_RECEBIDO',
+  'EM_SEPARACAO',
+  'SEPARADO',
+  'AGUARDANDO_SAIDA',
   'EM_ROTA',
   'ENTREGUE',
 ];

@@ -10,20 +10,22 @@ datasource db {
 enum UserRole {
   ADMIN
   OPERADOR
+  ENTREGADOR
 }
 
 enum OrderStatus {
-  PEDIDO_CRIADO
-  AGUARDANDO_PAGAMENTO
-  FRETE_PAGO
-  AGUARDANDO_RETIRADA
+  PEDIDO_RECEBIDO
+  EM_SEPARACAO
+  SEPARADO
+  AGUARDANDO_SAIDA
   EM_ROTA
   ENTREGUE
   CANCELADO
 }
 
-enum DeliveryService {
-  UBER_FLASH
+enum RouteStatus {
+  EM_ANDAMENTO
+  FINALIZADA
 }
 
 model User {
@@ -32,64 +34,115 @@ model User {
   email     String   @unique
   password  String
   role      UserRole @default(OPERADOR)
+  phone     String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  ordersCreated  Order[]        @relation("CreatedBy")
-  historyEntries OrderHistory[]
+  ordersCreated   Order[]        @relation("CreatedBy")
+  ordersDelivered Order[]        @relation("DeliveredBy")
+  historyEntries  OrderHistory[]
+  routesAsCourier Route[]        @relation("CourierRoutes")
+  routesCreated   Route[]        @relation("RouteCreatedBy")
+}
+
+model Patient {
+  id        String   @id @default(uuid())
+  name      String
+  cpf       String   @unique
+  phone     String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  addresses Address[]
+  orders    Order[]
+}
+
+model Address {
+  id             String   @id @default(uuid())
+  patientId      String
+  label          String
+  street         String
+  number         String
+  complement     String?
+  neighborhood   String
+  city           String
+  state          String
+  zipCode        String?
+  referencePoint String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  orders  Order[]
 }
 
 model Medication {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  unit        String   @default("unidade")
-  quantity    Int      @default(0)
-  minStock    Int      @default(5)
-  active      Boolean  @default(true)
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  name      String
+  unit      String   @default("unidade")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   orderItems OrderItem[]
 }
 
-model Order {
-  id                   String           @id @default(uuid())
-  orderNumber          String           @unique
-  patientName          String
-  patientPhone         String
-  patientCpf           String?
-  address              String
-  neighborhood         String
-  city                 String           @default("")
-  state                String           @default("")
-  zipCode              String?
-  referencePoint       String?
-  internalNotes        String?
-  patientNotes         String?
-  freightValue         Decimal          @db.Decimal(10, 2)
-  paymentConfirmed     Boolean          @default(false)
-  paymentConfirmedAt   DateTime?
-  paymentConfirmedById String?
-  deliveryService      DeliveryService?
-  deliveryPin          String?
-  trackingLink         String?
-  deliveryNotes        String?
-  status               OrderStatus      @default(PEDIDO_CRIADO)
-  publicToken          String           @unique @default(uuid())
-  deliveredAt          DateTime?
-  deliveredById        String?
-  cancelReason         String?
-  stockReserved        Boolean          @default(false)
-  createdById          String
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
+model Route {
+  id          String      @id @default(uuid())
+  routeNumber String      @unique
+  courierId   String
+  createdById String
+  status      RouteStatus @default(EM_ANDAMENTO)
+  notes       String?
+  startedAt   DateTime    @default(now())
+  finishedAt  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  createdBy User         @relation("CreatedBy", fields: [createdById], references: [id])
-  items     OrderItem[]
-  history   OrderHistory[]
+  courier   User    @relation("CourierRoutes", fields: [courierId], references: [id])
+  createdBy User    @relation("RouteCreatedBy", fields: [createdById], references: [id])
+  orders    Order[]
+}
+
+model Order {
+  id             String      @id @default(uuid())
+  orderNumber    String      @unique
+  patientId      String
+  addressId      String
+  patientName    String
+  patientPhone   String
+  patientCpf     String
+  street         String
+  number         String
+  complement     String?
+  neighborhood   String
+  city           String
+  state          String
+  zipCode        String?
+  referencePoint String?
+  internalNotes  String?
+  patientNotes   String?
+  deliveryPin    String
+  routeId        String?
+  routeSequence  Int?
+  status         OrderStatus @default(PEDIDO_RECEBIDO)
+  publicToken    String      @unique @default(uuid())
+  deliveredAt    DateTime?
+  deliveredById  String?
+  cancelReason   String?
+  createdById    String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  patient     Patient        @relation(fields: [patientId], references: [id])
+  address     Address        @relation(fields: [addressId], references: [id])
+  createdBy   User           @relation("CreatedBy", fields: [createdById], references: [id])
+  deliveredBy User?          @relation("DeliveredBy", fields: [deliveredById], references: [id])
+  route       Route?         @relation(fields: [routeId], references: [id])
+  items       OrderItem[]
+  history     OrderHistory[]
 }
 
 model OrderItem {
