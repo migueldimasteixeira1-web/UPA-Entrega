@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './lib/auth';
+import { ToastProvider } from './lib/toast';
 import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -26,42 +27,44 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route element={<PublicRoute />}>
-              <Route path="/login" element={<Login />} />
-            </Route>
-
-            <Route path="/acompanhar/:token" element={<PublicTracking />} />
-
-            <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OPERADOR']} />}>
-              <Route path="/pedidos/:id/etiqueta" element={<OrderLabel />} />
-              <Route element={<Layout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="/pedidos/novo" element={<NewOrder />} />
-                <Route path="/pedidos/:id" element={<OrderDetail />} />
-                <Route path="/rotas" element={<DeliveryRoutes />} />
-                <Route path="/medicamentos" element={<Medications />} />
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route element={<PublicRoute />}>
+                <Route path="/login" element={<Login />} />
               </Route>
-            </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
-              <Route element={<Layout />}>
-                <Route path="/usuarios" element={<Users />} />
+              <Route path="/acompanhar/:token" element={<PublicTracking />} />
+
+              <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'OPERADOR']} />}>
+                <Route path="/pedidos/:id/etiqueta" element={<OrderLabel />} />
+                <Route element={<Layout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="/pedidos/novo" element={<NewOrder />} />
+                  <Route path="/pedidos/:id" element={<OrderDetail />} />
+                  <Route path="/rotas" element={<DeliveryRoutes />} />
+                  <Route path="/medicamentos" element={<Medications />} />
+                </Route>
               </Route>
-            </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={['ENTREGADOR']} />}>
-              <Route element={<Layout />}>
-                <Route path="/entregas" element={<MyDeliveries />} />
+              <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+                <Route element={<Layout />}>
+                  <Route path="/usuarios" element={<Users />} />
+                </Route>
               </Route>
-            </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
+              <Route element={<ProtectedRoute allowedRoles={['ENTREGADOR']} />}>
+                <Route element={<Layout />}>
+                  <Route path="/entregas" element={<MyDeliveries />} />
+                </Route>
+              </Route>
+
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

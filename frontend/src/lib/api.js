@@ -70,8 +70,14 @@ export const api = {
   createPatient: (data) =>
     request('/api/patients', { method: 'POST', body: JSON.stringify(data) }),
 
+  updatePatient: (id, data) =>
+    request(`/api/patients/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
   addPatientAddress: (patientId, data) =>
     request(`/api/patients/${patientId}/addresses`, { method: 'POST', body: JSON.stringify(data) }),
+
+  updatePatientAddress: (patientId, addressId, data) =>
+    request(`/api/patients/${patientId}/addresses/${addressId}`, { method: 'PUT', body: JSON.stringify(data) }),
 
   getDeliveryRoutes: (params = {}) => {
     const query = new URLSearchParams(params).toString();

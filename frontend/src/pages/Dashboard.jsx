@@ -13,7 +13,9 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { formatDate, KANBAN_COLUMNS, STATUS_LABELS } from '../lib/constants';
+import { useDebouncedValue } from '../lib/useDebouncedValue';
 import StatusBadge from '../components/StatusBadge';
+import { SkeletonKanban } from '../components/Skeleton';
 
 function OrderCard({ order }) {
   return (
@@ -66,12 +68,13 @@ function EmptyColumn() {
 
 export default function Dashboard() {
   const [view, setView] = useState('kanban');
+  const [searchInput, setSearchInput] = useState('');
   const [filters, setFilters] = useState({
-    search: '',
     status: '',
     dateFrom: '',
     dateTo: '',
   });
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
 
   const { data: stats } = useQuery({
     queryKey: ['stats'],
@@ -79,11 +82,13 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
+  const queryFilters = { ...filters, search: debouncedSearch };
+
   const { data: orders = [], isLoading } = useQuery({
-    queryKey: ['orders', filters],
+    queryKey: ['orders', queryFilters],
     queryFn: () =>
       api.getOrders(
-        Object.fromEntries(Object.entries(filters).filter(([, v]) => v))
+        Object.fromEntries(Object.entries(queryFilters).filter(([, v]) => v))
       ),
     refetchInterval: 15000,
   });
@@ -137,8 +142,8 @@ export default function Dashboard() {
             <input
               type="text"
               placeholder="Buscar por paciente, pedido, bairro..."
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none"
             />
           </div>
@@ -185,10 +190,7 @@ export default function Dashboard() {
         </div>
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="animate-spin rounded-full h-10 w-10 border-4 border-upa-600 border-t-transparent" />
-            <p className="text-sm text-slate-500">Carregando pedidos...</p>
-          </div>
+          <SkeletonKanban />
         ) : view === 'kanban' ? (
           <div className="-mx-4 sm:mx-0">
             <p className="text-xs text-slate-400 mb-3 px-4 sm:px-0 xl:hidden">Deslize para ver todas as etapas</p>

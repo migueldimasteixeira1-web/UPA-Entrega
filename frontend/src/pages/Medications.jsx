@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pill, Edit2 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
+import { MEDICATION_UNITS } from '../lib/constants';
+import { useToast } from '../lib/toast';
 import Modal from '../components/Modal';
 import Alert from '../components/Alert';
 
@@ -17,6 +19,7 @@ export default function Medications() {
   const [form, setForm] = useState(emptyMed);
   const [formError, setFormError] = useState('');
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   const { data: medications = [], isLoading } = useQuery({
     queryKey: ['medications'],
@@ -28,6 +31,7 @@ export default function Medications() {
       editing ? api.updateMedication(editing.id, data) : api.createMedication(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medications'] });
+      showToast(editing ? 'Medicamento atualizado' : 'Medicamento criado');
       setModalOpen(false);
       setEditing(null);
       setForm(emptyMed);
@@ -141,11 +145,15 @@ export default function Medications() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Unidade</label>
-            <input
+            <select
               value={form.unit}
               onChange={(e) => setForm({ ...form, unit: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none"
-            />
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none bg-white"
+            >
+              {MEDICATION_UNITS.map((unit) => (
+                <option key={unit} value={unit}>{unit}</option>
+              ))}
+            </select>
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input

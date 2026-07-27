@@ -4,6 +4,7 @@ import { MapPin, Phone, Package, KeyRound, CheckCircle2, Navigation } from 'luci
 import { api, ApiError } from '../lib/api';
 import { formatPhone } from '../lib/constants';
 import { buildMapsUrl } from '../lib/masks';
+import { useToast } from '../lib/toast';
 import Alert from '../components/Alert';
 import Modal from '../components/Modal';
 
@@ -12,6 +13,7 @@ export default function MyDeliveries() {
   const [pin, setPin] = useState('');
   const [modalError, setModalError] = useState('');
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   const { data: routes = [], isLoading } = useQuery({
     queryKey: ['delivery-routes', 'mine'],
@@ -23,6 +25,7 @@ export default function MyDeliveries() {
     mutationFn: () => api.confirmDelivery(confirmOrder.id, pin),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-routes', 'mine'] });
+      showToast('Entrega confirmada com sucesso');
       setConfirmOrder(null);
       setPin('');
       setModalError('');

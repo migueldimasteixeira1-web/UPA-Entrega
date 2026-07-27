@@ -49,3 +49,21 @@ export const KANBAN_COLUMNS = [
   'EM_ROTA',
   'ENTREGUE',
 ];
+
+// Mantido em espelho com backend/src/lib/constants.js (MEDICATION_UNITS) —
+// unidade de medicamento é cadastral, não texto livre.
+export const MEDICATION_UNITS = [
+  'unidade',
+  'comprimido',
+  'cápsula',
+  'mL',
+  'mg',
+  'frasco',
+  'ampola',
+  'caixa',
+  'tubo',
+  'sachê',
+  'gotas',
+];
+
+export const ADDRESS_LABELS = ['Residência', 'Trabalho', 'Casa de familiar', 'Outro'];

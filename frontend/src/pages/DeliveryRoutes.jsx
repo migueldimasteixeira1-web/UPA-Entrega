@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Truck, Package, CheckCircle2, Circle, Route as RouteIcon } from 'lucide-react';
+import { Truck, Package, CheckCircle2, Circle, Route as RouteIcon, ChevronUp, ChevronDown } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { formatDate } from '../lib/constants';
+import { useToast } from '../lib/toast';
 import Alert from '../components/Alert';
 
 export default function DeliveryRoutes() {
@@ -11,6 +12,7 @@ export default function DeliveryRoutes() {
   const [courierId, setCourierId] = useState('');
   const [error, setError] = useState('');
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   const { data: readyOrders = [], isLoading: loadingOrders } = useQuery({
     queryKey: ['orders', { status: 'AGUARDANDO_SAIDA' }],
@@ -32,19 +34,30 @@ export default function DeliveryRoutes() {
 
   const createRouteMutation = useMutation({
     mutationFn: (data) => api.createDeliveryRoute(data),
-    onSuccess: () => {
+    onSuccess: (route) => {
       setError('');
       setSelectedOrderIds([]);
       setCourierId('');
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['delivery-routes'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
+      showToast(`Rota ${route.routeNumber} criada com ${route.orders.length} pedido(s)`);
     },
     onError: (err) => setError(err instanceof ApiError ? err.message : 'Erro ao criar rota'),
   });
 
   const toggleOrder = (orderId) => {
     setSelectedOrderIds((ids) => (ids.includes(orderId) ? ids.filter((i) => i !== orderId) : [...ids, orderId]));
+  };
+
+  const moveSelected = (index, direction) => {
+    setSelectedOrderIds((ids) => {
+      const target = index + direction;
+      if (target < 0 || target >= ids.length) return ids;
+      const next = [...ids];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
   };
 
   const handleCreateRoute = () => {
@@ -98,6 +111,51 @@ export default function DeliveryRoutes() {
                 </div>
               </label>
             ))}
+          </div>
+        )}
+
+        {selectedOrderIds.length > 0 && (
+          <div className="mb-6">
+            <p className="text-sm font-medium text-slate-700 mb-2">
+              Ordem de entrega ({selectedOrderIds.length})
+            </p>
+            <div className="space-y-2">
+              {selectedOrderIds.map((id, index) => {
+                const order = readyOrders.find((o) => o.id === id);
+                if (!order) return null;
+                return (
+                  <div key={id} className="flex items-center gap-3 rounded-xl border border-slate-200 p-2.5">
+                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-upa-800 text-white text-xs font-bold shrink-0">
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-800 truncate">{order.patientName}</p>
+                      <p className="text-xs text-slate-500">{order.orderNumber}</p>
+                    </div>
+                    <div className="flex flex-col shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => moveSelected(index, -1)}
+                        disabled={index === 0}
+                        className="inline-flex items-center justify-center h-5 w-7 text-slate-400 hover:text-upa-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                        aria-label="Mover para cima"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveSelected(index, 1)}
+                        disabled={index === selectedOrderIds.length - 1}
+                        className="inline-flex items-center justify-center h-5 w-7 text-slate-400 hover:text-upa-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                        aria-label="Mover para baixo"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

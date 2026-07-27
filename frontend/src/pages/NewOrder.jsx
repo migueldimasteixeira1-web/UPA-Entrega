@@ -12,12 +12,19 @@ import {
   ClipboardList,
   UserPlus,
   UserCheck,
+  Pencil,
 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
+import { ADDRESS_LABELS } from '../lib/constants';
 import { maskCep, maskCpf, maskPhone, onlyDigits } from '../lib/masks';
 import { fetchAddressByCep } from '../lib/viacep';
+import { useToast } from '../lib/toast';
 import Alert from '../components/Alert';
+import Modal from '../components/Modal';
 import FormField, { inputClassName, readOnlyInputClassName } from '../components/FormField';
+import QuantityStepper from '../components/QuantityStepper';
+
+const FIXED_ADDRESS_LABELS = ADDRESS_LABELS.filter((l) => l !== 'Outro');
 
 const STEPS = [
   { label: 'Paciente', icon: User },
@@ -64,8 +71,15 @@ export default function NewOrder() {
   const [cepMessage, setCepMessage] = useState('');
   const [streetFromCep, setStreetFromCep] = useState(false);
   const [touchedAddressFields, setTouchedAddressFields] = useState(() => new Set());
+  const [editPatientOpen, setEditPatientOpen] = useState(false);
+  const [editPatientForm, setEditPatientForm] = useState({ name: '', phone: '', notes: '' });
+  const [editPatientError, setEditPatientError] = useState('');
+  const [editingAddress, setEditingAddress] = useState(null);
+  const [editAddressForm, setEditAddressForm] = useState(null);
+  const [editAddressError, setEditAddressError] = useState('');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   const { data: medications = [] } = useQuery({
     queryKey: ['medications', { active: true }],
@@ -81,6 +95,62 @@ export default function NewOrder() {
     },
     onError: (err) => setError(err instanceof ApiError ? err.message : 'Erro ao criar pedido. Tente novamente.'),
   });
+
+  const updatePatientMutation = useMutation({
+    mutationFn: (data) => api.updatePatient(form.patient.id, data),
+    onSuccess: (updatedPatient) => {
+      setForm((f) => ({ ...f, patient: { ...updatedPatient, addresses: f.patient.addresses } }));
+      setEditPatientOpen(false);
+      setEditPatientError('');
+      showToast('Dados do paciente atualizados');
+    },
+    onError: (err) =>
+      setEditPatientError(err instanceof ApiError ? err.message : 'Erro ao atualizar paciente'),
+  });
+
+  const updateAddressMutation = useMutation({
+    mutationFn: (data) => api.updatePatientAddress(form.patient.id, editingAddress.id, data),
+    onSuccess: (updatedAddress) => {
+      setForm((f) => ({
+        ...f,
+        patient: {
+          ...f.patient,
+          addresses: f.patient.addresses.map((a) => (a.id === updatedAddress.id ? updatedAddress : a)),
+        },
+      }));
+      setEditingAddress(null);
+      setEditAddressError('');
+      showToast('Endereço atualizado');
+    },
+    onError: (err) =>
+      setEditAddressError(err instanceof ApiError ? err.message : 'Erro ao atualizar endereço'),
+  });
+
+  const openEditPatient = () => {
+    setEditPatientForm({
+      name: form.patient.name,
+      phone: maskPhone(form.patient.phone),
+      notes: form.patient.notes || '',
+    });
+    setEditPatientError('');
+    setEditPatientOpen(true);
+  };
+
+  const openEditAddress = (addr) => {
+    setEditingAddress(addr);
+    setEditAddressForm({
+      label: addr.label,
+      zipCode: addr.zipCode ? maskCep(addr.zipCode) : '',
+      street: addr.street,
+      number: addr.number,
+      complement: addr.complement || '',
+      neighborhood: addr.neighborhood,
+      city: addr.city,
+      state: addr.state,
+      referencePoint: addr.referencePoint || '',
+    });
+    setEditAddressError('');
+  };
 
   const updateField = (field, value) => setForm((f) => ({ ...f, [field]: value }));
   const updateNewPatient = (field, value) =>
@@ -367,13 +437,22 @@ export default function NewOrder() {
                     <p className="text-sm text-emerald-800 mt-1">{form.patient.name}</p>
                     <p className="text-sm text-emerald-700/90">{maskPhone(form.patient.phone)}</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={resetPatientSearch}
-                    className="text-xs text-emerald-800 underline hover:text-emerald-950 shrink-0"
-                  >
-                    Buscar outro
-                  </button>
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={resetPatientSearch}
+                      className="text-xs text-emerald-800 underline hover:text-emerald-950"
+                    >
+                      Buscar outro
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openEditPatient}
+                      className="inline-flex items-center gap-1 text-xs text-emerald-800 underline hover:text-emerald-950"
+                    >
+                      <Pencil className="w-3 h-3" /> Editar dados
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -448,7 +527,7 @@ export default function NewOrder() {
                       }
                       className="mt-1"
                     />
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-slate-800">{addr.label}</p>
                       <p className="text-sm text-slate-600">
                         {addr.street}, {addr.number}
@@ -458,6 +537,18 @@ export default function NewOrder() {
                         {addr.neighborhood}, {addr.city}/{addr.state}
                       </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openEditAddress(addr);
+                      }}
+                      className="inline-flex items-center justify-center min-h-9 min-w-9 shrink-0 rounded-lg text-slate-400 hover:text-upa-700 hover:bg-white"
+                      aria-label={`Editar endereço ${addr.label}`}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
                   </label>
                 ))}
 
@@ -474,14 +565,30 @@ export default function NewOrder() {
 
             {showNewAddressForm && (
               <div className="space-y-4">
-                <FormField label="Identificação do endereço" htmlFor="addressLabel" hint="Ex.: Residência, Trabalho, Casa de familiar">
-                  <input
+                <FormField label="Identificação do endereço" htmlFor="addressLabel">
+                  <select
                     id="addressLabel"
-                    value={form.newAddress.label}
-                    onChange={(e) => updateNewAddress('label', e.target.value)}
-                    className={inputClassName()}
-                  />
+                    value={FIXED_ADDRESS_LABELS.includes(form.newAddress.label) ? form.newAddress.label : 'Outro'}
+                    onChange={(e) => updateNewAddress('label', e.target.value === 'Outro' ? '' : e.target.value)}
+                    className={inputClassName(false, 'bg-white')}
+                  >
+                    {ADDRESS_LABELS.map((label) => (
+                      <option key={label} value={label}>{label}</option>
+                    ))}
+                  </select>
                 </FormField>
+
+                {!FIXED_ADDRESS_LABELS.includes(form.newAddress.label) && (
+                  <FormField label="Descreva o endereço" htmlFor="addressLabelCustom" hint="Ex.: Casa da vizinha">
+                    <input
+                      id="addressLabelCustom"
+                      value={form.newAddress.label}
+                      onChange={(e) => updateNewAddress('label', e.target.value)}
+                      className={inputClassName()}
+                      placeholder="Descrição do endereço"
+                    />
+                  </FormField>
+                )}
 
                 <FormField
                   label="CEP"
@@ -591,14 +698,11 @@ export default function NewOrder() {
                     </select>
                   </FormField>
                 </div>
-                <div className="w-full sm:w-24">
+                <div className="w-full sm:w-auto">
                   <FormField label="Qtd">
-                    <input
-                      type="number"
-                      min="1"
+                    <QuantityStepper
                       value={item.quantity}
-                      onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                      className={inputClassName()}
+                      onChange={(next) => updateItem(index, 'quantity', next)}
                     />
                   </FormField>
                 </div>
@@ -738,6 +842,154 @@ export default function NewOrder() {
           )}
         </div>
       </div>
+
+      <Modal open={editPatientOpen} onClose={() => setEditPatientOpen(false)} title="Editar dados do paciente">
+        <div className="space-y-4">
+          {editPatientError && <Alert message={editPatientError} onDismiss={() => setEditPatientError('')} />}
+          <FormField label="Nome" htmlFor="editPatientName">
+            <input
+              id="editPatientName"
+              value={editPatientForm.name}
+              onChange={(e) => setEditPatientForm((f) => ({ ...f, name: e.target.value }))}
+              className={inputClassName()}
+            />
+          </FormField>
+          <FormField label="Telefone" htmlFor="editPatientPhone">
+            <input
+              id="editPatientPhone"
+              value={editPatientForm.phone}
+              onChange={(e) => setEditPatientForm((f) => ({ ...f, phone: maskPhone(e.target.value) }))}
+              className={inputClassName()}
+              inputMode="tel"
+            />
+          </FormField>
+          <FormField label="Observações" htmlFor="editPatientNotes">
+            <textarea
+              id="editPatientNotes"
+              value={editPatientForm.notes}
+              onChange={(e) => setEditPatientForm((f) => ({ ...f, notes: e.target.value }))}
+              rows={3}
+              className={`${inputClassName()} resize-none`}
+            />
+          </FormField>
+          <button
+            type="button"
+            onClick={() =>
+              updatePatientMutation.mutate({
+                name: editPatientForm.name.trim(),
+                phone: onlyDigits(editPatientForm.phone),
+                notes: editPatientForm.notes.trim() || null,
+              })
+            }
+            disabled={!editPatientForm.name?.trim() || updatePatientMutation.isPending}
+            className="w-full py-3 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 disabled:opacity-60"
+          >
+            {updatePatientMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
+          </button>
+        </div>
+      </Modal>
+
+      <Modal open={!!editingAddress} onClose={() => setEditingAddress(null)} title="Editar endereço">
+        {editAddressForm && (
+          <div className="space-y-4">
+            {editAddressError && <Alert message={editAddressError} onDismiss={() => setEditAddressError('')} />}
+            <FormField label="Identificação do endereço" htmlFor="editAddressLabel">
+              <select
+                id="editAddressLabel"
+                value={FIXED_ADDRESS_LABELS.includes(editAddressForm.label) ? editAddressForm.label : 'Outro'}
+                onChange={(e) =>
+                  setEditAddressForm((f) => ({ ...f, label: e.target.value === 'Outro' ? '' : e.target.value }))
+                }
+                className={inputClassName(false, 'bg-white')}
+              >
+                {ADDRESS_LABELS.map((label) => (
+                  <option key={label} value={label}>{label}</option>
+                ))}
+              </select>
+            </FormField>
+            {!FIXED_ADDRESS_LABELS.includes(editAddressForm.label) && (
+              <FormField label="Descreva o endereço" htmlFor="editAddressLabelCustom">
+                <input
+                  id="editAddressLabelCustom"
+                  value={editAddressForm.label}
+                  onChange={(e) => setEditAddressForm((f) => ({ ...f, label: e.target.value }))}
+                  className={inputClassName()}
+                />
+              </FormField>
+            )}
+            <FormField label="Rua" htmlFor="editAddressStreet">
+              <input
+                id="editAddressStreet"
+                value={editAddressForm.street}
+                onChange={(e) => setEditAddressForm((f) => ({ ...f, street: e.target.value }))}
+                className={inputClassName()}
+              />
+            </FormField>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <FormField label="Número" htmlFor="editAddressNumber">
+                <input
+                  id="editAddressNumber"
+                  value={editAddressForm.number}
+                  onChange={(e) => setEditAddressForm((f) => ({ ...f, number: e.target.value }))}
+                  className={inputClassName()}
+                />
+              </FormField>
+              <FormField label="Complemento" htmlFor="editAddressComplement">
+                <input
+                  id="editAddressComplement"
+                  value={editAddressForm.complement}
+                  onChange={(e) => setEditAddressForm((f) => ({ ...f, complement: e.target.value }))}
+                  className={inputClassName()}
+                />
+              </FormField>
+            </div>
+            <FormField label="Bairro" htmlFor="editAddressNeighborhood">
+              <input
+                id="editAddressNeighborhood"
+                value={editAddressForm.neighborhood}
+                onChange={(e) => setEditAddressForm((f) => ({ ...f, neighborhood: e.target.value }))}
+                className={inputClassName()}
+              />
+            </FormField>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <FormField label="Cidade" htmlFor="editAddressCity">
+                <input
+                  id="editAddressCity"
+                  value={editAddressForm.city}
+                  onChange={(e) => setEditAddressForm((f) => ({ ...f, city: e.target.value }))}
+                  className={inputClassName()}
+                />
+              </FormField>
+              <FormField label="Estado (UF)" htmlFor="editAddressState">
+                <input
+                  id="editAddressState"
+                  value={editAddressForm.state}
+                  onChange={(e) => setEditAddressForm((f) => ({ ...f, state: e.target.value }))}
+                  className={inputClassName()}
+                />
+              </FormField>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                updateAddressMutation.mutate({
+                  label: editAddressForm.label.trim() || 'Endereço',
+                  street: editAddressForm.street.trim(),
+                  number: editAddressForm.number.trim(),
+                  complement: editAddressForm.complement.trim() || undefined,
+                  neighborhood: editAddressForm.neighborhood.trim(),
+                  city: editAddressForm.city.trim(),
+                  state: editAddressForm.state.trim(),
+                })
+              }
+              disabled={!editAddressForm.street?.trim() || updateAddressMutation.isPending}
+              className="w-full py-3 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 disabled:opacity-60"
+            >
+              {updateAddressMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
+            </button>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

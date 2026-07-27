@@ -5,6 +5,7 @@ import { api, ApiError } from '../lib/api';
 import Modal from '../components/Modal';
 import Alert from '../components/Alert';
 import { formatDate } from '../lib/constants';
+import { useToast } from '../lib/toast';
 
 const emptyUser = { name: '', email: '', password: '', role: 'OPERADOR' };
 
@@ -16,6 +17,7 @@ export default function Users() {
   const [formError, setFormError] = useState('');
   const [resetError, setResetError] = useState('');
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
@@ -26,6 +28,7 @@ export default function Users() {
     mutationFn: (data) => api.createUser(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      showToast('Usuário criado');
       setModalOpen(false);
       setForm(emptyUser);
       setFormError('');
@@ -42,6 +45,7 @@ export default function Users() {
   const resetMutation = useMutation({
     mutationFn: ({ id, password }) => api.resetPassword(id, password),
     onSuccess: () => {
+      showToast('Senha redefinida');
       setResetModal(null);
       setNewPassword('');
       setResetError('');
