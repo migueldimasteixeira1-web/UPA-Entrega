@@ -60,7 +60,7 @@ import {
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-export function createApp() {
+export function createApp({ loginRateLimit } = {}) {
   const app = express();
 
   app.use(helmet());
@@ -77,8 +77,8 @@ export function createApp() {
 
   // Login sem limite de tentativas seria um alvo fácil de força bruta.
   const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 10,
+    windowMs: loginRateLimit?.windowMs ?? 15 * 60 * 1000,
+    limit: loginRateLimit?.limit ?? 10,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Muitas tentativas de login. Tente novamente em alguns minutos.' },
