@@ -50,10 +50,6 @@ export async function createPatient(req, res) {
   try {
     const { name, cpf, phone, notes } = req.body;
 
-    if (!name?.trim() || !phone?.trim()) {
-      return res.status(400).json({ error: 'Nome e telefone são obrigatórios' });
-    }
-
     let cpfDigits;
     try {
       cpfDigits = validateCpf(cpf);
@@ -83,12 +79,49 @@ export async function createPatient(req, res) {
   }
 }
 
-function validateAddressPayload(body) {
-  const required = ['street', 'number', 'neighborhood', 'city', 'state'];
-  for (const field of required) {
-    if (!body[field]?.toString().trim()) {
-      throw new Error(`Campo de endereço obrigatório ausente: ${field}`);
+export async function updatePatient(req, res) {
+  try {
+    const { id } = req.params;
+    const { name, phone, cpf, notes, active } = req.body;
+
+    const existing = await prisma.patient.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Paciente não encontrado' });
     }
+
+    const updateData = {};
+    if (name !== undefined) updateData.name = name.trim();
+    if (phone !== undefined) updateData.phone = phone.trim();
+    if (notes !== undefined) updateData.notes = notes?.trim() || null;
+    if (active !== undefined) updateData.active = active;
+
+    if (cpf !== undefined) {
+      let cpfDigits;
+      try {
+        cpfDigits = validateCpf(cpf);
+      } catch (validationError) {
+        return res.status(400).json({ error: validationError.message });
+      }
+
+      if (cpfDigits !== existing.cpf) {
+        const cpfInUse = await prisma.patient.findUnique({ where: { cpf: cpfDigits } });
+        if (cpfInUse) {
+          return res.status(409).json({ error: 'Já existe um paciente cadastrado com este CPF' });
+        }
+        updateData.cpf = cpfDigits;
+      }
+    }
+
+    const patient = await prisma.patient.update({
+      where: { id },
+      data: updateData,
+      include: patientInclude,
+    });
+
+    res.json(patient);
+  } catch (error) {
+    console.error('Update patient error:', error);
+    res.status(500).json({ error: 'Erro ao atualizar paciente' });
   }
 }
 
@@ -100,12 +133,6 @@ export async function addPatientAddress(req, res) {
     const patient = await prisma.patient.findUnique({ where: { id } });
     if (!patient) {
       return res.status(404).json({ error: 'Paciente não encontrado' });
-    }
-
-    try {
-      validateAddressPayload(req.body);
-    } catch (validationError) {
-      return res.status(400).json({ error: validationError.message });
     }
 
     const address = await prisma.address.create({
@@ -127,5 +154,38 @@ export async function addPatientAddress(req, res) {
   } catch (error) {
     console.error('Add patient address error:', error);
     res.status(500).json({ error: 'Erro ao cadastrar endereço' });
+  }
+}
+
+export async function updateAddress(req, res) {
+  try {
+    const { id, addressId } = req.params;
+    const { label, street, number, complement, neighborhood, city, state, zipCode, referencePoint } = req.body;
+
+    const existing = await prisma.address.findUnique({ where: { id: addressId } });
+    if (!existing || existing.patientId !== id) {
+      return res.status(404).json({ error: 'Endereço não encontrado' });
+    }
+
+    const updateData = {};
+    if (label !== undefined) updateData.label = label?.trim() || 'Endereço';
+    if (street !== undefined) updateData.street = street.trim();
+    if (number !== undefined) updateData.number = number.trim();
+    if (complement !== undefined) updateData.complement = complement?.trim() || null;
+    if (neighborhood !== undefined) updateData.neighborhood = neighborhood.trim();
+    if (city !== undefined) updateData.city = city.trim();
+    if (state !== undefined) updateData.state = state.trim();
+    if (zipCode !== undefined) updateData.zipCode = zipCode?.trim() || null;
+    if (referencePoint !== undefined) updateData.referencePoint = referencePoint?.trim() || null;
+
+    const address = await prisma.address.update({
+      where: { id: addressId },
+      data: updateData,
+    });
+
+    res.json(address);
+  } catch (error) {
+    console.error('Update address error:', error);
+    res.status(500).json({ error: 'Erro ao atualizar endereço' });
   }
 }

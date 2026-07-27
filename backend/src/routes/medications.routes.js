@@ -38,33 +38,9 @@ export async function getMedication(req, res) {
   }
 }
 
-function validateMedicationPayload(body, { partial = false } = {}) {
-  const errors = [];
-
-  if (!partial || body.name !== undefined) {
-    if (!body.name?.trim()) {
-      errors.push('Nome é obrigatório');
-    }
-  }
-
-  if (!partial || body.unit !== undefined) {
-    const unitValue = partial ? body.unit?.trim() : (body.unit?.trim() || 'unidade');
-    if (!unitValue) {
-      errors.push('Unidade é obrigatória');
-    }
-  }
-
-  return errors;
-}
-
 export async function createMedication(req, res) {
   try {
     const { name, unit, active } = req.body;
-
-    const errors = validateMedicationPayload(req.body);
-    if (errors.length) {
-      return res.status(400).json({ error: errors[0] });
-    }
 
     const medication = await prisma.medication.create({
       data: {
@@ -89,11 +65,6 @@ export async function updateMedication(req, res) {
     const existing = await prisma.medication.findUnique({ where: { id } });
     if (!existing) {
       return res.status(404).json({ error: 'Medicamento não encontrado' });
-    }
-
-    const errors = validateMedicationPayload(req.body, { partial: true });
-    if (errors.length) {
-      return res.status(400).json({ error: errors[0] });
     }
 
     const medication = await prisma.medication.update({

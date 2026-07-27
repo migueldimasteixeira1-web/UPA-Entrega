@@ -3,50 +3,12 @@ import { buildOrderAuditEntries } from '../lib/audit.js';
 import {
   canTransition,
   generateDeliveryPin,
-  generateMessages,
   generateOrderNumber,
-  getPublicTrackingUrl,
-  maskCpf,
   maskName,
   STATUS_LABELS,
 } from '../lib/constants.js';
-import { parsePositiveInteger, validateCpf } from '../lib/validation.js';
-
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-
-const orderInclude = {
-  createdBy: { select: { id: true, name: true, email: true } },
-  deliveredBy: { select: { id: true, name: true } },
-  route: {
-    select: {
-      id: true,
-      routeNumber: true,
-      status: true,
-      courier: { select: { id: true, name: true, phone: true } },
-    },
-  },
-  items: {
-    include: {
-      medication: { select: { id: true, name: true, unit: true } },
-    },
-  },
-  history: {
-    orderBy: { createdAt: 'desc' },
-    include: { user: { select: { id: true, name: true } } },
-  },
-};
-
-function formatOrder(order) {
-  const mainMedication = order.items?.[0]?.medicationName || order.items?.[0]?.medication?.name;
-  return {
-    ...order,
-    patientCpf: maskCpf(order.patientCpf),
-    mainMedication,
-    statusLabel: STATUS_LABELS[order.status],
-    publicTrackingUrl: getPublicTrackingUrl(order, FRONTEND_URL),
-    messages: generateMessages(order, FRONTEND_URL),
-  };
-}
+import { ORDER_INCLUDE as orderInclude, formatOrder } from '../lib/orderSerializer.js';
+import { validateCpf } from '../lib/validation.js';
 
 export async function listOrders(req, res) {
   try {
@@ -142,34 +104,11 @@ async function addHistory(tx, { orderId, userId, action, fromStatus, toStatus, d
   });
 }
 
-function validateOrderItems(items) {
-  if (!Array.isArray(items) || !items.length) {
-    throw new Error('Informe ao menos um medicamento');
-  }
-
-  return items.map((item, index) => {
-    if (!item?.medicationId?.trim()) {
-      throw new Error(`Medicamento inválido no item ${index + 1}`);
-    }
-
-    const quantity = parsePositiveInteger(item.quantity, `Quantidade do item ${index + 1}`);
-
-    return {
-      medicationId: item.medicationId.trim(),
-      quantity,
-    };
-  });
-}
-
 async function resolvePatient(tx, { patientId, patient }) {
   if (patientId) {
     const existing = await tx.patient.findUnique({ where: { id: patientId } });
     if (!existing) throw new Error('Paciente não encontrado');
     return existing;
-  }
-
-  if (!patient?.name?.trim() || !patient?.phone?.trim()) {
-    throw new Error('Dados do paciente são obrigatórios');
   }
 
   const cpfDigits = validateCpf(patient.cpf);
@@ -196,13 +135,6 @@ async function resolveAddress(tx, { addressId, address }, patientId) {
     return existing;
   }
 
-  const required = ['street', 'number', 'neighborhood', 'city', 'state'];
-  for (const field of required) {
-    if (!address?.[field]?.toString().trim()) {
-      throw new Error(`Endereço incompleto: informe ${field}`);
-    }
-  }
-
   return tx.address.create({
     data: {
       patientId,
@@ -223,19 +155,12 @@ export async function createOrder(req, res) {
   try {
     const { patientId, patient, addressId, address, internalNotes, patientNotes, items } = req.body;
 
-    let validatedItems;
-    try {
-      validatedItems = validateOrderItems(items);
-    } catch (validationError) {
-      return res.status(400).json({ error: validationError.message });
-    }
-
     const order = await prisma.$transaction(async (tx) => {
       const resolvedPatient = await resolvePatient(tx, { patientId, patient });
       const resolvedAddress = await resolveAddress(tx, { addressId, address }, resolvedPatient.id);
 
       const orderItemsData = await Promise.all(
-        validatedItems.map(async (item) => {
+        items.map(async (item) => {
           const med = await tx.medication.findUnique({ where: { id: item.medicationId } });
           if (!med || !med.active) {
             throw new Error(`Medicamento inválido: ${item.medicationId}`);
@@ -321,23 +246,14 @@ export async function updateOrder(req, res) {
       return res.status(400).json({ error: 'Pedido só pode ser editado enquanto está recebido ou em separação' });
     }
 
-    let validatedItems;
-    if (body.items !== undefined) {
-      try {
-        validatedItems = validateOrderItems(body.items);
-      } catch (validationError) {
-        return res.status(400).json({ error: validationError.message });
-      }
-    }
-
     const order = await prisma.$transaction(async (tx) => {
       const updateData = {};
       if (body.internalNotes !== undefined) updateData.internalNotes = body.internalNotes?.trim() || null;
       if (body.patientNotes !== undefined) updateData.patientNotes = body.patientNotes?.trim() || null;
 
-      if (validatedItems) {
+      if (body.items) {
         const orderItemsData = await Promise.all(
-          validatedItems.map(async (item) => {
+          body.items.map(async (item) => {
             const med = await tx.medication.findUnique({ where: { id: item.medicationId } });
             if (!med || !med.active) {
               throw new Error(`Medicamento inválido: ${item.medicationId}`);
@@ -386,10 +302,6 @@ export async function updateStatus(req, res) {
   try {
     const { id } = req.params;
     const { status, cancelReason, notes } = req.body;
-
-    if (!status) {
-      return res.status(400).json({ error: 'Status é obrigatório' });
-    }
 
     const existing = await prisma.order.findUnique({ where: { id } });
     if (!existing) {
@@ -446,10 +358,6 @@ export async function confirmDelivery(req, res) {
   try {
     const { id } = req.params;
     const { pin } = req.body;
-
-    if (!pin?.trim()) {
-      return res.status(400).json({ error: 'Informe o PIN de confirmação' });
-    }
 
     const existing = await prisma.order.findUnique({
       where: { id },
@@ -518,10 +426,6 @@ export async function addNote(req, res) {
   try {
     const { id } = req.params;
     const { note } = req.body;
-
-    if (!note?.trim()) {
-      return res.status(400).json({ error: 'Observação é obrigatória' });
-    }
 
     const existing = await prisma.order.findUnique({ where: { id } });
     if (!existing) {

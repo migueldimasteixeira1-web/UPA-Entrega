@@ -1,5 +1,19 @@
 import { randomInt } from 'node:crypto';
 
+export const MEDICATION_UNITS = [
+  'unidade',
+  'comprimido',
+  'cápsula',
+  'mL',
+  'mg',
+  'frasco',
+  'ampola',
+  'caixa',
+  'tubo',
+  'sachê',
+  'gotas',
+];
+
 export const ORDER_STATUS = {
   PEDIDO_RECEBIDO: 'PEDIDO_RECEBIDO',
   EM_SEPARACAO: 'EM_SEPARACAO',

@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma.js';
-import { generateRouteNumber, maskCpf, STATUS_LABELS } from '../lib/constants.js';
+import { generateRouteNumber, STATUS_LABELS } from '../lib/constants.js';
+import { formatOrderForCourier } from '../lib/orderSerializer.js';
 
 const routeInclude = {
   courier: { select: { id: true, name: true, phone: true } },
@@ -22,20 +23,13 @@ function formatRoute(route) {
   };
 }
 
-// O entregador nunca deve receber o PIN de confirmação nem o CPF completo:
-// o PIN só é conhecido pelo paciente, garantindo que a entrega foi de fato
-// confirmada por ele e não pelo próprio entregador.
+// Usa o mesmo formatOrderForCourier de orderSerializer.js que protege
+// /api/orders/:id e /api/delivery-routes/mine — um único lugar decide o que
+// o papel ENTREGADOR pode ver (nunca o PIN, CPF sempre mascarado).
 function formatRouteForCourier(route) {
   return {
     ...route,
-    orders: route.orders.map((order) => {
-      const { deliveryPin, ...rest } = order;
-      return {
-        ...rest,
-        patientCpf: maskCpf(order.patientCpf),
-        statusLabel: STATUS_LABELS[order.status],
-      };
-    }),
+    orders: route.orders.map(formatOrderForCourier),
   };
 }
 
@@ -92,14 +86,6 @@ export async function getMyRoutes(req, res) {
 export async function createRoute(req, res) {
   try {
     const { courierId, orderIds } = req.body;
-
-    if (!courierId) {
-      return res.status(400).json({ error: 'Selecione um entregador' });
-    }
-
-    if (!Array.isArray(orderIds) || !orderIds.length) {
-      return res.status(400).json({ error: 'Selecione ao menos um pedido' });
-    }
 
     const courier = await prisma.user.findUnique({ where: { id: courierId } });
     if (!courier || courier.role !== 'ENTREGADOR' || !courier.active) {
