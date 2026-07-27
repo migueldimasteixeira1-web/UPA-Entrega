@@ -1,5 +1,5 @@
 import prisma from '../lib/prisma.js';
-import { generateRouteNumber, STATUS_LABELS } from '../lib/constants.js';
+import { generateRouteNumber, maskCpf, STATUS_LABELS } from '../lib/constants.js';
 
 const routeInclude = {
   courier: { select: { id: true, name: true, phone: true } },
@@ -19,6 +19,23 @@ function formatRoute(route) {
       ...order,
       statusLabel: STATUS_LABELS[order.status],
     })),
+  };
+}
+
+// O entregador nunca deve receber o PIN de confirmação nem o CPF completo:
+// o PIN só é conhecido pelo paciente, garantindo que a entrega foi de fato
+// confirmada por ele e não pelo próprio entregador.
+function formatRouteForCourier(route) {
+  return {
+    ...route,
+    orders: route.orders.map((order) => {
+      const { deliveryPin, ...rest } = order;
+      return {
+        ...rest,
+        patientCpf: maskCpf(order.patientCpf),
+        statusLabel: STATUS_LABELS[order.status],
+      };
+    }),
   };
 }
 
@@ -65,7 +82,7 @@ export async function getMyRoutes(req, res) {
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json(routes.map(formatRoute));
+    res.json(routes.map(formatRouteForCourier));
   } catch (error) {
     console.error('Get my routes error:', error);
     res.status(500).json({ error: 'Erro ao buscar suas rotas' });

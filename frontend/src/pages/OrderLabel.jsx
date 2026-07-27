@@ -76,11 +76,6 @@ export default function OrderLabel() {
               <p>{order.internalNotes}</p>
             </div>
           )}
-
-          <div className="pt-2 border-t-2 border-slate-800 mt-3">
-            <p className="text-xs uppercase text-slate-500 font-semibold">PIN de confirmação</p>
-            <p className="font-mono font-bold text-2xl tracking-widest">{order.deliveryPin}</p>
-          </div>
         </div>
       </div>
     </div>

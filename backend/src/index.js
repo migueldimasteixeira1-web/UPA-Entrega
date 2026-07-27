@@ -66,7 +66,7 @@ app.use('/api', authenticate);
 app.get('/api/dashboard/stats', requireRole('ADMIN', 'OPERADOR'), getDashboardStats);
 
 app.get('/api/orders', requireRole('ADMIN', 'OPERADOR'), listOrders);
-app.get('/api/orders/:id', getOrder);
+app.get('/api/orders/:id', requireRole('ADMIN', 'OPERADOR'), getOrder);
 app.post('/api/orders', requireRole('ADMIN', 'OPERADOR'), createOrder);
 app.put('/api/orders/:id', requireRole('ADMIN', 'OPERADOR'), updateOrder);
 app.patch('/api/orders/:id/status', requireRole('ADMIN', 'OPERADOR'), updateStatus);
