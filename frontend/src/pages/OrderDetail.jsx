@@ -7,6 +7,7 @@ import {
   Clock,
   User,
   MapPin,
+  Navigation,
   Phone,
   ExternalLink,
   MessageSquare,
@@ -20,7 +21,7 @@ import {
 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { formatDate, formatPhone } from '../lib/constants';
-import { formatCpfDisplay } from '../lib/masks';
+import { formatCpfDisplay, buildMapsUrl } from '../lib/masks';
 import { copyToClipboard, canShare, shareText } from '../lib/clipboard';
 import StatusBadge from '../components/StatusBadge';
 import CopyMessage from '../components/CopyMessage';
@@ -227,6 +228,14 @@ export default function OrderDetail() {
                   {order.complement && <p className="text-sm text-slate-600">{order.complement}</p>}
                   <p className="text-sm text-slate-600">{order.neighborhood}{order.city ? `, ${order.city}` : ''}</p>
                   {order.referencePoint && <p className="text-sm text-slate-500 mt-1">Referência: {order.referencePoint}</p>}
+                  <a
+                    href={buildMapsUrl(order)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-2 text-sm font-medium text-upa-700 hover:text-upa-900"
+                  >
+                    <Navigation className="w-3.5 h-3.5" /> Abrir no Maps
+                  </a>
                 </div>
               </div>
             </div>

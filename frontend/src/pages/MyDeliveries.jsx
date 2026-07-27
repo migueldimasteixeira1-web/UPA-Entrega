@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MapPin, Phone, Package, KeyRound, CheckCircle2 } from 'lucide-react';
+import { MapPin, Phone, Package, KeyRound, CheckCircle2, Navigation } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { formatPhone } from '../lib/constants';
+import { buildMapsUrl } from '../lib/masks';
 import Alert from '../components/Alert';
 import Modal from '../components/Modal';
 
@@ -76,10 +77,18 @@ export default function MyDeliveries() {
               <div className="space-y-2 text-sm mb-4">
                 <div className="flex items-start gap-2">
                   <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p>{order.street}, {order.number}{order.complement ? ` — ${order.complement}` : ''}</p>
                     <p className="text-slate-500">{order.neighborhood} · {order.city}/{order.state}</p>
                     {order.referencePoint && <p className="text-slate-500 text-xs">Ref: {order.referencePoint}</p>}
+                    <a
+                      href={buildMapsUrl(order)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 mt-2 text-sm font-medium text-upa-700 hover:text-upa-900"
+                    >
+                      <Navigation className="w-3.5 h-3.5" /> Abrir no Maps
+                    </a>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

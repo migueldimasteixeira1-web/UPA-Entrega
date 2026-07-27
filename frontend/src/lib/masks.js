@@ -35,3 +35,15 @@ export function formatCpfDisplay(value = '') {
   if (value.includes('*')) return value;
   return maskCpf(value);
 }
+
+export function buildMapsUrl({ street, number, neighborhood, city, state, zipCode }) {
+  const parts = [
+    [street, number].filter(Boolean).join(', '),
+    neighborhood,
+    city && state ? `${city} - ${state}` : city || state,
+    zipCode,
+  ].filter(Boolean);
+
+  const query = encodeURIComponent(parts.join(', '));
+  return `https://www.google.com/maps/search/?api=1&query=${query}`;
+}
