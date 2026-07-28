@@ -24,6 +24,7 @@ import { formatDate, formatPhone } from '../lib/constants';
 import { formatCpfDisplay, buildMapsUrl } from '../lib/masks';
 import { copyToClipboard, canShare, shareText } from '../lib/clipboard';
 import StatusBadge from '../components/StatusBadge';
+import OrderStatusStepper from '../components/OrderStatusStepper';
 import CopyMessage from '../components/CopyMessage';
 import Modal from '../components/Modal';
 import Alert from '../components/Alert';
@@ -182,6 +183,10 @@ export default function OrderDetail() {
       </div>
 
       {actionError && <Alert message={actionError} onDismiss={() => setActionError('')} />}
+
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6">
+        <OrderStatusStepper status={order.status} />
+      </div>
 
       {order.status === 'AGUARDANDO_SAIDA' && (
         <div className="flex items-center gap-3 rounded-xl bg-upa-50 border border-upa-200 p-4 text-upa-900">

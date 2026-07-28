@@ -5,6 +5,7 @@ import { Package, Key, Info, ShieldCheck, Copy, Check, Clock, Truck } from 'luci
 import { api } from '../lib/api';
 import { copyToClipboard } from '../lib/clipboard';
 import StatusBadge from '../components/StatusBadge';
+import OrderStatusStepper from '../components/OrderStatusStepper';
 import AppBrand, { MunicipalityBrand } from '../components/AppBrand';
 
 function formatHistoryDate(date) {
@@ -67,6 +68,10 @@ export default function PublicTracking() {
           <StatusBadge status={order.status} size="lg" />
           <p className="text-lg sm:text-xl font-semibold text-slate-800 mt-4 leading-snug break-words">{order.statusMessage}</p>
           <p className="text-sm text-slate-500 mt-2">Pedido {order.orderNumber}</p>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+          <OrderStatusStepper status={order.status} />
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 space-y-5">
