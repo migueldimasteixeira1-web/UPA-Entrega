@@ -6,6 +6,7 @@ import Modal from '../components/Modal';
 import Alert from '../components/Alert';
 import { formatDate } from '../lib/constants';
 import { useToast } from '../lib/toast';
+import { SkeletonTableRows } from '../components/Skeleton';
 
 const emptyUser = { name: '', email: '', password: '', role: 'OPERADOR' };
 
@@ -70,24 +71,22 @@ export default function Users() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        {isLoading ? (
-          <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-10 w-10 border-4 border-upa-600 border-t-transparent" />
-          </div>
-        ) : (
-          <div className="overflow-x-auto -mx-px">
-            <table className="w-full text-sm min-w-[640px]">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-left text-slate-500">
-                  <th className="px-4 sm:px-6 py-3 font-medium">Usuário</th>
-                  <th className="px-4 sm:px-6 py-3 font-medium">Perfil</th>
-                  <th className="px-4 sm:px-6 py-3 font-medium">Status</th>
-                  <th className="px-4 sm:px-6 py-3 font-medium">Criado em</th>
-                  <th className="px-4 sm:px-6 py-3 font-medium">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
+        <div className="overflow-x-auto -mx-px">
+          <table className="w-full text-sm min-w-[640px]">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-left text-slate-500">
+                <th className="px-4 sm:px-6 py-3 font-medium">Usuário</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Perfil</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Status</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Criado em</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <SkeletonTableRows rows={5} columns={5} />
+              ) : (
+                users.map((user) => (
                   <tr key={user.id} className="border-b border-slate-100">
                     <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -139,11 +138,11 @@ export default function Users() {
                       </button>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <Modal open={modalOpen} onClose={() => { setModalOpen(false); setFormError(''); }} title="Novo usuário">

@@ -242,11 +242,9 @@ export default function NewOrder() {
 
   const showNewAddressForm = form.patientMode === 'new' || form.addingNewAddress;
 
-  const validateStep = () => {
-    setError('');
-    const errors = {};
-
-    if (step === 0) {
+  const getStepErrors = (targetStep) => {
+    if (targetStep === 0) {
+      const errors = {};
       const cpfDigits = onlyDigits(form.cpf);
       if (cpfDigits.length !== 11) errors.cpf = 'Informe um CPF válido com 11 dígitos';
       if (form.patientMode === 'new') {
@@ -255,9 +253,11 @@ export default function NewOrder() {
         if (phoneDigits.length < 10) errors.phone = 'Informe um telefone válido com DDD';
       }
       if (form.patientMode === 'idle') errors.cpf = errors.cpf || 'Aguarde a consulta do CPF';
+      return errors;
     }
 
-    if (step === 1) {
+    if (targetStep === 1) {
+      const errors = {};
       if (showNewAddressForm) {
         const cepDigits = onlyDigits(form.newAddress.zipCode);
         if (cepDigits.length !== 8) errors.zipCode = 'Informe um CEP válido com 8 dígitos';
@@ -270,19 +270,35 @@ export default function NewOrder() {
       } else if (!form.selectedAddressId) {
         errors.selectedAddressId = 'Selecione um endereço de entrega';
       }
+      return errors;
     }
 
-    if (step === 2) {
+    if (targetStep === 2) {
+      const errors = {};
       const validItems = form.items.filter((i) => i.medicationId && Number(i.quantity) > 0);
       if (!validItems.length) errors.items = 'Selecione ao menos um medicamento';
+      return errors;
     }
 
+    return {};
+  };
+
+  const validateStep = () => {
+    setError('');
+    const errors = getStepErrors(step);
     setFieldErrors(errors);
     if (Object.keys(errors).length) {
       setError('Revise os campos destacados antes de continuar.');
       return false;
     }
     return true;
+  };
+
+  // Feedback mais cedo do que "só ao clicar Próximo": revalida um único
+  // campo ao perder o foco, sem tocar nos erros dos campos ainda não visitados.
+  const handleFieldBlur = (fieldKey) => {
+    const stepErrors = getStepErrors(step);
+    setFieldErrors((prev) => ({ ...prev, [fieldKey]: stepErrors[fieldKey] }));
   };
 
   const next = () => {
@@ -396,6 +412,7 @@ export default function NewOrder() {
             cpfLookup={cpfLookup}
             handleCpfChange={handleCpfChange}
             updateNewPatient={updateNewPatient}
+            onBlurField={handleFieldBlur}
             resetPatientSearch={resetPatientSearch}
             openEditPatient={openEditPatient}
             editPatientOpen={editPatientOpen}
@@ -416,6 +433,7 @@ export default function NewOrder() {
             showNewAddressForm={showNewAddressForm}
             updateNewAddress={updateNewAddress}
             markAddressTouched={markAddressTouched}
+            onBlurField={handleFieldBlur}
             handleCepChange={handleCepChange}
             cepLoading={cepLoading}
             cepMessage={cepMessage}

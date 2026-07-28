@@ -15,6 +15,7 @@ import { api } from '../lib/api';
 import { formatDate, KANBAN_COLUMNS, STATUS_LABELS } from '../lib/constants';
 import { useDebouncedValue } from '../lib/useDebouncedValue';
 import StatusBadge from '../components/StatusBadge';
+import EmptyState from '../components/EmptyState';
 import { SkeletonKanban } from '../components/Skeleton';
 
 function OrderCard({ order }) {
@@ -54,15 +55,6 @@ function OrderCard({ order }) {
 
       <p className="text-xs text-slate-400 mt-2">{formatDate(order.createdAt)}</p>
     </Link>
-  );
-}
-
-function EmptyColumn() {
-  return (
-    <div className="flex flex-col items-center justify-center py-10 px-4 bg-slate-50/80 rounded-xl border border-dashed border-slate-200">
-      <Inbox className="w-8 h-8 text-slate-300 mb-2" />
-      <p className="text-xs text-slate-400 text-center">Nenhum pedido nesta etapa</p>
-    </div>
   );
 }
 
@@ -209,7 +201,9 @@ export default function Dashboard() {
                     {columnOrders.map((order) => (
                       <OrderCard key={order.id} order={order} />
                     ))}
-                    {columnOrders.length === 0 && <EmptyColumn />}
+                    {columnOrders.length === 0 && (
+                      <EmptyState icon={Inbox} title="Nenhum pedido nesta etapa" />
+                    )}
                   </div>
                 </div>
               );

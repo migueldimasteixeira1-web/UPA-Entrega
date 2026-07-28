@@ -7,6 +7,8 @@ import { buildMapsUrl } from '../lib/masks';
 import { useToast } from '../lib/toast';
 import Alert from '../components/Alert';
 import Modal from '../components/Modal';
+import EmptyState from '../components/EmptyState';
+import { SkeletonOrderCard } from '../components/Skeleton';
 
 export default function MyDeliveries() {
   const [confirmOrder, setConfirmOrder] = useState(null);
@@ -53,14 +55,13 @@ export default function MyDeliveries() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-16">
-          <div className="animate-spin rounded-full h-10 w-10 border-4 border-upa-600 border-t-transparent" />
+        <div className="space-y-3">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <SkeletonOrderCard key={i} />
+          ))}
         </div>
       ) : pendingOrders.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-          <Package className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-400">Nenhuma entrega pendente no momento.</p>
-        </div>
+        <EmptyState icon={Package} title="Nenhuma entrega pendente no momento." className="bg-white py-16" />
       ) : (
         <div className="space-y-3">
           {pendingOrders.map((order, index) => (

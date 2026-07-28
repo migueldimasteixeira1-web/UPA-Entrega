@@ -6,6 +6,8 @@ import { MEDICATION_UNITS } from '../lib/constants';
 import { useToast } from '../lib/toast';
 import Modal from '../components/Modal';
 import Alert from '../components/Alert';
+import EmptyState from '../components/EmptyState';
+import { SkeletonTableRows } from '../components/Skeleton';
 
 const emptyMed = {
   name: '',
@@ -73,23 +75,21 @@ export default function Medications() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        {isLoading ? (
-          <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-10 w-10 border-4 border-upa-600 border-t-transparent" />
-          </div>
-        ) : (
-          <div className="overflow-x-auto -mx-px">
-            <table className="w-full text-sm min-w-[480px]">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-left text-slate-500">
-                  <th className="px-4 sm:px-6 py-3 font-medium">Medicamento</th>
-                  <th className="px-4 sm:px-6 py-3 font-medium">Unidade</th>
-                  <th className="px-4 sm:px-6 py-3 font-medium">Status</th>
-                  <th className="px-4 sm:px-6 py-3 font-medium"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {medications.map((med) => (
+        <div className="overflow-x-auto -mx-px">
+          <table className="w-full text-sm min-w-[480px]">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-left text-slate-500">
+                <th className="px-4 sm:px-6 py-3 font-medium">Medicamento</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Unidade</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Status</th>
+                <th className="px-4 sm:px-6 py-3 font-medium"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <SkeletonTableRows rows={5} columns={4} />
+              ) : (
+                medications.map((med) => (
                   <tr key={med.id} className="border-b border-slate-100">
                     <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -118,14 +118,14 @@ export default function Medications() {
                       </button>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {medications.length === 0 && (
-              <p className="text-center text-slate-400 py-12">Nenhum medicamento cadastrado</p>
-            )}
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+          {!isLoading && medications.length === 0 && (
+            <EmptyState icon={Pill} title="Nenhum medicamento cadastrado" className="m-4" />
+          )}
+        </div>
       </div>
 
       <Modal

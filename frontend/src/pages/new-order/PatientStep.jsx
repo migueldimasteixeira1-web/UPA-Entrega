@@ -19,6 +19,7 @@ export default function PatientStep({
   editPatientError,
   setEditPatientError,
   updatePatientMutation,
+  onBlurField,
 }) {
   return (
     <div className="space-y-4">
@@ -34,6 +35,7 @@ export default function PatientStep({
           id="cpf"
           value={form.cpf}
           onChange={(e) => handleCpfChange(e.target.value)}
+          onBlur={() => onBlurField('cpf')}
           className={inputClassName(fieldErrors.cpf, cpfLookup.status === 'loading' ? 'pr-10' : '')}
           placeholder="000.000.000-00"
           inputMode="numeric"
@@ -84,6 +86,7 @@ export default function PatientStep({
               id="patientName"
               value={form.newPatient.name}
               onChange={(e) => updateNewPatient('name', e.target.value)}
+              onBlur={() => onBlurField('name')}
               className={inputClassName(fieldErrors.name)}
               autoComplete="name"
             />
@@ -100,6 +103,7 @@ export default function PatientStep({
               id="patientPhone"
               value={form.newPatient.phone}
               onChange={(e) => updateNewPatient('phone', maskPhone(e.target.value))}
+              onBlur={() => onBlurField('phone')}
               className={inputClassName(fieldErrors.phone)}
               placeholder="(00) 00000-0000"
               inputMode="tel"

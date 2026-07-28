@@ -27,6 +27,7 @@ import StatusBadge from '../components/StatusBadge';
 import CopyMessage from '../components/CopyMessage';
 import Modal from '../components/Modal';
 import Alert from '../components/Alert';
+import { SkeletonOrderDetail } from '../components/Skeleton';
 
 export default function OrderDetail() {
   const { id } = useParams();
@@ -88,11 +89,7 @@ export default function OrderDetail() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center py-24">
-        <div className="animate-spin rounded-full h-10 w-10 border-4 border-upa-600 border-t-transparent" />
-      </div>
-    );
+    return <SkeletonOrderDetail />;
   }
 
   if (loadError || !order) {

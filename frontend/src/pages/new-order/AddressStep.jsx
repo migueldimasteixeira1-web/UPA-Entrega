@@ -56,6 +56,7 @@ export default function AddressStep({
   editAddressError,
   setEditAddressError,
   updateAddressMutation,
+  onBlurField,
 }) {
   return (
     <div className="space-y-4">
@@ -137,6 +138,7 @@ export default function AddressStep({
               id="zipCode"
               value={form.newAddress.zipCode}
               onChange={(e) => handleCepChange(e.target.value)}
+              onBlur={() => onBlurField('zipCode')}
               className={inputClassName(fieldErrors.zipCode, cepLoading ? 'pr-10' : '')}
               placeholder="00000-000"
               inputMode="numeric"
@@ -158,6 +160,7 @@ export default function AddressStep({
                 markAddressTouched('street');
                 updateNewAddress('street', e.target.value);
               }}
+              onBlur={() => onBlurField('street')}
               className={streetFromCep ? readOnlyInputClassName() : inputClassName(fieldErrors.street)}
               placeholder="Informe o CEP acima"
             />
@@ -169,6 +172,7 @@ export default function AddressStep({
                 id="number"
                 value={form.newAddress.number}
                 onChange={(e) => updateNewAddress('number', e.target.value)}
+                onBlur={() => onBlurField('number')}
                 className={inputClassName(fieldErrors.number)}
                 placeholder="Ex.: 123, s/n"
               />
@@ -193,6 +197,7 @@ export default function AddressStep({
                 markAddressTouched('neighborhood');
                 updateNewAddress('neighborhood', e.target.value);
               }}
+              onBlur={() => onBlurField('neighborhood')}
               className={inputClassName(fieldErrors.neighborhood)}
             />
           </FormField>

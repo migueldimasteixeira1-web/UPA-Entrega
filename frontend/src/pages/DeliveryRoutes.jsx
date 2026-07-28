@@ -6,6 +6,8 @@ import { api, ApiError } from '../lib/api';
 import { formatDate } from '../lib/constants';
 import { useToast } from '../lib/toast';
 import Alert from '../components/Alert';
+import EmptyState from '../components/EmptyState';
+import { SkeletonList } from '../components/Skeleton';
 
 export default function DeliveryRoutes() {
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
@@ -82,11 +84,9 @@ export default function DeliveryRoutes() {
         </h2>
 
         {loadingOrders ? (
-          <div className="flex justify-center py-10">
-            <div className="animate-spin rounded-full h-8 w-8 border-4 border-upa-600 border-t-transparent" />
-          </div>
+          <SkeletonList rows={3} rowClassName="h-16" />
         ) : readyOrders.length === 0 ? (
-          <p className="text-sm text-slate-400 py-6 text-center">Nenhum pedido aguardando saída no momento.</p>
+          <EmptyState icon={Package} title="Nenhum pedido aguardando saída no momento." />
         ) : (
           <div className="space-y-2 mb-6">
             {readyOrders.map((order) => (
@@ -193,11 +193,9 @@ export default function DeliveryRoutes() {
         </h2>
 
         {loadingRoutes ? (
-          <div className="flex justify-center py-10">
-            <div className="animate-spin rounded-full h-8 w-8 border-4 border-upa-600 border-t-transparent" />
-          </div>
+          <SkeletonList rows={3} rowClassName="h-20" />
         ) : routes.length === 0 ? (
-          <p className="text-sm text-slate-400 py-6 text-center">Nenhuma rota criada ainda.</p>
+          <EmptyState icon={RouteIcon} title="Nenhuma rota criada ainda." />
         ) : (
           <div className="space-y-4">
             {routes.map((route) => (

@@ -26,7 +26,7 @@ export default function Toast({ toasts, onDismiss }) {
           <div
             key={toast.id}
             role="status"
-            className={`pointer-events-auto flex items-start gap-3 rounded-xl px-4 py-3 shadow-lg ${wrapper}`}
+            className={`pointer-events-auto flex items-start gap-3 rounded-xl px-4 py-3 shadow-lg animate-slide-up ${wrapper}`}
           >
             <Icon className="w-5 h-5 shrink-0 mt-0.5" />
             <p className="flex-1 text-sm">{toast.message}</p>
