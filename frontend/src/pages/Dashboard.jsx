@@ -6,17 +6,27 @@ import {
   Plus,
   MapPin,
   Package,
+  PackageOpen,
+  CheckCircle2,
   Truck,
   LayoutGrid,
   List,
   Inbox,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { formatDate, KANBAN_COLUMNS, STATUS_LABELS } from '../lib/constants';
+import { formatDate, KANBAN_COLUMNS, STATUS_LABELS, STATUS_DOT_COLORS } from '../lib/constants';
 import { useDebouncedValue } from '../lib/useDebouncedValue';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import { SkeletonKanban } from '../components/Skeleton';
+import { buttonClassName } from '../components/Button';
+
+const ACCENT_STYLES = {
+  amber: { border: 'border-l-amber-400', icon: 'bg-amber-50 text-amber-600' },
+  indigo: { border: 'border-l-indigo-400', icon: 'bg-indigo-50 text-indigo-600' },
+  upa: { border: 'border-l-upa-600', icon: 'bg-upa-50 text-upa-700' },
+  emerald: { border: 'border-l-emerald-400', icon: 'bg-emerald-50 text-emerald-600' },
+};
 
 function OrderCard({ order }) {
   return (
@@ -88,10 +98,10 @@ export default function Dashboard() {
   const activeOrders = orders.filter((o) => o.status !== 'CANCELADO');
 
   const statCards = [
-    { label: 'Em separação', value: stats?.emSeparacao ?? 0, icon: Package },
-    { label: 'Aguardando saída', value: stats?.aguardandoSaida ?? 0, icon: Package },
-    { label: 'Em rota', value: stats?.emRota ?? 0, icon: Truck },
-    { label: 'Entregues hoje', value: stats?.deliveredToday ?? 0, icon: MapPin },
+    { label: 'Em separação', value: stats?.emSeparacao ?? 0, icon: Package, accent: 'amber' },
+    { label: 'Aguardando saída', value: stats?.aguardandoSaida ?? 0, icon: PackageOpen, accent: 'indigo' },
+    { label: 'Em rota', value: stats?.emRota ?? 0, icon: Truck, accent: 'upa' },
+    { label: 'Entregues hoje', value: stats?.deliveredToday ?? 0, icon: CheckCircle2, accent: 'emerald' },
   ];
 
   return (
@@ -101,10 +111,7 @@ export default function Dashboard() {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Painel de entregas</h1>
           <p className="text-slate-500 mt-1 text-sm sm:text-base">Acompanhe pedidos, separação e entregas</p>
         </div>
-        <Link
-          to="/pedidos/novo"
-          className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 min-h-11 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 transition-colors shadow-sm"
-        >
+        <Link to="/pedidos/novo" className={buttonClassName('primary', 'md', 'w-full sm:w-auto')}>
           <Plus className="w-4 h-4" />
           Novo pedido
         </Link>
@@ -113,11 +120,15 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
+          const accent = ACCENT_STYLES[stat.accent];
           return (
-            <div key={stat.label} className="rounded-xl border bg-white p-4 shadow-sm border-slate-200">
+            <div
+              key={stat.label}
+              className={`rounded-xl border border-l-4 bg-white p-4 shadow-sm border-slate-200 ${accent.border}`}
+            >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs sm:text-sm text-slate-500 leading-snug">{stat.label}</p>
-                <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-upa-50 text-upa-700">
+                <span className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-lg ${accent.icon}`}>
                   <Icon className="w-4 h-4" />
                 </span>
               </div>
@@ -192,7 +203,10 @@ export default function Dashboard() {
               return (
                 <div key={status} className="min-w-[82vw] sm:min-w-[300px] xl:min-w-0 shrink-0 xl:shrink snap-start">
                   <div className="flex items-center justify-between mb-3 px-1 gap-2">
-                    <h3 className="text-sm font-semibold text-slate-700 leading-tight min-w-0">{STATUS_LABELS[status]}</h3>
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-700 leading-tight min-w-0">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT_COLORS[status]}`} />
+                      {STATUS_LABELS[status]}
+                    </h3>
                     <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
                       {columnOrders.length}
                     </span>
@@ -240,10 +254,7 @@ export default function Dashboard() {
               </tbody>
             </table>
             {orders.length === 0 && (
-              <div className="flex flex-col items-center py-16 text-slate-400">
-                <Inbox className="w-10 h-10 mb-3" />
-                <p>Nenhum pedido encontrado com os filtros atuais</p>
-              </div>
+              <EmptyState icon={Inbox} title="Nenhum pedido encontrado com os filtros atuais" className="mt-2" />
             )}
           </div>
         )}

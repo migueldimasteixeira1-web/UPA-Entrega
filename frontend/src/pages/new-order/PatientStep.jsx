@@ -2,6 +2,7 @@ import { UserPlus, UserCheck, Pencil } from 'lucide-react';
 import { maskPhone, onlyDigits } from '../../lib/masks';
 import Alert from '../../components/Alert';
 import Modal from '../../components/Modal';
+import { buttonClassName } from '../../components/Button';
 import FormField, { inputClassName } from '../../components/FormField';
 
 export default function PatientStep({
@@ -153,7 +154,7 @@ export default function PatientStep({
               })
             }
             disabled={!editPatientForm.name?.trim() || updatePatientMutation.isPending}
-            className="w-full py-3 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 disabled:opacity-60"
+            className={buttonClassName('primary', 'md', 'w-full')}
           >
             {updatePatientMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
           </button>

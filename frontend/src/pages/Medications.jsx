@@ -8,6 +8,7 @@ import Modal from '../components/Modal';
 import Alert from '../components/Alert';
 import EmptyState from '../components/EmptyState';
 import { SkeletonTableRows } from '../components/Skeleton';
+import { buttonClassName } from '../components/Button';
 
 const emptyMed = {
   name: '',
@@ -65,23 +66,19 @@ export default function Medications() {
             Lista de nomes para agilizar o registro dos pedidos. O controle de estoque é feito pela farmácia da UPA, fora deste sistema.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 px-5 py-2.5 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900"
-        >
+        <button type="button" onClick={openCreate} className={buttonClassName('primary', 'md', 'w-full sm:w-auto')}>
           <Plus className="w-4 h-4" /> Novo medicamento
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto -mx-px">
           <table className="w-full text-sm min-w-[480px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-left text-slate-500">
-                <th className="px-4 sm:px-6 py-3 font-medium">Medicamento</th>
-                <th className="px-4 sm:px-6 py-3 font-medium">Unidade</th>
-                <th className="px-4 sm:px-6 py-3 font-medium">Status</th>
+                <th className="px-4 sm:px-6 py-3 font-semibold text-xs uppercase tracking-wide">Medicamento</th>
+                <th className="px-4 sm:px-6 py-3 font-semibold text-xs uppercase tracking-wide">Unidade</th>
+                <th className="px-4 sm:px-6 py-3 font-semibold text-xs uppercase tracking-wide">Status</th>
                 <th className="px-4 sm:px-6 py-3 font-medium"></th>
               </tr>
             </thead>
@@ -89,8 +86,13 @@ export default function Medications() {
               {isLoading ? (
                 <SkeletonTableRows rows={5} columns={4} />
               ) : (
-                medications.map((med) => (
-                  <tr key={med.id} className="border-b border-slate-100">
+                medications.map((med, index) => (
+                  <tr
+                    key={med.id}
+                    className={`border-b border-slate-100 hover:bg-slate-50/80 transition-colors ${
+                      index % 2 === 1 ? 'bg-slate-50/40' : ''
+                    }`}
+                  >
                     <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-upa-50">
@@ -168,7 +170,7 @@ export default function Medications() {
             type="button"
             onClick={() => saveMutation.mutate(form)}
             disabled={!form.name.trim() || saveMutation.isPending}
-            className="w-full py-3 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 disabled:opacity-60"
+            className={buttonClassName('primary', 'md', 'w-full')}
           >
             {saveMutation.isPending ? 'Salvando...' : 'Salvar'}
           </button>

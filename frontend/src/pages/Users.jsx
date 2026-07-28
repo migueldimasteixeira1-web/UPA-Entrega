@@ -7,6 +7,7 @@ import Alert from '../components/Alert';
 import { formatDate } from '../lib/constants';
 import { useToast } from '../lib/toast';
 import { SkeletonTableRows } from '../components/Skeleton';
+import { buttonClassName } from '../components/Button';
 
 const emptyUser = { name: '', email: '', password: '', role: 'OPERADOR' };
 
@@ -61,33 +62,34 @@ export default function Users() {
           <h1 className="text-2xl font-bold text-slate-800">Gestão de usuários</h1>
           <p className="text-slate-500 mt-1">Cadastro de operadores e administradores</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 px-5 py-2.5 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900"
-        >
+        <button type="button" onClick={() => setModalOpen(true)} className={buttonClassName('primary', 'md', 'w-full sm:w-auto')}>
           <Plus className="w-4 h-4" /> Novo usuário
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto -mx-px">
           <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-left text-slate-500">
-                <th className="px-4 sm:px-6 py-3 font-medium">Usuário</th>
-                <th className="px-4 sm:px-6 py-3 font-medium">Perfil</th>
-                <th className="px-4 sm:px-6 py-3 font-medium">Status</th>
-                <th className="px-4 sm:px-6 py-3 font-medium">Criado em</th>
-                <th className="px-4 sm:px-6 py-3 font-medium">Ações</th>
+                <th className="px-4 sm:px-6 py-3 font-semibold text-xs uppercase tracking-wide">Usuário</th>
+                <th className="px-4 sm:px-6 py-3 font-semibold text-xs uppercase tracking-wide">Perfil</th>
+                <th className="px-4 sm:px-6 py-3 font-semibold text-xs uppercase tracking-wide">Status</th>
+                <th className="px-4 sm:px-6 py-3 font-semibold text-xs uppercase tracking-wide">Criado em</th>
+                <th className="px-4 sm:px-6 py-3 font-semibold text-xs uppercase tracking-wide">Ações</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <SkeletonTableRows rows={5} columns={5} />
               ) : (
-                users.map((user) => (
-                  <tr key={user.id} className="border-b border-slate-100">
+                users.map((user, index) => (
+                  <tr
+                    key={user.id}
+                    className={`border-b border-slate-100 hover:bg-slate-50/80 transition-colors ${
+                      index % 2 === 1 ? 'bg-slate-50/40' : ''
+                    }`}
+                  >
                     <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-upa-50 flex items-center justify-center">
@@ -111,7 +113,7 @@ export default function Users() {
                           ? 'bg-purple-50 text-purple-700'
                           : user.role === 'ENTREGADOR'
                             ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-blue-50 text-blue-700'
+                            : 'bg-upa-50 text-upa-700'
                       }`}>
                         {user.role === 'ADMIN' ? 'Administrador' : user.role === 'ENTREGADOR' ? 'Entregador' : 'Operador'}
                       </span>
@@ -190,7 +192,7 @@ export default function Users() {
             type="button"
             onClick={() => createMutation.mutate(form)}
             disabled={!form.name || !form.email || !form.password || createMutation.isPending}
-            className="w-full py-3 rounded-xl bg-upa-800 text-white font-medium disabled:opacity-60"
+            className={buttonClassName('primary', 'md', 'w-full')}
           >
             {createMutation.isPending ? 'Criando...' : 'Criar usuário'}
           </button>
@@ -214,7 +216,7 @@ export default function Users() {
             type="button"
             onClick={() => resetMutation.mutate({ id: resetModal.id, password: newPassword })}
             disabled={newPassword.length < 6 || resetMutation.isPending}
-            className="w-full py-3 rounded-xl bg-upa-800 text-white font-medium disabled:opacity-60"
+            className={buttonClassName('primary', 'md', 'w-full')}
           >
             {resetMutation.isPending ? 'Salvando...' : 'Redefinir senha'}
           </button>

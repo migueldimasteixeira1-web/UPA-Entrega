@@ -8,6 +8,7 @@ import { useToast } from '../lib/toast';
 import Alert from '../components/Alert';
 import EmptyState from '../components/EmptyState';
 import { SkeletonList } from '../components/Skeleton';
+import { buttonClassName } from '../components/Button';
 
 export default function DeliveryRoutes() {
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
@@ -174,7 +175,7 @@ export default function DeliveryRoutes() {
             type="button"
             onClick={handleCreateRoute}
             disabled={!courierId || !selectedOrderIds.length || createRouteMutation.isPending}
-            className="inline-flex items-center justify-center gap-2 min-h-11 px-6 py-2.5 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={buttonClassName('primary', 'md', 'px-6')}
           >
             <Truck className="w-4 h-4" />
             {createRouteMutation.isPending ? 'Criando rota...' : `Criar rota (${selectedOrderIds.length})`}

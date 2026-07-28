@@ -7,6 +7,7 @@ import { maskCep, maskCpf, maskPhone, onlyDigits } from '../lib/masks';
 import { fetchAddressByCep } from '../lib/viacep';
 import { useToast } from '../lib/toast';
 import Alert from '../components/Alert';
+import { buttonClassName } from '../components/Button';
 import PatientStep from './new-order/PatientStep';
 import AddressStep from './new-order/AddressStep';
 import MedicationsStep from './new-order/MedicationsStep';
@@ -475,17 +476,13 @@ export default function NewOrder() {
             type="button"
             onClick={prev}
             disabled={step === 0}
-            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            className={buttonClassName('ghost', 'md', 'w-full sm:w-auto text-slate-600 hover:bg-slate-100 disabled:opacity-40')}
           >
             <ChevronLeft className="w-4 h-4" /> Voltar
           </button>
 
           {step < STEPS.length - 1 ? (
-            <button
-              type="button"
-              onClick={next}
-              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 px-6 py-2.5 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 shadow-sm"
-            >
+            <button type="button" onClick={next} className={buttonClassName('primary', 'md', 'w-full sm:w-auto px-6')}>
               Próximo <ChevronRight className="w-4 h-4" />
             </button>
           ) : (
@@ -493,7 +490,7 @@ export default function NewOrder() {
               type="button"
               onClick={handleSubmit}
               disabled={mutation.isPending}
-              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              className={buttonClassName('success', 'md', 'w-full sm:w-auto px-6')}
             >
               {mutation.isPending ? 'Salvando pedido...' : 'Criar pedido'}
             </button>

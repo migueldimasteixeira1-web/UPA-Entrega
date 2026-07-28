@@ -8,14 +8,28 @@ export const STATUS_LABELS = {
   CANCELADO: 'Cancelado',
 };
 
+// Cada etapa com um matiz distinto — evita a antiga escala de 4 tons quase
+// idênticos de azul, que tornava impossível diferenciar o status de relance.
 export const STATUS_COLORS = {
-  PEDIDO_RECEBIDO: 'bg-slate-100 text-slate-700 ring-slate-200',
-  EM_SEPARACAO: 'bg-slate-50 text-slate-700 ring-slate-200',
-  SEPARADO: 'bg-upa-50 text-upa-800 ring-upa-200',
-  AGUARDANDO_SAIDA: 'bg-upa-100/70 text-upa-800 ring-upa-200',
+  PEDIDO_RECEBIDO: 'bg-slate-100 text-slate-600 ring-slate-200',
+  EM_SEPARACAO: 'bg-amber-50 text-amber-700 ring-amber-200',
+  SEPARADO: 'bg-sky-50 text-sky-700 ring-sky-200',
+  AGUARDANDO_SAIDA: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
   EM_ROTA: 'bg-upa-100 text-upa-900 ring-upa-300',
-  ENTREGUE: 'bg-upa-800 text-white ring-upa-700',
-  CANCELADO: 'bg-red-50 text-red-800 ring-red-200',
+  ENTREGUE: 'bg-emerald-600 text-white ring-emerald-700',
+  CANCELADO: 'bg-red-50 text-red-700 ring-red-200',
+};
+
+// Cor sólida equivalente, para pontos/indicadores compactos (ex.: dot em
+// listas densas) onde um pill inteiro não cabe.
+export const STATUS_DOT_COLORS = {
+  PEDIDO_RECEBIDO: 'bg-slate-400',
+  EM_SEPARACAO: 'bg-amber-500',
+  SEPARADO: 'bg-sky-500',
+  AGUARDANDO_SAIDA: 'bg-indigo-500',
+  EM_ROTA: 'bg-upa-600',
+  ENTREGUE: 'bg-emerald-600',
+  CANCELADO: 'bg-red-500',
 };
 
 export function formatDate(date) {

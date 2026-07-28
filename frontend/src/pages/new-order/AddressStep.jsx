@@ -3,6 +3,7 @@ import { ADDRESS_LABELS } from '../../lib/constants';
 import Alert from '../../components/Alert';
 import Modal from '../../components/Modal';
 import FormField, { inputClassName, readOnlyInputClassName } from '../../components/FormField';
+import { buttonClassName } from '../../components/Button';
 
 const FIXED_ADDRESS_LABELS = ADDRESS_LABELS.filter((l) => l !== 'Outro');
 
@@ -289,7 +290,7 @@ export default function AddressStep({
                 })
               }
               disabled={!editAddressForm.street?.trim() || updateAddressMutation.isPending}
-              className="w-full py-3 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 disabled:opacity-60"
+              className={buttonClassName('primary', 'md', 'w-full')}
             >
               {updateAddressMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
             </button>

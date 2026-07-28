@@ -9,6 +9,7 @@ import Alert from '../components/Alert';
 import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import { SkeletonOrderCard } from '../components/Skeleton';
+import { buttonClassName } from '../components/Button';
 
 export default function MyDeliveries() {
   const [confirmOrder, setConfirmOrder] = useState(null);
@@ -115,7 +116,7 @@ export default function MyDeliveries() {
               <button
                 type="button"
                 onClick={() => openConfirm(order)}
-                className="w-full inline-flex items-center justify-center gap-2 min-h-11 px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700"
+                className={buttonClassName('success', 'md', 'w-full')}
               >
                 <CheckCircle2 className="w-4 h-4" /> Confirmar entrega
               </button>
@@ -143,7 +144,7 @@ export default function MyDeliveries() {
             type="button"
             onClick={() => confirmMutation.mutate()}
             disabled={!pin.trim() || confirmMutation.isPending}
-            className="w-full py-3 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-60"
+            className={buttonClassName('success', 'md', 'w-full')}
           >
             {confirmMutation.isPending ? 'Confirmando...' : 'Confirmar entrega'}
           </button>

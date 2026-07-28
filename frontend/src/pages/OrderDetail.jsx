@@ -29,6 +29,7 @@ import CopyMessage from '../components/CopyMessage';
 import Modal from '../components/Modal';
 import Alert from '../components/Alert';
 import { SkeletonOrderDetail } from '../components/Skeleton';
+import { buttonClassName } from '../components/Button';
 
 export default function OrderDetail() {
   const { id } = useParams();
@@ -159,7 +160,7 @@ export default function OrderDetail() {
             <Link
               to={`/pedidos/${order.id}/etiqueta`}
               target="_blank"
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-11 px-4 py-2.5 rounded-xl text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200"
+              className={buttonClassName('secondary', 'md', 'flex-1 sm:flex-none')}
             >
               <Printer className="w-4 h-4" /> Imprimir etiqueta
             </Link>
@@ -170,11 +171,7 @@ export default function OrderDetail() {
               type="button"
               onClick={() => handleStatusAction(t)}
               disabled={updateStatusMutation.isPending}
-              className={`flex-1 sm:flex-none min-h-11 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                t.to === 'CANCELADO'
-                  ? 'bg-red-50 text-red-700 hover:bg-red-100'
-                  : 'bg-upa-800 text-white hover:bg-upa-900'
-              } disabled:opacity-60`}
+              className={buttonClassName(t.to === 'CANCELADO' ? 'danger' : 'primary', 'md', 'flex-1 sm:flex-none')}
             >
               {t.label}
             </button>
@@ -289,7 +286,7 @@ export default function OrderDetail() {
                 <p className="text-xs text-slate-500 mt-1">Gerado pelo sistema. O entregador solicita ao paciente no ato da entrega.</p>
               </div>
 
-              <div className={`rounded-xl border p-4 ${order.route ? 'border-blue-100 bg-blue-50/40' : 'border-slate-100'}`}>
+              <div className={`rounded-xl border p-4 ${order.route ? 'border-upa-100 bg-upa-50/40' : 'border-slate-100'}`}>
                 <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
                   <Truck className="w-4 h-4" /> Rota / Entregador
                 </div>
@@ -387,7 +384,7 @@ export default function OrderDetail() {
               type="button"
               onClick={() => addNoteMutation.mutate()}
               disabled={!note.trim() || addNoteMutation.isPending}
-              className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 text-white text-sm font-medium hover:bg-slate-900 disabled:opacity-60"
+              className={buttonClassName('secondary', 'md', 'mt-3')}
             >
               <Save className="w-4 h-4" /> Salvar observação
             </button>
@@ -410,7 +407,7 @@ export default function OrderDetail() {
             type="button"
             onClick={handleCancel}
             disabled={!cancelReason.trim() || updateStatusMutation.isPending}
-            className="w-full py-3 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-60"
+            className={buttonClassName('dangerSolid', 'md', 'w-full')}
           >
             Confirmar cancelamento
           </button>
