@@ -174,3 +174,73 @@ describe('GET /api/orders filters', () => {
     expect(ids).not.toContain(orderForB.id);
   });
 });
+
+describe('GET /api/orders/report', () => {
+  let token;
+  let admin;
+  let patient;
+  let address;
+  let medication;
+
+  beforeEach(async () => {
+    const operator = await createUser({ role: 'OPERADOR' });
+    token = await loginAs(operator);
+    admin = await createUser({ role: 'ADMIN' });
+    ({ patient, address } = await createPatientWithAddress());
+    medication = await createMedicationRecord();
+  });
+
+  it('returns a CSV with the order data and a matching row count for the applied filter', async () => {
+    await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'CANCELADO',
+      extra: { cancelReason: 'Paciente desistiu' },
+    });
+    await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'PEDIDO_RECEBIDO',
+    });
+
+    const res = await request(app)
+      .get('/api/orders/report')
+      .query({ status: 'CANCELADO' })
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/csv/);
+    expect(res.headers['content-disposition']).toMatch(/attachment; filename="upa-entrega-pedidos-.+\.csv"/);
+
+    const lines = res.text.trim().split('\r\n');
+    // BOM + cabeçalho + só o pedido cancelado (o outro não bate no filtro de status)
+    expect(lines).toHaveLength(2);
+    expect(lines[0].replace(/^﻿/, '')).toBe(
+      'Pedido,Paciente,Status,Criado em,Entregue em,Entregador,Motivo do cancelamento'
+    );
+    expect(lines[1]).toContain('Paciente desistiu');
+    expect(lines[1]).toContain('Cancelado');
+  });
+
+  it('quotes a cancellation reason containing a comma', async () => {
+    await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'CANCELADO',
+      extra: { cancelReason: 'Endereço errado, paciente mudou de bairro' },
+    });
+
+    const res = await request(app)
+      .get('/api/orders/report')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('"Endereço errado, paciente mudou de bairro"');
+  });
+});

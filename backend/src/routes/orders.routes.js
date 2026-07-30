@@ -10,36 +10,42 @@ import {
 } from '../lib/constants.js';
 import { ORDER_INCLUDE as orderInclude, formatOrder } from '../lib/orderSerializer.js';
 import { validateCpf } from '../lib/validation.js';
+import { toCsv } from '../lib/csv.js';
+
+// Compartilhado entre listOrders e exportOrdersCsv — os dois filtram do
+// mesmo jeito, só muda o formato da resposta.
+function buildOrdersWhere({ status, search, dateFrom, dateTo, courierId }) {
+  const searchDigits = search ? search.replace(/\D/g, '') : '';
+
+  return {
+    ...(status && { status }),
+    ...(search && {
+      OR: [
+        { patientName: { contains: search, mode: 'insensitive' } },
+        { orderNumber: { contains: search, mode: 'insensitive' } },
+        { neighborhood: { contains: search, mode: 'insensitive' } },
+        { patientPhone: { contains: search } },
+        // CPF é salvo só com dígitos — busca pelo texto digitado
+        // (com ou sem pontuação) precisa comparar contra os dígitos.
+        ...(searchDigits ? [{ patientCpf: { contains: searchDigits } }] : []),
+      ],
+    }),
+    ...(dateFrom || dateTo
+      ? {
+          createdAt: {
+            ...(dateFrom && { gte: new Date(dateFrom) }),
+            ...(dateTo && { lte: new Date(`${dateTo}T23:59:59`) }),
+          },
+        }
+      : {}),
+    ...(courierId && { route: { courierId } }),
+  };
+}
 
 export async function listOrders(req, res) {
   try {
-    const { status, search, dateFrom, dateTo, courierId } = req.query;
-    const searchDigits = search ? search.replace(/\D/g, '') : '';
-
     const orders = await prisma.order.findMany({
-      where: {
-        ...(status && { status }),
-        ...(search && {
-          OR: [
-            { patientName: { contains: search, mode: 'insensitive' } },
-            { orderNumber: { contains: search, mode: 'insensitive' } },
-            { neighborhood: { contains: search, mode: 'insensitive' } },
-            { patientPhone: { contains: search } },
-            // CPF é salvo só com dígitos — busca pelo texto digitado
-            // (com ou sem pontuação) precisa comparar contra os dígitos.
-            ...(searchDigits ? [{ patientCpf: { contains: searchDigits } }] : []),
-          ],
-        }),
-        ...(dateFrom || dateTo
-          ? {
-              createdAt: {
-                ...(dateFrom && { gte: new Date(dateFrom) }),
-                ...(dateTo && { lte: new Date(`${dateTo}T23:59:59`) }),
-              },
-            }
-          : {}),
-        ...(courierId && { route: { courierId } }),
-      },
+      where: buildOrdersWhere(req.query),
       include: {
         route: { select: { routeNumber: true, courier: { select: { name: true } } } },
         items: {
@@ -61,6 +67,49 @@ export async function listOrders(req, res) {
   } catch (error) {
     console.error('List orders error:', error);
     res.status(500).json({ error: 'Erro ao listar pedidos' });
+  }
+}
+
+const CSV_HEADERS = [
+  'Pedido',
+  'Paciente',
+  'Status',
+  'Criado em',
+  'Entregue em',
+  'Entregador',
+  'Motivo do cancelamento',
+];
+
+export async function exportOrdersCsv(req, res) {
+  try {
+    const orders = await prisma.order.findMany({
+      where: buildOrdersWhere(req.query),
+      include: {
+        route: { select: { courier: { select: { name: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const rows = orders.map((order) => [
+      order.orderNumber,
+      order.patientName,
+      STATUS_LABELS[order.status],
+      order.createdAt.toISOString(),
+      order.deliveredAt ? order.deliveredAt.toISOString() : '',
+      order.route?.courier?.name || '',
+      order.cancelReason || '',
+    ]);
+
+    const csv = toCsv(CSV_HEADERS, rows);
+    const filename = `upa-entrega-pedidos-${new Date().toISOString().slice(0, 10)}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    // BOM: Excel no Windows abre acento corretamente sem isso adivinhar o encoding errado.
+    res.send('﻿' + csv);
+  } catch (error) {
+    console.error('Export orders CSV error:', error);
+    res.status(500).json({ error: 'Erro ao exportar relatório' });
   }
 }
 

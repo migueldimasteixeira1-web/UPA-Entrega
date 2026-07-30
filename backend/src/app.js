@@ -29,6 +29,7 @@ import {
 } from './routes/routes.routes.js';
 import {
   listOrders,
+  exportOrdersCsv,
   getOrder,
   createOrder,
   updateOrder,
@@ -141,6 +142,8 @@ export function createApp({ loginRateLimit, confirmDeliveryRateLimit } = {}) {
   app.get('/api/dashboard/stats', requireRole('ADMIN', 'OPERADOR'), getDashboardStats);
 
   app.get('/api/orders', requireRole('ADMIN', 'OPERADOR'), listOrders);
+  // Precisa vir antes de /api/orders/:id, senão "report" seria lido como id.
+  app.get('/api/orders/report', requireRole('ADMIN', 'OPERADOR'), exportOrdersCsv);
   app.get('/api/orders/:id', requireRole('ADMIN', 'OPERADOR'), getOrder);
   app.post('/api/orders', requireRole('ADMIN', 'OPERADOR'), validateBody(createOrderSchema), createOrder);
   app.put('/api/orders/:id', requireRole('ADMIN', 'OPERADOR'), validateBody(updateOrderSchema), updateOrder);
