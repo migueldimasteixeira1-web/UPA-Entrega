@@ -67,6 +67,11 @@ export const api = {
     return { blob: await response.blob(), filename };
   },
 
+  getOrderHistory: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/api/orders/history${query ? `?${query}` : ''}`);
+  },
+
   getOrder: (id) => request(`/api/orders/${id}`),
 
   createOrder: (data) =>

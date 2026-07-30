@@ -113,6 +113,63 @@ export async function exportOrdersCsv(req, res) {
   }
 }
 
+const HISTORY_PAGE_SIZE = 50;
+
+// Visão cruzada entre pedidos — "o que o Operador X fez hoje", sem precisar
+// abrir pedido por pedido. O histórico por pedido já existe em getOrder
+// (order.history); isto agrega OrderHistory de todos os pedidos.
+export async function listOrderHistory(req, res) {
+  try {
+    const { userId, dateFrom, dateTo } = req.query;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+
+    const where = {
+      ...(userId && { userId }),
+      ...(dateFrom || dateTo
+        ? {
+            createdAt: {
+              ...(dateFrom && { gte: new Date(dateFrom) }),
+              ...(dateTo && { lte: new Date(`${dateTo}T23:59:59`) }),
+            },
+          }
+        : {}),
+    };
+
+    const [total, entries] = await Promise.all([
+      prisma.orderHistory.count({ where }),
+      prisma.orderHistory.findMany({
+        where,
+        include: {
+          user: { select: { id: true, name: true } },
+          order: { select: { id: true, orderNumber: true, patientName: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * HISTORY_PAGE_SIZE,
+        take: HISTORY_PAGE_SIZE,
+      }),
+    ]);
+
+    res.json({
+      items: entries.map((entry) => ({
+        id: entry.id,
+        action: entry.action,
+        fromStatus: entry.fromStatus,
+        toStatus: entry.toStatus,
+        details: entry.details,
+        createdAt: entry.createdAt,
+        user: entry.user,
+        order: entry.order,
+      })),
+      total,
+      page,
+      pageSize: HISTORY_PAGE_SIZE,
+    });
+  } catch (error) {
+    console.error('List order history error:', error);
+    res.status(500).json({ error: 'Erro ao buscar histórico' });
+  }
+}
+
 export async function getOrder(req, res) {
   try {
     const order = await prisma.order.findUnique({
