@@ -82,4 +82,22 @@ describe('Order status transitions', () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('Motivo do cancelamento é obrigatório');
   });
+
+  it('masks patientCpf in the order list, same as the single-order view', async () => {
+    await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: (await createUser({ role: 'ADMIN' })).id,
+      extra: { patientCpf: '12345678900' },
+    });
+
+    const res = await request(app).get('/api/orders').set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBeGreaterThan(0);
+    for (const order of res.body) {
+      expect(order.patientCpf).not.toMatch(/^\d{11}$/);
+    }
+  });
 });

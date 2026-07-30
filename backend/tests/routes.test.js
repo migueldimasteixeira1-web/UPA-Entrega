@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
+import { createApp } from '../src/app.js';
 import {
   app,
   createUser,
@@ -165,5 +166,22 @@ describe('Delivery PIN security', () => {
       .set('Authorization', `Bearer ${courierToken}`);
     const activeRoutes = routeRes.body;
     expect(activeRoutes).toHaveLength(0); // rota finalizada não aparece mais em "mine" (só EM_ANDAMENTO)
+  });
+
+  it('rate-limits repeated confirm-delivery attempts, so the PIN cannot be brute-forced', async () => {
+    // App próprio, com limite baixo, para não depender/afetar o contador em
+    // memória do rate limiter compartilhado pelos demais testes.
+    const isolatedApp = createApp({ confirmDeliveryRateLimit: { windowMs: 15 * 60 * 1000, limit: 3 } });
+
+    let lastStatus;
+    for (let i = 0; i < 4; i += 1) {
+      const res = await request(isolatedApp)
+        .post(`/api/orders/${order.id}/confirm-delivery`)
+        .set('Authorization', `Bearer ${courierToken}`)
+        .send({ pin: '000000' });
+      lastStatus = res.status;
+    }
+
+    expect(lastStatus).toBe(429);
   });
 });

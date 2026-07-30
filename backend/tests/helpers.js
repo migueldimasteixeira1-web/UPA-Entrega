@@ -4,10 +4,14 @@ import prisma from '../src/lib/prisma.js';
 import { hashPassword } from '../src/lib/password.js';
 
 // Um único app é reaproveitado por todos os arquivos de teste (fileParallelism
-// desligado). O rate limiter de login é global ao processo, então um limite
-// baixo aqui derrubaria testes não relacionados com 429 — o comportamento do
-// limiter em si é coberto isoladamente em auth.test.js.
-export const app = createApp({ loginRateLimit: { windowMs: 15 * 60 * 1000, limit: 100000 } });
+// desligado). Os rate limiters (login, confirmação de entrega) são globais ao
+// processo, então um limite baixo aqui derrubaria testes não relacionados com
+// 429 — o comportamento dos limiters em si é coberto isoladamente em
+// auth.test.js / routes.test.js.
+export const app = createApp({
+  loginRateLimit: { windowMs: 15 * 60 * 1000, limit: 100000 },
+  confirmDeliveryRateLimit: { windowMs: 15 * 60 * 1000, limit: 100000 },
+});
 
 export async function createUser({ role = 'OPERADOR', email, password = 'Senha@123', name = 'Usuário Teste' } = {}) {
   const finalEmail = email || `${role.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2)}@upa.local`;

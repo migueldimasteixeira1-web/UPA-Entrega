@@ -4,6 +4,7 @@ import {
   canTransition,
   generateDeliveryPin,
   generateOrderNumber,
+  maskCpf,
   maskName,
   STATUS_LABELS,
 } from '../lib/constants.js';
@@ -47,6 +48,7 @@ export async function listOrders(req, res) {
     res.json(
       orders.map((order) => ({
         ...order,
+        patientCpf: maskCpf(order.patientCpf),
         mainMedication: order.items[0]?.medicationName,
         statusLabel: STATUS_LABELS[order.status],
       }))
