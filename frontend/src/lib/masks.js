@@ -36,6 +36,14 @@ export function formatCpfDisplay(value = '') {
   return maskCpf(value);
 }
 
+// O telefone salvo no sistema é sempre local (DDD + número, 10-11 dígitos,
+// nunca com código de país) — por isso sempre prefixamos "55", sem tentar
+// "detectar" se já tem: DDD 55 existe de verdade (Santa Maria/RS) e colidiria.
+export function buildWhatsAppUrl(phone, text) {
+  const digits = onlyDigits(phone);
+  return `https://wa.me/55${digits}?text=${encodeURIComponent(text)}`;
+}
+
 export function buildMapsUrl({ street, number, neighborhood, city, state, zipCode }) {
   const parts = [
     [street, number].filter(Boolean).join(', '),

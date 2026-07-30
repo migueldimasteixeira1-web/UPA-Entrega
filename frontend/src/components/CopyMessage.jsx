@@ -1,8 +1,9 @@
-import { Copy, Check, AlertCircle, Share2 } from 'lucide-react';
+import { Copy, Check, AlertCircle, Share2, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 import { canShare, copyToClipboard, shareText } from '../lib/clipboard';
+import { buildWhatsAppUrl } from '../lib/masks';
 
-export default function CopyMessage({ title, text }) {
+export default function CopyMessage({ title, text, phone }) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const [shared, setShared] = useState(false);
@@ -78,6 +79,16 @@ export default function CopyMessage({ title, text }) {
                 </>
               )}
             </button>
+          )}
+          {phone && (
+            <a
+              href={buildWhatsAppUrl(phone, text)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg min-h-11 px-3 py-2 text-xs font-medium transition-colors flex-1 sm:flex-none bg-emerald-50 text-emerald-700 hover:bg-emerald-100 active:bg-emerald-100"
+            >
+              <MessageCircle className="w-3.5 h-3.5" /> Abrir no WhatsApp
+            </a>
           )}
         </div>
       </div>

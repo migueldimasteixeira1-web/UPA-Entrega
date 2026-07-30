@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { onlyDigits, maskCpf, maskPhone, maskCep, formatCpfDisplay, buildMapsUrl } from '../src/lib/masks';
+import { onlyDigits, maskCpf, maskPhone, maskCep, formatCpfDisplay, buildMapsUrl, buildWhatsAppUrl } from '../src/lib/masks';
 
 describe('onlyDigits', () => {
   it('strips everything that is not a digit', () => {
@@ -71,5 +71,22 @@ describe('buildMapsUrl', () => {
   it('omits missing parts instead of leaving empty commas', () => {
     const url = buildMapsUrl({ street: 'Rua X', number: '10', neighborhood: '', city: '', state: '', zipCode: '' });
     expect(url).toBe(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('Rua X, 10')}`);
+  });
+});
+
+describe('buildWhatsAppUrl', () => {
+  it('adds the Brazil country code and URL-encodes the message', () => {
+    const url = buildWhatsAppUrl('22999990000', 'Olá, tudo bem?');
+    expect(url).toBe(`https://wa.me/5522999990000?text=${encodeURIComponent('Olá, tudo bem?')}`);
+  });
+
+  it('always prefixes 55, even for a local number with DDD 55 (Santa Maria/RS)', () => {
+    const url = buildWhatsAppUrl('55999990000', 'Oi');
+    expect(url).toBe(`https://wa.me/5555999990000?text=${encodeURIComponent('Oi')}`);
+  });
+
+  it('strips formatting characters from the phone', () => {
+    const url = buildWhatsAppUrl('(22) 99999-0000', 'Oi');
+    expect(url).toBe(`https://wa.me/5522999990000?text=${encodeURIComponent('Oi')}`);
   });
 });
