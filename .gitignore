@@ -11,6 +11,8 @@ build/
 .env
 .env.local
 .env.*.local
+!.env.vm.example
+!**/.env.example
 
 # Logs
 logs/
@@ -31,3 +33,7 @@ Thumbs.db
 
 # Docker
 *.pid
+
+# Scripts auxiliares locais
+scripts/node_modules/
+scripts/screenshots/

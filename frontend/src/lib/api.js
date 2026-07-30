@@ -1,4 +1,6 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Em produção (gateway nginx) a API é same-origin: paths /api/... relativos.
+// Em desenvolvimento o Vite faz proxy de /api para o backend (vite.config.js).
+const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 class ApiError extends Error {
   constructor(message, status) {

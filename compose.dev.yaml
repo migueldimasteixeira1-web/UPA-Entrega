@@ -1,8 +1,9 @@
+# Desenvolvimento local com hot-reload (Docker).
+# Uso: docker compose -f compose.dev.yaml up --build
 services:
   db:
     image: postgres:16-alpine
-    container_name: upa-entrega-db
-    restart: unless-stopped
+    container_name: upa-entrega-db-dev
     environment:
       POSTGRES_USER: upa
       POSTGRES_PASSWORD: upa_secret
@@ -10,7 +11,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U upa -d upa_entrega"]
       interval: 5s
@@ -20,16 +21,17 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
-    container_name: upa-entrega-backend
-    restart: unless-stopped
+      dockerfile: Dockerfile.dev
+    container_name: upa-entrega-backend-dev
     environment:
       DATABASE_URL: postgresql://upa:upa_secret@db:5432/upa_entrega?schema=public
-      JWT_SECRET: upa_entrega_jwt_secret_change_in_production
+      JWT_SECRET: upa_entrega_jwt_secret_dev_only
       JWT_EXPIRES_IN: 8h
       PORT: 3001
       NODE_ENV: development
       FRONTEND_URL: http://localhost:5173
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      SEED_DEMO_DATA: "true"
     ports:
       - "3001:3001"
     depends_on:
@@ -42,11 +44,10 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-    container_name: upa-entrega-frontend
-    restart: unless-stopped
+      dockerfile: Dockerfile.dev
+    container_name: upa-entrega-frontend-dev
     environment:
-      VITE_API_URL: http://localhost:3001
+      VITE_PROXY_TARGET: http://backend:3001
     ports:
       - "5173:5173"
     depends_on:
@@ -56,4 +57,4 @@ services:
       - /app/node_modules
 
 volumes:
-  postgres_data:
+  postgres_dev_data:
