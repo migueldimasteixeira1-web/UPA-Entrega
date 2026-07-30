@@ -103,21 +103,33 @@ export function generateMessages(order, baseUrl) {
   return messages;
 }
 
-async function generateDailySequence(prisma, model, field, prefix) {
-  const count = await prisma[model].count({
-    where: { [field]: { startsWith: prefix } },
-  });
-  return `${prefix}-${String(count + 1).padStart(3, '0')}`;
+// tx precisa ser um client Prisma com $queryRaw (a instância padrão ou um
+// client de $transaction) — o chamador é responsável por rodar isso dentro
+// da mesma transação da criação do registro (order/route), para não deixar a
+// numeração fora de sincronia se o create falhar depois.
+async function generateDailySequence(tx, scope, dateKey, prefix) {
+  const rows = await tx.$queryRaw`
+    INSERT INTO "DailyCounter" (scope, "dateKey", counter)
+    VALUES (${scope}, ${dateKey}, 1)
+    ON CONFLICT (scope, "dateKey")
+    DO UPDATE SET counter = "DailyCounter".counter + 1
+    RETURNING counter
+  `;
+  const counter = Number(rows[0].counter);
+  return `${prefix}-${String(counter).padStart(3, '0')}`;
 }
 
-export async function generateOrderNumber(prisma) {
+function todayDateKey() {
   const today = new Date();
-  const prefix = `UPA-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
-  return generateDailySequence(prisma, 'order', 'orderNumber', prefix);
+  return `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
 }
 
-export async function generateRouteNumber(prisma) {
-  const today = new Date();
-  const prefix = `ROTA-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
-  return generateDailySequence(prisma, 'route', 'routeNumber', prefix);
+export async function generateOrderNumber(tx) {
+  const dateKey = todayDateKey();
+  return generateDailySequence(tx, 'order', dateKey, `UPA-${dateKey}`);
+}
+
+export async function generateRouteNumber(tx) {
+  const dateKey = todayDateKey();
+  return generateDailySequence(tx, 'route', dateKey, `ROTA-${dateKey}`);
 }

@@ -100,4 +100,25 @@ describe('Order status transitions', () => {
       expect(order.patientCpf).not.toMatch(/^\d{11}$/);
     }
   });
+
+  it('assigns distinct order numbers to concurrent creations on the same day, no 500s', async () => {
+    const payload = {
+      patientId: patient.id,
+      addressId: address.id,
+      items: [{ medicationId: medication.id, quantity: 1 }],
+    };
+
+    const responses = await Promise.all(
+      Array.from({ length: 8 }).map(() =>
+        request(app).post('/api/orders').set('Authorization', `Bearer ${token}`).send(payload)
+      )
+    );
+
+    for (const res of responses) {
+      expect(res.status).toBe(201);
+    }
+
+    const orderNumbers = responses.map((res) => res.body.orderNumber);
+    expect(new Set(orderNumbers).size).toBe(orderNumbers.length);
+  });
 });
