@@ -18,7 +18,13 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
     if (!open) return;
 
     previouslyFocused.current = document.activeElement;
-    const firstField = panelRef.current?.querySelector(FOCUSABLE_SELECTOR);
+    // Um campo marcado com data-autofocus no conteúdo (ex.: PIN, CEP) tem
+    // prioridade sobre o primeiro elemento focável "por acaso" — que quase
+    // sempre é o botão de fechar (X), renderizado antes do children. Não dá
+    // pra usar [autofocus]: o autoFocus do React é um efeito imperativo, não
+    // um atributo real no DOM.
+    const explicitAutoFocus = panelRef.current?.querySelector('[data-autofocus]');
+    const firstField = explicitAutoFocus || panelRef.current?.querySelector(FOCUSABLE_SELECTOR);
     (firstField || panelRef.current)?.focus();
 
     return () => {
