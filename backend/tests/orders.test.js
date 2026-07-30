@@ -101,3 +101,76 @@ describe('Order status transitions', () => {
     }
   });
 });
+
+describe('GET /api/orders filters', () => {
+  let token;
+  let admin;
+  let patient;
+  let address;
+  let medication;
+
+  beforeEach(async () => {
+    const operator = await createUser({ role: 'OPERADOR' });
+    token = await loginAs(operator);
+    admin = await createUser({ role: 'ADMIN' });
+    ({ patient, address } = await createPatientWithAddress({ cpf: '98765432100' }));
+    medication = await createMedicationRecord();
+  });
+
+  it('finds an order by CPF even when the search text has punctuation', async () => {
+    const order = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      extra: { patientCpf: '98765432100' },
+    });
+
+    const res = await request(app)
+      .get('/api/orders')
+      .query({ search: '987.654.321-00' })
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.map((o) => o.id)).toContain(order.id);
+  });
+
+  it('filters by courierId, returning only orders on that courier route', async () => {
+    const courierA = await createUser({ role: 'ENTREGADOR' });
+    const courierB = await createUser({ role: 'ENTREGADOR' });
+
+    const orderForA = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'AGUARDANDO_SAIDA',
+    });
+    const orderForB = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'AGUARDANDO_SAIDA',
+    });
+
+    await request(app)
+      .post('/api/delivery-routes')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ courierId: courierA.id, orderIds: [orderForA.id] });
+    await request(app)
+      .post('/api/delivery-routes')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ courierId: courierB.id, orderIds: [orderForB.id] });
+
+    const res = await request(app)
+      .get('/api/orders')
+      .query({ courierId: courierA.id })
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    const ids = res.body.map((o) => o.id);
+    expect(ids).toContain(orderForA.id);
+    expect(ids).not.toContain(orderForB.id);
+  });
+});

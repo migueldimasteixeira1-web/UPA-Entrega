@@ -7,6 +7,24 @@ function normalizeRole(role) {
   return VALID_ROLES.includes(role) ? role : 'OPERADOR';
 }
 
+// Sem dado sensível (email, papel, criado em) — só o suficiente pra montar
+// um seletor de entregador. ADMIN e OPERADOR podem chamar (montar rota e
+// filtrar o painel são tarefas de ambos), diferente de listUsers, que é
+// gestão de usuário de verdade e continua restrita a ADMIN.
+export async function listCouriers(req, res) {
+  try {
+    const couriers = await prisma.user.findMany({
+      where: { role: 'ENTREGADOR', active: true },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+    res.json(couriers);
+  } catch (error) {
+    console.error('List couriers error:', error);
+    res.status(500).json({ error: 'Erro ao listar entregadores' });
+  }
+}
+
 export async function listUsers(req, res) {
   try {
     const users = await prisma.user.findMany({

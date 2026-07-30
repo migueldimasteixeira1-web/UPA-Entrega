@@ -106,6 +106,8 @@ export const api = {
 
   getUsers: () => request('/api/users'),
 
+  getCouriers: () => request('/api/couriers'),
+
   createUser: (data) =>
     request('/api/users', { method: 'POST', body: JSON.stringify(data) }),
 

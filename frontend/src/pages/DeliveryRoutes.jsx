@@ -22,9 +22,9 @@ export default function DeliveryRoutes() {
     queryFn: () => api.getOrders({ status: 'AGUARDANDO_SAIDA' }),
   });
 
-  const { data: users = [] } = useQuery({
-    queryKey: ['users'],
-    queryFn: api.getUsers,
+  const { data: couriers = [] } = useQuery({
+    queryKey: ['couriers'],
+    queryFn: api.getCouriers,
   });
 
   const { data: routes = [], isLoading: loadingRoutes } = useQuery({
@@ -32,8 +32,6 @@ export default function DeliveryRoutes() {
     queryFn: () => api.getDeliveryRoutes(),
     refetchInterval: 15000,
   });
-
-  const couriers = users.filter((u) => u.role === 'ENTREGADOR' && u.active);
 
   const createRouteMutation = useMutation({
     mutationFn: (data) => api.createDeliveryRoute(data),

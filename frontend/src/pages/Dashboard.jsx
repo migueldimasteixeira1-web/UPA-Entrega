@@ -75,6 +75,7 @@ export default function Dashboard() {
     status: '',
     dateFrom: '',
     dateTo: '',
+    courierId: '',
   });
   const debouncedSearch = useDebouncedValue(searchInput, 300);
 
@@ -82,6 +83,11 @@ export default function Dashboard() {
     queryKey: ['stats'],
     queryFn: api.getStats,
     refetchInterval: 30000,
+  });
+
+  const { data: couriers = [] } = useQuery({
+    queryKey: ['couriers'],
+    queryFn: api.getCouriers,
   });
 
   const queryFilters = { ...filters, search: debouncedSearch };
@@ -144,7 +150,7 @@ export default function Dashboard() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar por paciente, pedido, bairro..."
+              placeholder="Buscar por paciente, pedido, CPF, bairro..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-upa-500 focus:ring-2 focus:ring-upa-100 outline-none"
@@ -170,6 +176,17 @@ export default function Dashboard() {
               className="w-full sm:w-auto px-3 py-2.5 min-h-11 rounded-xl border border-slate-200 text-sm outline-none focus:border-upa-500"
               aria-label="Data inicial"
             />
+
+            <select
+              value={filters.courierId}
+              onChange={(e) => setFilters({ ...filters, courierId: e.target.value })}
+              className="w-full sm:w-auto sm:min-w-[160px] px-3 py-2.5 min-h-11 rounded-xl border border-slate-200 text-sm outline-none focus:border-upa-500 bg-white"
+            >
+              <option value="">Todos os entregadores</option>
+              {couriers.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
 
             <div className="flex rounded-xl border border-slate-200 overflow-hidden bg-white shrink-0">
               <button
