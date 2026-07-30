@@ -48,6 +48,25 @@ export const api = {
     return request(`/api/orders${query ? `?${query}` : ''}`);
   },
 
+  // Não usa request(): a resposta é CSV, não JSON — e precisa do nome do
+  // arquivo que o backend sugeriu (Content-Disposition), não um fixo.
+  exportOrdersReport: async (params = {}) => {
+    const token = localStorage.getItem('upa_token');
+    const query = new URLSearchParams(params).toString();
+    const response = await fetch(`${API_URL}/api/orders/report${query ? `?${query}` : ''}`, {
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new ApiError(data.error || 'Erro ao exportar relatório', response.status);
+    }
+
+    const disposition = response.headers.get('Content-Disposition') || '';
+    const filename = disposition.match(/filename="?([^"]+)"?/)?.[1] || 'pedidos.csv';
+    return { blob: await response.blob(), filename };
+  },
+
   getOrder: (id) => request(`/api/orders/${id}`),
 
   createOrder: (data) =>

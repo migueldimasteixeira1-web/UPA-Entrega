@@ -12,10 +12,12 @@ import {
   LayoutGrid,
   List,
   Inbox,
+  Download,
 } from 'lucide-react';
-import { api } from '../lib/api';
+import { api, ApiError } from '../lib/api';
 import { formatDate, KANBAN_COLUMNS, STATUS_LABELS, STATUS_DOT_COLORS } from '../lib/constants';
 import { useDebouncedValue } from '../lib/useDebouncedValue';
+import { useToast } from '../lib/toast';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import { SkeletonKanban } from '../components/Skeleton';
@@ -77,7 +79,9 @@ export default function Dashboard() {
     dateTo: '',
     courierId: '',
   });
+  const [isExporting, setIsExporting] = useState(false);
   const debouncedSearch = useDebouncedValue(searchInput, 300);
+  const { showToast } = useToast();
 
   const { data: stats } = useQuery({
     queryKey: ['stats'],
@@ -102,6 +106,25 @@ export default function Dashboard() {
   });
 
   const activeOrders = orders.filter((o) => o.status !== 'CANCELADO');
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const { blob, filename } = await api.exportOrdersReport(
+        Object.fromEntries(Object.entries(queryFilters).filter(([, v]) => v))
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : 'Erro ao exportar relatório', { type: 'error' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const statCards = [
     { label: 'Em separação', value: stats?.emSeparacao ?? 0, icon: Package, accent: 'amber' },
@@ -177,6 +200,14 @@ export default function Dashboard() {
               aria-label="Data inicial"
             />
 
+            <input
+              type="date"
+              value={filters.dateTo}
+              onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+              className="w-full sm:w-auto px-3 py-2.5 min-h-11 rounded-xl border border-slate-200 text-sm outline-none focus:border-upa-500"
+              aria-label="Data final"
+            />
+
             <select
               value={filters.courierId}
               onChange={(e) => setFilters({ ...filters, courierId: e.target.value })}
@@ -187,6 +218,16 @@ export default function Dashboard() {
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
+
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={isExporting}
+              className={buttonClassName('secondary', 'md', 'w-full sm:w-auto shrink-0')}
+            >
+              <Download className="w-4 h-4" />
+              {isExporting ? 'Exportando...' : 'Exportar CSV'}
+            </button>
 
             <div className="flex rounded-xl border border-slate-200 overflow-hidden bg-white shrink-0">
               <button
