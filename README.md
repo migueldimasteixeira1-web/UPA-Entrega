@@ -6,19 +6,19 @@ Sistema interno para gestão da **logística de entrega domiciliar de medicament
 
 - **Backend:** Node.js, Express, Prisma, PostgreSQL, JWT + bcrypt
 - **Frontend:** React, Vite, Tailwind CSS, TanStack Query
-- **Infra:** Docker Compose + Nginx (gateway)
+- **Infra:** Docker Compose + Nginx (gateway com TLS, serve o frontend e faz proxy da API)
 
 ## Estrutura
 
 ```text
-├── backend/                 # API Express + Prisma
-├── frontend/                # React + Vite
-├── deploy/nginx.conf        # Gateway: / → frontend, /api → backend
-├── compose.yaml             # Produção / VM
-├── compose.dev.yaml         # Desenvolvimento com hot-reload
-├── .env.vm.example          # Modelo de variáveis para VM
-├── iniciar-local.sh         # Dev local (DB no Docker + Node no host)
-└── scripts/iniciar-vm.sh    # Sobe produção com validação de .env
+├── backend/                        # API Express + Prisma
+├── frontend/                       # React + Vite; a imagem de produção (Dockerfile) é o próprio gateway Nginx
+├── deploy/generate-self-signed-cert.sh  # Gera certificado TLS autoassinado (deploy/certs/)
+├── compose.yaml                    # Produção / VM
+├── compose.dev.yaml                # Desenvolvimento com hot-reload
+├── .env.vm.example                 # Modelo de variáveis para VM
+├── iniciar-local.sh                # Dev local (DB no Docker + Node no host)
+└── scripts/iniciar-vm.sh           # Sobe produção com validação de .env + certificado
 ```
 
 ## Produção (VM) — recomendado
@@ -34,17 +34,20 @@ Ou: `make vm`
 
 | Serviço  | URL                         |
 |----------|-----------------------------|
-| App      | `http://IP-OU-DNS` (porta `UPA_PORT`, padrão 80) |
-| Health   | `http://IP-OU-DNS/api/health` |
+| App      | `https://IP-OU-DNS` (porta `UPA_HTTPS_PORT`, padrão 443; porta 80 redireciona) |
+| Health   | `https://IP-OU-DNS/api/health` |
 
-A API e o frontend ficam na **mesma origem** via Nginx (`/api` → backend). Isso funciona no celular e em qualquer dispositivo da rede sem CORS especial.
+A API e o frontend ficam na **mesma origem**, atrás de um único Nginx que serve os arquivos estáticos e faz proxy de `/api` para o backend. Isso funciona no celular e em qualquer dispositivo da rede sem CORS especial.
+
+**TLS:** por padrão o script gera um certificado **autoassinado** (`deploy/generate-self-signed-cert.sh`, CN tirado de `PUBLIC_APP_URL`) — o navegador vai alertar que não é confiável, mas o tráfego continua criptografado; é suficiente para uso interno na rede da UPA. Para expor com um domínio público, substitua `deploy/certs/fullchain.pem` e `deploy/certs/privkey.pem` por um certificado real (ex.: Let's Encrypt) e reinicie o serviço `gateway`.
 
 Variáveis principais (`.env`):
 
 | Variável | Função |
 |----------|--------|
-| `PUBLIC_APP_URL` | URL pública (CORS + links de acompanhamento/WhatsApp) |
+| `PUBLIC_APP_URL` | URL pública, **https://** (CORS + links de acompanhamento/WhatsApp + CN do certificado) |
 | `CORS_ORIGINS` | Origens extras (vírgula), se necessário |
+| `UPA_PORT` / `UPA_HTTPS_PORT` | Portas publicadas do gateway (padrão 80/443) |
 | `JWT_SECRET` | Secret forte (≥ 32 caracteres) |
 | `POSTGRES_PASSWORD` | Senha do banco (≥ 12 caracteres) |
 | `SEED_DEMO_DATA` | `true` só na 1ª subida / homologação |

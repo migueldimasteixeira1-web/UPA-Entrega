@@ -37,3 +37,6 @@ Thumbs.db
 # Scripts auxiliares locais
 scripts/node_modules/
 scripts/screenshots/
+
+# Certificados TLS gerados localmente (nunca versionar chave privada)
+deploy/certs/*.pem

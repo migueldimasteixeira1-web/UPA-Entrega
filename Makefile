@@ -1,6 +1,9 @@
-.PHONY: up down logs reset dev-up dev-down vm
+.PHONY: up down logs reset dev-up dev-down vm certs
 
-up:
+certs:
+	./deploy/generate-self-signed-cert.sh $(or $(DOMAIN),localhost)
+
+up: certs
 	docker compose up --build
 
 down:
