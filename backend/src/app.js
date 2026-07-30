@@ -59,12 +59,47 @@ import {
 } from './lib/schemas.js';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const IS_DEV = process.env.NODE_ENV !== 'production';
+
+function parseCorsOrigins() {
+  const fromEnv = (process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const defaults = [FRONTEND_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'];
+  return new Set([...defaults, ...fromEnv]);
+}
+
+function isPrivateLanOrigin(origin) {
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== 'http:' && protocol !== 'https:') return false;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+    return /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(hostname);
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (parseCorsOrigins().has(origin)) return true;
+  // Dev: permite celular/outro host na LAN contra o Vite (:5173).
+  return IS_DEV && isPrivateLanOrigin(origin);
+}
 
 export function createApp({ loginRateLimit } = {}) {
   const app = express();
 
   app.use(helmet());
-  app.use(cors({ origin: [FRONTEND_URL, 'http://localhost:5173'], credentials: true }));
+  app.use(
+    cors({
+      origin(origin, callback) {
+        callback(null, isAllowedOrigin(origin));
+      },
+      credentials: true,
+    })
+  );
   app.use(morgan('dev'));
   app.use(express.json());
 
