@@ -13,7 +13,8 @@ import { validateCpf } from '../lib/validation.js';
 
 export async function listOrders(req, res) {
   try {
-    const { status, search, dateFrom, dateTo } = req.query;
+    const { status, search, dateFrom, dateTo, courierId } = req.query;
+    const searchDigits = search ? search.replace(/\D/g, '') : '';
 
     const orders = await prisma.order.findMany({
       where: {
@@ -24,6 +25,9 @@ export async function listOrders(req, res) {
             { orderNumber: { contains: search, mode: 'insensitive' } },
             { neighborhood: { contains: search, mode: 'insensitive' } },
             { patientPhone: { contains: search } },
+            // CPF é salvo só com dígitos — busca pelo texto digitado
+            // (com ou sem pontuação) precisa comparar contra os dígitos.
+            ...(searchDigits ? [{ patientCpf: { contains: searchDigits } }] : []),
           ],
         }),
         ...(dateFrom || dateTo
@@ -34,6 +38,7 @@ export async function listOrders(req, res) {
               },
             }
           : {}),
+        ...(courierId && { route: { courierId } }),
       },
       include: {
         route: { select: { routeNumber: true, courier: { select: { name: true } } } },

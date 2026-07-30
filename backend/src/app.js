@@ -6,7 +6,7 @@ import rateLimit from 'express-rate-limit';
 
 import { authenticate, requireAdmin, requireRole } from './middleware/auth.js';
 import { login, me, changePassword } from './routes/auth.routes.js';
-import { listUsers, createUser, updateUser, resetPassword } from './routes/users.routes.js';
+import { listUsers, listCouriers, createUser, updateUser, resetPassword } from './routes/users.routes.js';
 import {
   listMedications,
   getMedication,
@@ -170,6 +170,8 @@ export function createApp({ loginRateLimit, confirmDeliveryRateLimit } = {}) {
     validateBody(updateAddressSchema),
     updateAddress
   );
+
+  app.get('/api/couriers', requireRole('ADMIN', 'OPERADOR'), listCouriers);
 
   app.get('/api/delivery-routes', requireRole('ADMIN', 'OPERADOR'), listRoutes);
   app.get('/api/delivery-routes/mine', requireRole('ADMIN', 'ENTREGADOR'), getMyRoutes);

@@ -13,7 +13,7 @@ export const app = createApp({
   confirmDeliveryRateLimit: { windowMs: 15 * 60 * 1000, limit: 100000 },
 });
 
-export async function createUser({ role = 'OPERADOR', email, password = 'Senha@123', name = 'Usuário Teste' } = {}) {
+export async function createUser({ role = 'OPERADOR', email, password = 'Senha@123', name = 'Usuário Teste', active = true } = {}) {
   const finalEmail = email || `${role.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2)}@upa.local`;
   const user = await prisma.user.create({
     data: {
@@ -21,6 +21,7 @@ export async function createUser({ role = 'OPERADOR', email, password = 'Senha@1
       email: finalEmail,
       password: await hashPassword(password),
       role,
+      active,
     },
   });
   return { ...user, plainPassword: password };
