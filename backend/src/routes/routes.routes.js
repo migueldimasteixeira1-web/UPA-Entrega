@@ -104,9 +104,9 @@ export async function createRoute(req, res) {
       });
     }
 
-    const routeNumber = await generateRouteNumber(prisma);
-
     const route = await prisma.$transaction(async (tx) => {
+      const routeNumber = await generateRouteNumber(tx);
+
       const created = await tx.route.create({
         data: {
           routeNumber,

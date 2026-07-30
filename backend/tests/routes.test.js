@@ -80,6 +80,38 @@ describe('Delivery routes', () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('Entregador inválido ou inativo');
   });
+
+  it('assigns distinct route numbers to concurrent creations on the same day, no 500s', async () => {
+    // Um pedido próprio por rota, para a corrida testada ser só a numeração —
+    // não a regra de negócio de um pedido já ter saído de AGUARDANDO_SAIDA.
+    const orders = await Promise.all(
+      Array.from({ length: 5 }).map(() =>
+        createOrderRecord({
+          patientId: patient.id,
+          addressId: address.id,
+          medicationId: medication.id,
+          createdById: admin.id,
+          status: 'AGUARDANDO_SAIDA',
+        })
+      )
+    );
+
+    const responses = await Promise.all(
+      orders.map((order) =>
+        request(app)
+          .post('/api/delivery-routes')
+          .set('Authorization', `Bearer ${operatorToken}`)
+          .send({ courierId: courier.id, orderIds: [order.id] })
+      )
+    );
+
+    for (const res of responses) {
+      expect(res.status).toBe(201);
+    }
+
+    const routeNumbers = responses.map((res) => res.body.routeNumber);
+    expect(new Set(routeNumbers).size).toBe(routeNumbers.length);
+  });
 });
 
 describe('Delivery PIN security', () => {

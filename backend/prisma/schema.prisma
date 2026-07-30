@@ -171,3 +171,16 @@ model OrderHistory {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   user  User? @relation(fields: [userId], references: [id])
 }
+
+// Contador atômico para numeração diária (pedidos/rotas). O incremento é
+// feito com um único UPSERT (INSERT ... ON CONFLICT ... DO UPDATE) em vez de
+// COUNT+INSERT, para não haver corrida entre duas criações concorrentes no
+// mesmo dia.
+model DailyCounter {
+  id      Int    @id @default(autoincrement())
+  scope   String
+  dateKey String
+  counter Int    @default(0)
+
+  @@unique([scope, dateKey])
+}
