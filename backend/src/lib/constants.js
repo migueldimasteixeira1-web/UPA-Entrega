@@ -107,12 +107,19 @@ export function generateMessages(order, baseUrl) {
 // client de $transaction) — o chamador é responsável por rodar isso dentro
 // da mesma transação da criação do registro (order/route), para não deixar a
 // numeração fora de sincronia se o create falhar depois.
-async function generateDailySequence(tx, scope, dateKey, prefix) {
+//
+// "seed" é o maior sufixo numérico já existente na tabela real pra esse
+// prefixo, +1. Isso é recalculado a cada chamada (barato pra este volume) e
+// usado tanto na primeira linha do dia quanto como piso no incremento — sem
+// isso, se já existirem registros de hoje criados antes do DailyCounter
+// existir (ou por qualquer outro motivo o contador ficar defasado da tabela
+// real), a numeração recomeça do zero e colide com o que já existe.
+async function generateDailySequence(tx, scope, dateKey, prefix, seed) {
   const rows = await tx.$queryRaw`
     INSERT INTO "DailyCounter" (scope, "dateKey", counter)
-    VALUES (${scope}, ${dateKey}, 1)
+    VALUES (${scope}, ${dateKey}, ${seed})
     ON CONFLICT (scope, "dateKey")
-    DO UPDATE SET counter = "DailyCounter".counter + 1
+    DO UPDATE SET counter = GREATEST("DailyCounter".counter + 1, ${seed})
     RETURNING counter
   `;
   const counter = Number(rows[0].counter);
@@ -126,10 +133,20 @@ function todayDateKey() {
 
 export async function generateOrderNumber(tx) {
   const dateKey = todayDateKey();
-  return generateDailySequence(tx, 'order', dateKey, `UPA-${dateKey}`);
+  const prefix = `UPA-${dateKey}`;
+  const [{ maxSeq }] = await tx.$queryRaw`
+    SELECT COALESCE(MAX(CAST(SUBSTRING("orderNumber" FROM '(\d+)$') AS INTEGER)), 0) AS "maxSeq"
+    FROM "Order" WHERE "orderNumber" LIKE ${prefix + '-%'}
+  `;
+  return generateDailySequence(tx, 'order', dateKey, prefix, Number(maxSeq) + 1);
 }
 
 export async function generateRouteNumber(tx) {
   const dateKey = todayDateKey();
-  return generateDailySequence(tx, 'route', dateKey, `ROTA-${dateKey}`);
+  const prefix = `ROTA-${dateKey}`;
+  const [{ maxSeq }] = await tx.$queryRaw`
+    SELECT COALESCE(MAX(CAST(SUBSTRING("routeNumber" FROM '(\d+)$') AS INTEGER)), 0) AS "maxSeq"
+    FROM "Route" WHERE "routeNumber" LIKE ${prefix + '-%'}
+  `;
+  return generateDailySequence(tx, 'route', dateKey, prefix, Number(maxSeq) + 1);
 }
