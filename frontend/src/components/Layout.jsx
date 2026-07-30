@@ -9,6 +9,7 @@ import {
   Plus,
   Route as RouteIcon,
   Truck,
+  History,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AppBrand from './AppBrand';
@@ -20,6 +21,7 @@ const operatorNavItems = [
   { to: '/rotas', label: 'Rotas', icon: RouteIcon },
   { to: '/medicamentos', label: 'Medicamentos', icon: Pill },
   { to: '/usuarios', label: 'Usuários', icon: Users, adminOnly: true },
+  { to: '/auditoria', label: 'Auditoria', icon: History, adminOnly: true },
 ];
 
 const courierNavItems = [

@@ -13,6 +13,7 @@ import DeliveryRoutes from './pages/DeliveryRoutes';
 import MyDeliveries from './pages/MyDeliveries';
 import Medications from './pages/Medications';
 import Users from './pages/Users';
+import AuditLog from './pages/AuditLog';
 import PublicTracking from './pages/PublicTracking';
 
 const queryClient = new QueryClient({
@@ -51,6 +52,7 @@ export default function App() {
               <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
                 <Route element={<Layout />}>
                   <Route path="/usuarios" element={<Users />} />
+                  <Route path="/auditoria" element={<AuditLog />} />
                 </Route>
               </Route>
 
