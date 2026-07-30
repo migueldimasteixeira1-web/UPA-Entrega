@@ -347,7 +347,7 @@ export default function OrderDetail() {
             </h2>
             <div className="space-y-3">
               {order.messages?.map((msg) => (
-                <CopyMessage key={msg.id} title={msg.title} text={msg.text} />
+                <CopyMessage key={msg.id} title={msg.title} text={msg.text} phone={order.patientPhone} />
               ))}
             </div>
           </div>
