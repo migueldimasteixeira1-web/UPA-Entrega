@@ -10,6 +10,7 @@ import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import { SkeletonOrderCard } from '../components/Skeleton';
 import { buttonClassName } from '../components/Button';
+import PinInput from '../components/PinInput';
 
 export default function MyDeliveries() {
   const [confirmOrder, setConfirmOrder] = useState(null);
@@ -132,18 +133,11 @@ export default function MyDeliveries() {
             <KeyRound className="w-4 h-4 mt-0.5 shrink-0" />
             Peça ao paciente o código de confirmação recebido por mensagem ou exibido na página de acompanhamento.
           </p>
-          <input
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-upa-500 font-mono text-lg text-center tracking-widest"
-            placeholder="000000"
-            inputMode="numeric"
-            autoFocus
-          />
+          <PinInput length={6} value={pin} onChange={setPin} autoFocus />
           <button
             type="button"
             onClick={() => confirmMutation.mutate()}
-            disabled={!pin.trim() || confirmMutation.isPending}
+            disabled={!/^\d{6}$/.test(pin) || confirmMutation.isPending}
             className={buttonClassName('success', 'md', 'w-full')}
           >
             {confirmMutation.isPending ? 'Confirmando...' : 'Confirmar entrega'}
