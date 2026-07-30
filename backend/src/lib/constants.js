@@ -134,8 +134,12 @@ function todayDateKey() {
 export async function generateOrderNumber(tx) {
   const dateKey = todayDateKey();
   const prefix = `UPA-${dateKey}`;
+  // '\\d' (não '\d'): dentro de um template literal JS, uma barra invertida
+  // seguida de um caractere sem significado especial (\d) é descartada
+  // silenciosamente — o Postgres recebia o regex "(d+)$" (letra "d" literal),
+  // que nunca casava com nada, deixando maxSeq sempre em 0.
   const [{ maxSeq }] = await tx.$queryRaw`
-    SELECT COALESCE(MAX(CAST(SUBSTRING("orderNumber" FROM '(\d+)$') AS INTEGER)), 0) AS "maxSeq"
+    SELECT COALESCE(MAX(CAST(SUBSTRING("orderNumber" FROM '(\\d+)$') AS INTEGER)), 0) AS "maxSeq"
     FROM "Order" WHERE "orderNumber" LIKE ${prefix + '-%'}
   `;
   return generateDailySequence(tx, 'order', dateKey, prefix, Number(maxSeq) + 1);
@@ -145,7 +149,7 @@ export async function generateRouteNumber(tx) {
   const dateKey = todayDateKey();
   const prefix = `ROTA-${dateKey}`;
   const [{ maxSeq }] = await tx.$queryRaw`
-    SELECT COALESCE(MAX(CAST(SUBSTRING("routeNumber" FROM '(\d+)$') AS INTEGER)), 0) AS "maxSeq"
+    SELECT COALESCE(MAX(CAST(SUBSTRING("routeNumber" FROM '(\\d+)$') AS INTEGER)), 0) AS "maxSeq"
     FROM "Route" WHERE "routeNumber" LIKE ${prefix + '-%'}
   `;
   return generateDailySequence(tx, 'route', dateKey, prefix, Number(maxSeq) + 1);
