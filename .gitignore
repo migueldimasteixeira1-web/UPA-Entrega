@@ -40,3 +40,6 @@ scripts/screenshots/
 
 # Certificados TLS gerados localmente (nunca versionar chave privada)
 deploy/certs/*.pem
+
+# Dumps de backup do banco (contêm dado de paciente — nunca versionar)
+/backups/

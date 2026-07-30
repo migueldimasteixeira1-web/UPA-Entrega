@@ -14,6 +14,8 @@ Sistema interno para gestão da **logística de entrega domiciliar de medicament
 ├── backend/                        # API Express + Prisma
 ├── frontend/                       # React + Vite; a imagem de produção (Dockerfile) é o próprio gateway Nginx
 ├── deploy/generate-self-signed-cert.sh  # Gera certificado TLS autoassinado (deploy/certs/)
+├── deploy/backup-db.sh             # Backup do Postgres (pg_dump + rotação)
+├── deploy/restore-db.sh            # Restaura o Postgres a partir de um backup
 ├── compose.yaml                    # Produção / VM
 ├── compose.dev.yaml                # Desenvolvimento com hot-reload
 ├── .env.vm.example                 # Modelo de variáveis para VM
@@ -51,6 +53,34 @@ Variáveis principais (`.env`):
 | `JWT_SECRET` | Secret forte (≥ 32 caracteres) |
 | `POSTGRES_PASSWORD` | Senha do banco (≥ 12 caracteres) |
 | `SEED_DEMO_DATA` | `true` só na 1ª subida / homologação |
+
+## Backup do banco
+
+O volume `postgres_data` sozinho não é backup — perder o volume (disco corrompido, `docker compose down -v` sem querer, VM recriada) apaga tudo, incluindo dado de paciente (CPF, endereço, telefone), sem nenhuma cópia de segurança.
+
+```bash
+./deploy/backup-db.sh
+# ou: make backup
+```
+
+Gera `backups/upa_entrega-AAAAMMDD-HHMMSS.sql.gz` (fora do volume do container) e apaga automaticamente dumps com mais de 14 dias (`RETENTION_DAYS` no `.env` para mudar). `backups/` é ignorado pelo git — nunca comitar (tem dado de paciente).
+
+**Agendar (cron na VM):**
+
+```bash
+crontab -e
+# Backup diário às 3h, log em /var/log/upa-backup.log:
+0 3 * * * cd /caminho/do/projeto && ./deploy/backup-db.sh >> /var/log/upa-backup.log 2>&1
+```
+
+**Restaurar:**
+
+```bash
+./deploy/restore-db.sh backups/upa_entrega-AAAAMMDD-HHMMSS.sql.gz
+# ou: make restore FILE=backups/upa_entrega-AAAAMMDD-HHMMSS.sql.gz
+```
+
+Pede confirmação explícita antes de sobrescrever o banco atual. O dump é gerado com `--clean --if-exists`, então o mesmo arquivo restaura tanto num banco vazio (recuperação de desastre) quanto por cima de um banco já existente.
 
 ## Desenvolvimento local (sem Docker full)
 
