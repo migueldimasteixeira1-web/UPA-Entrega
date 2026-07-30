@@ -265,3 +265,40 @@ describe('GET /api/orders/report', () => {
     expect(res.text).toContain('"Endereço errado, paciente mudou de bairro"');
   });
 });
+
+describe('Order number generation survives a pre-existing, uncounted order', () => {
+  it('does not collide when an order already exists for today from before the DailyCounter row', async () => {
+    const operator = await createUser({ role: 'OPERADOR' });
+    const token = await loginAs(operator);
+    const admin = await createUser({ role: 'ADMIN' });
+    const { patient, address } = await createPatientWithAddress();
+    const medication = await createMedicationRecord();
+
+    const today = new Date();
+    const dateKey = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+    const prefix = `UPA-${dateKey}`;
+
+    // Simula um pedido criado antes de qualquer linha existir em
+    // DailyCounter para esse dia (cenário real: dado pré-existente na hora
+    // do corte pra essa numeração).
+    await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      extra: { orderNumber: `${prefix}-001` },
+    });
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        patientId: patient.id,
+        addressId: address.id,
+        items: [{ medicationId: medication.id, quantity: 1 }],
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.orderNumber).not.toBe(`${prefix}-001`);
+  });
+});

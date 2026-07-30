@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app.js';
+import prisma from '../src/lib/prisma.js';
 import {
   app,
   createUser,
@@ -215,5 +216,43 @@ describe('Delivery PIN security', () => {
     }
 
     expect(lastStatus).toBe(429);
+  });
+});
+
+describe('Route number generation survives a pre-existing, uncounted route', () => {
+  it('does not collide when a route already exists for today from before the DailyCounter row', async () => {
+    const operator = await createUser({ role: 'OPERADOR' });
+    const token = await loginAs(operator);
+    const admin = await createUser({ role: 'ADMIN' });
+    const courier = await createUser({ role: 'ENTREGADOR' });
+    const { patient, address } = await createPatientWithAddress();
+    const medication = await createMedicationRecord();
+
+    const today = new Date();
+    const dateKey = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+    const routeNumber = `ROTA-${dateKey}-001`;
+
+    // Simula uma rota criada antes de qualquer linha existir em
+    // DailyCounter para esse dia (cenário real: dado pré-existente na hora
+    // do corte pra essa numeração).
+    await prisma.route.create({
+      data: { routeNumber, courierId: courier.id, createdById: admin.id, status: 'EM_ANDAMENTO' },
+    });
+
+    const order = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'AGUARDANDO_SAIDA',
+    });
+
+    const res = await request(app)
+      .post('/api/delivery-routes')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ courierId: courier.id, orderIds: [order.id] });
+
+    expect(res.status).toBe(201);
+    expect(res.body.routeNumber).not.toBe(routeNumber);
   });
 });
