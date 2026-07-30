@@ -1,0 +1,169 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import request from 'supertest';
+import {
+  app,
+  createUser,
+  loginAs,
+  createPatientWithAddress,
+  createMedicationRecord,
+  createOrderRecord,
+} from './helpers.js';
+
+describe('Delivery routes', () => {
+  let operatorToken;
+  let admin;
+  let courier;
+  let patient;
+  let address;
+  let medication;
+
+  beforeEach(async () => {
+    const operator = await createUser({ role: 'OPERADOR' });
+    operatorToken = await loginAs(operator);
+    admin = await createUser({ role: 'ADMIN' });
+    courier = await createUser({ role: 'ENTREGADOR' });
+    ({ patient, address } = await createPatientWithAddress());
+    medication = await createMedicationRecord();
+  });
+
+  it('creates a route, moves orders to EM_ROTA and assigns sequence', async () => {
+    const order = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'AGUARDANDO_SAIDA',
+    });
+
+    const res = await request(app)
+      .post('/api/delivery-routes')
+      .set('Authorization', `Bearer ${operatorToken}`)
+      .send({ courierId: courier.id, orderIds: [order.id] });
+
+    expect(res.status).toBe(201);
+    expect(res.body.orders[0].status).toBe('EM_ROTA');
+    expect(res.body.orders[0].routeSequence).toBe(0);
+  });
+
+  it('rejects orders that are not AGUARDANDO_SAIDA', async () => {
+    const order = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'PEDIDO_RECEBIDO',
+    });
+
+    const res = await request(app)
+      .post('/api/delivery-routes')
+      .set('Authorization', `Bearer ${operatorToken}`)
+      .send({ courierId: courier.id, orderIds: [order.id] });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects a courierId that is not an active ENTREGADOR', async () => {
+    const order = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'AGUARDANDO_SAIDA',
+    });
+
+    const res = await request(app)
+      .post('/api/delivery-routes')
+      .set('Authorization', `Bearer ${operatorToken}`)
+      .send({ courierId: admin.id, orderIds: [order.id] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Entregador inválido ou inativo');
+  });
+});
+
+describe('Delivery PIN security', () => {
+  let admin;
+  let courier;
+  let otherCourier;
+  let courierToken;
+  let otherCourierToken;
+  let order;
+
+  beforeEach(async () => {
+    admin = await createUser({ role: 'ADMIN' });
+    courier = await createUser({ role: 'ENTREGADOR' });
+    otherCourier = await createUser({ role: 'ENTREGADOR' });
+    courierToken = await loginAs(courier);
+    otherCourierToken = await loginAs(otherCourier);
+
+    const { patient, address } = await createPatientWithAddress();
+    const medication = await createMedicationRecord();
+    const readyOrder = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'AGUARDANDO_SAIDA',
+    });
+
+    const operatorToken = await loginAs(await createUser({ role: 'OPERADOR' }));
+    const routeRes = await request(app)
+      .post('/api/delivery-routes')
+      .set('Authorization', `Bearer ${operatorToken}`)
+      .send({ courierId: courier.id, orderIds: [readyOrder.id] });
+
+    order = routeRes.body.orders[0];
+  });
+
+  it('never includes deliveryPin in /api/delivery-routes/mine for the courier', async () => {
+    const res = await request(app)
+      .get('/api/delivery-routes/mine')
+      .set('Authorization', `Bearer ${courierToken}`);
+
+    expect(res.status).toBe(200);
+    const raw = JSON.stringify(res.body);
+    expect(raw).not.toContain('deliveryPin');
+    expect(res.body[0].orders[0].patientCpf).toMatch(/\*\*\*/);
+  });
+
+  it('blocks a courier from fetching the full order via GET /api/orders/:id', async () => {
+    const res = await request(app).get(`/api/orders/${order.id}`).set('Authorization', `Bearer ${courierToken}`);
+
+    expect(res.status).toBe(403);
+  });
+
+  it('rejects confirm-delivery with the wrong PIN', async () => {
+    const res = await request(app)
+      .post(`/api/orders/${order.id}/confirm-delivery`)
+      .set('Authorization', `Bearer ${courierToken}`)
+      .send({ pin: '000000' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('PIN incorreto');
+  });
+
+  it('rejects confirm-delivery from a courier who does not own the route', async () => {
+    const res = await request(app)
+      .post(`/api/orders/${order.id}/confirm-delivery`)
+      .set('Authorization', `Bearer ${otherCourierToken}`)
+      .send({ pin: order.deliveryPin || '123456' });
+
+    expect(res.status).toBe(403);
+  });
+
+  it('confirms delivery with the right PIN and finalizes the route', async () => {
+    const res = await request(app)
+      .post(`/api/orders/${order.id}/confirm-delivery`)
+      .set('Authorization', `Bearer ${courierToken}`)
+      .send({ pin: '123456' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('ENTREGUE');
+
+    const routeRes = await request(app)
+      .get('/api/delivery-routes/mine')
+      .set('Authorization', `Bearer ${courierToken}`);
+    const activeRoutes = routeRes.body;
+    expect(activeRoutes).toHaveLength(0); // rota finalizada não aparece mais em "mine" (só EM_ANDAMENTO)
+  });
+});

@@ -1,6 +1,6 @@
 # UPA Entrega
 
-Sistema interno para gestão de entregas de medicamentos a domicílio da UPA.
+Sistema interno para gestão da **logística de entrega domiciliar de medicamentos** da UPA. O sistema não interfere no atendimento médico, na emissão de receitas nem na dispensação/estoque de medicamentos — esses processos continuam nos sistemas oficiais da unidade. Aqui é controlado apenas o ciclo da entrega: do registro do pedido até a confirmação do recebimento pelo paciente, por um entregador da própria UPA, sem custo para o paciente.
 
 ## Stack
 
@@ -22,10 +22,11 @@ docker compose up --build
 
 ## Credenciais iniciais (seed)
 
-| Perfil     | E-mail              | Senha        |
-|------------|---------------------|--------------|
-| Admin      | admin@upa.local     | Admin@123    |
-| Operador   | operador@upa.local  | Operador@123 |
+| Perfil      | E-mail                | Senha           |
+|-------------|------------------------|-----------------|
+| Admin       | admin@upa.local        | Admin@123       |
+| Operador    | operador@upa.local     | Operador@123    |
+| Entregador  | entregador@upa.local   | Entregador@123  |
 
 ## Desenvolvimento local (sem Docker)
 
@@ -41,7 +42,7 @@ docker compose up db -d
 cd backend
 cp .env.example .env
 npm install
-npm run db:migrate
+npm run db:migrate:dev
 npm run db:seed
 npm run dev
 ```
@@ -54,56 +55,49 @@ npm install
 npm run dev
 ```
 
-## Funcionalidades do MVP
+## Papéis de usuário
 
-- Login seguro com JWT
-- Painel kanban/lista com filtros (paleta visual UPA)
-- Cadastro de pedidos em etapas (stepper), com máscaras de CPF, telefone, CEP e moeda
-- Endereço com consulta automática de CEP (ViaCEP): rua, bairro, cidade e UF; número e complemento informados pelo operador
-- Fluxo de status controlado com histórico auditável
-- Confirmação manual de pagamento do frete
-- Registro manual de dados do Uber Flash (PIN obrigatório e rastreio)
-- Mensagens prontas para copiar (WhatsApp manual)
-- Controle de estoque com alerta de mínimo
+- **Administrador**: acesso total, inclusive gestão de usuários.
+- **Operador**: cria e acompanha pedidos, monta rotas, gerencia o catálogo de medicamentos.
+- **Entregador**: acesso restrito à tela "Minhas entregas" — vê só os pedidos da rota atribuída a ele e confirma a entrega por PIN. Essa separação de papéis via JWT é a mesma base que permitirá, no futuro, um app mobile dedicado ao entregador sem mudanças na API.
+
+## Funcionalidades
+
+- Login seguro com JWT e controle de papéis (Admin / Operador / Entregador)
+- Cadastro de paciente por **CPF**, com preenchimento automático em pedidos futuros e **múltiplos endereços** por paciente (residência, trabalho, etc.)
+- Endereço com consulta automática de CEP (ViaCEP)
+- Registro de pedido em etapas (paciente → endereço → medicamentos → revisão), sem etapa de pagamento — a entrega é gratuita
+- PIN de confirmação de entrega **gerado automaticamente pelo sistema** na criação do pedido
+- Fluxo de status com histórico auditável: Pedido recebido → Em separação → Separado → Aguardando saída → Em rota → Entregue (ou Cancelado)
+- Impressão de etiqueta de identificação do pedido (paciente, endereço, medicamentos, PIN)
+- Montagem de rotas: agrupar pedidos prontos e atribuir a um entregador da UPA
+- Tela "Minhas entregas" para o entregador confirmar cada entrega informando o PIN dado pelo paciente
+- Mensagens prontas para copiar/compartilhar (WhatsApp manual) em cada etapa relevante
+- Página pública do paciente (`/acompanhar/:token`) — somente leitura, com status atual, histórico de movimentações e PIN, sem necessidade de login
+- Catálogo simples de medicamentos (nome/unidade) para agilizar a seleção nos pedidos
 - Gestão de usuários (admin)
-- Página pública do paciente (`/acompanhar/:token`) — somente leitura
 - Identidade visual UPA 24h e Prefeitura de Cabo Frio (logos em `frontend/public/logos/`)
-
-## Cadastro de endereço (novo pedido)
-
-1. Informe o **CEP** — o sistema preenche **rua**, **bairro**, **cidade** e **estado (UF)**.
-2. **Cidade** e **estado** ficam somente leitura após a consulta.
-3. Informe o **número** (obrigatório) e **complemento** (opcional, ex.: casa, bloco, apto).
-4. No backend, o endereço é salvo como `rua, número` em `address`; o complemento vai em `referencePoint`.
-
-Se o CEP não for encontrado ou não retornar logradouro, a rua pode ser preenchida manualmente.
 
 ## Fluxo operacional
 
-Todo o controle é feito pelo funcionário logado da UPA. O paciente apenas consulta o link público, se recebido.
-
-1. Funcionário cria pedido
-2. Copia mensagem de pagamento e envia manualmente (WhatsApp)
-3. Confirma pagamento no sistema
-4. Solicita a entrega no Uber Flash (fora do sistema)
-5. Registra PIN e rastreio no pedido
-6. Copia mensagens prontas para o paciente
-7. Paciente pode consultar status pelo link público (opcional)
-8. Funcionário acompanha externamente e marca como entregue quando confirmado
-
-## Regra de estoque
-
-- **Pedido criado / frete pago:** estoque não é baixado (apenas verificada disponibilidade)
-- **Aguardando retirada:** estoque é baixado e `stockReserved = true`
-- **Cancelado após baixa:** estoque é devolvido
-- **Entregue:** baixa mantida
+1. Paciente é atendido e recebe a prescrição normalmente pela unidade.
+2. Na farmácia, opta pela entrega domiciliar. O funcionário busca o paciente pelo **CPF**.
+3. Se já cadastrado, dados e endereços são preenchidos automaticamente; o funcionário escolhe um endereço existente ou cadastra um novo. Se não cadastrado, o sistema cria o cadastro nesse momento.
+4. Funcionário registra os medicamentos da receita e observações; o pedido é criado com status **Pedido recebido**, um PIN é gerado e uma mensagem com link público fica pronta para copiar/enviar.
+5. A farmácia separa os medicamentos pelos seus próprios processos/sistemas internos (o UPA Entrega **não controla estoque nem disponibilidade** de medicamento). O operador só reflete o andamento: **Em separação** → **Separado**.
+6. Ao acondicionar a sacola, é possível imprimir a etiqueta do pedido. O pedido passa para **Aguardando saída**.
+7. O responsável pela logística agrupa pedidos prontos em uma **rota** e atribui a um entregador da UPA. Os pedidos passam para **Em rota**.
+8. O entregador usa a tela "Minhas entregas" para ver sua lista, se desloca e, ao chegar, pede ao paciente o **PIN** (disponível na página pública/mensagens). Confirmando o PIN, o pedido vira **Entregue**.
+9. A página pública é atualizada automaticamente a cada mudança de status, encerrando o acompanhamento quando entregue.
 
 ## Fluxo de status
 
 ```
-Pedido criado → Aguardando pagamento → Frete pago → Aguardando retirada → Em rota → Entregue
+Pedido recebido → Em separação → Separado → Aguardando saída → Em rota → Entregue
                                                                         ↘ Cancelado
 ```
+
+`Em rota` só é atingido ao vincular o pedido a uma rota; `Entregue` só é atingido confirmando o PIN de entrega.
 
 ## Estrutura
 
@@ -124,10 +118,10 @@ Para deploy em VM Linux, ajuste as variáveis de ambiente:
 - `FRONTEND_URL` — URL do frontend para CORS
 - `VITE_API_URL` — URL da API no build do frontend
 
-## O que não está no MVP (preparado para evolução)
+## Fora de escopo (preparado para evolução)
 
-- Pix automático
-- Integração Uber/99
-- WhatsApp automatizado
-- Relatórios avançados
-- Permissões granulares
+- App mobile nativo para o entregador (a API já é organizada por papel via JWT para suportar isso sem mudanças estruturais)
+- Tela dedicada de administração de pacientes (hoje o cadastro/edição de endereço acontece embutido no fluxo de novo pedido)
+- Envio automático de WhatsApp (hoje é copiar/colar manual)
+- Controle de estoque/disponibilidade de medicamento (responsabilidade dos sistemas internos da UPA)
+- Relatórios avançados e permissões granulares

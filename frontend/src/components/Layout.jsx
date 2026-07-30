@@ -7,22 +7,30 @@ import {
   Menu,
   X,
   Plus,
+  Route as RouteIcon,
+  Truck,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AppBrand from './AppBrand';
 import { useAuth } from '../lib/auth';
 
-const navItems = [
+const operatorNavItems = [
   { to: '/', label: 'Painel', icon: LayoutDashboard, end: true },
   { to: '/pedidos/novo', label: 'Novo pedido', icon: Plus },
-  { to: '/estoque', label: 'Estoque', icon: Pill },
+  { to: '/rotas', label: 'Rotas', icon: RouteIcon },
+  { to: '/medicamentos', label: 'Medicamentos', icon: Pill },
   { to: '/usuarios', label: 'Usuários', icon: Users, adminOnly: true },
 ];
 
+const courierNavItems = [
+  { to: '/entregas', label: 'Minhas entregas', icon: Truck, end: true },
+];
+
 export default function Layout() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isEntregador } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navItems = isEntregador ? courierNavItems : operatorNavItems;
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : '';
@@ -80,7 +88,7 @@ export default function Layout() {
               <div className="hidden sm:block text-right max-w-[140px] md:max-w-none">
                 <p className="text-sm font-medium text-slate-800 truncate">{user?.name}</p>
                 <p className="text-xs text-slate-500 truncate">
-                  {user?.role === 'ADMIN' ? 'Administrador' : 'Operador'}
+                  {user?.role === 'ADMIN' ? 'Administrador' : user?.role === 'ENTREGADOR' ? 'Entregador' : 'Operador'}
                 </p>
               </div>
               <button

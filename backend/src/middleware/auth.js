@@ -39,3 +39,12 @@ export function requireAdmin(req, res, next) {
   }
   next();
 }
+
+export function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!roles.includes(req.user?.role)) {
+      return res.status(403).json({ error: 'Acesso não permitido para este perfil' });
+    }
+    next();
+  };
+}

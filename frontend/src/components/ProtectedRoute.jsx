@@ -1,8 +1,8 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 
-export function ProtectedRoute({ adminOnly = false }) {
-  const { user, loading, isAdmin } = useAuth();
+export function ProtectedRoute({ allowedRoles }) {
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -14,7 +14,9 @@ export function ProtectedRoute({ adminOnly = false }) {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  if (adminOnly && !isAdmin) return <Navigate to="/" replace />;
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to={user.role === 'ENTREGADOR' ? '/entregas' : '/'} replace />;
+  }
 
   return <Outlet />;
 }
@@ -30,7 +32,7 @@ export function PublicRoute() {
     );
   }
 
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to={user.role === 'ENTREGADOR' ? '/entregas' : '/'} replace />;
 
   return <Outlet />;
 }

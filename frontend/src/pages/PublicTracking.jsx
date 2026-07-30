@@ -1,11 +1,21 @@
 import { useParams } from 'react-router-dom';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Truck, Package, ExternalLink, Key, Info, CreditCard, ShieldCheck, Copy, Check } from 'lucide-react';
+import { Package, Key, Info, ShieldCheck, Copy, Check, Clock, Truck } from 'lucide-react';
 import { api } from '../lib/api';
 import { copyToClipboard } from '../lib/clipboard';
 import StatusBadge from '../components/StatusBadge';
+import OrderStatusStepper from '../components/OrderStatusStepper';
 import AppBrand, { MunicipalityBrand } from '../components/AppBrand';
+
+function formatHistoryDate(date) {
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(date));
+}
 
 export default function PublicTracking() {
   const { token } = useParams();
@@ -15,6 +25,7 @@ export default function PublicTracking() {
     queryKey: ['public-order', token],
     queryFn: () => api.getPublicOrder(token),
     retry: false,
+    refetchInterval: 20000,
   });
 
   if (isLoading) {
@@ -37,6 +48,8 @@ export default function PublicTracking() {
     );
   }
 
+  const showPin = !['ENTREGUE', 'CANCELADO'].includes(order.status);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-upa-50 via-white to-slate-50">
       <header className="bg-upa-800 text-white py-6 sm:py-8 px-4 shadow-md">
@@ -57,6 +70,10 @@ export default function PublicTracking() {
           <p className="text-sm text-slate-500 mt-2">Pedido {order.orderNumber}</p>
         </div>
 
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+          <OrderStatusStepper status={order.status} />
+        </div>
+
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 space-y-5">
           <div className="flex items-start gap-3 pb-4 border-b border-slate-100">
             <Package className="w-5 h-5 text-upa-600 mt-0.5 shrink-0" />
@@ -66,45 +83,27 @@ export default function PublicTracking() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${
-                order.paymentConfirmed
-                  ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100'
-                  : 'bg-amber-50 text-amber-800 ring-1 ring-amber-100'
-              }`}
-            >
-              <CreditCard className="w-4 h-4" />
-              {order.paymentConfirmed ? 'Frete confirmado' : 'Aguardando pagamento do frete'}
-            </span>
-            {order.uberFlashRegistered && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-50 text-blue-800 ring-1 ring-blue-100">
-                <Truck className="w-4 h-4" />
-                Uber Flash solicitado
-              </span>
-            )}
-          </div>
-
-          {order.deliveryService && (
-            <div className="rounded-xl bg-slate-50 p-4 text-sm">
-              <p className="text-slate-500 mb-1">Serviço de entrega</p>
-              <p className="font-medium text-slate-800">{order.deliveryService}</p>
+          {order.courierName && (
+            <div className="flex items-start gap-3">
+              <Truck className="w-5 h-5 text-upa-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm text-slate-500">Entregador</p>
+                <p className="font-medium text-slate-800">{order.courierName}</p>
+              </div>
             </div>
           )}
 
-          {order.trackingLink && (
-            <a
-              href={order.trackingLink}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-upa-800 text-white font-medium hover:bg-upa-900 transition-colors shadow-sm"
-            >
-              Acompanhar entrega <ExternalLink className="w-4 h-4" />
-            </a>
-          )}
+          <div>
+            <p className="text-sm text-slate-500 mb-2">Medicamentos</p>
+            <div className="space-y-1">
+              {order.items.map((item, i) => (
+                <p key={i} className="text-sm text-slate-700">{item.quantity}x {item.name}</p>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {order.deliveryPin && (
+        {showPin && (
           <div className="bg-upa-50 rounded-2xl border border-upa-200 p-5 sm:p-6">
             <div className="flex items-start gap-3">
               <Key className="w-5 h-5 text-upa-700 mt-0.5 shrink-0" />
@@ -144,11 +143,26 @@ export default function PublicTracking() {
           </div>
         )}
 
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="w-5 h-5 text-slate-500" />
+            <h2 className="font-semibold text-slate-800">Histórico</h2>
+          </div>
+          <div className="space-y-3">
+            {order.history.map((entry, i) => (
+              <div key={i} className="relative pl-4 border-l-2 border-upa-200">
+                <p className="text-sm font-medium text-slate-800">{entry.statusLabel || entry.action}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{formatHistoryDate(entry.createdAt)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-5 text-sm text-emerald-900 leading-relaxed">
           <div className="flex items-start gap-2">
             <Info className="w-4 h-4 shrink-0 mt-0.5" />
             <div>
-              <p>{order.freightInfo || 'O medicamento não possui custo. O valor cobrado é referente apenas ao frete de entrega.'}</p>
+              <p>Esta entrega é gratuita, realizada por um entregador da UPA.</p>
               <p className="mt-3 text-emerald-800/80">Em caso de dúvidas, entre em contato com a UPA.</p>
             </div>
           </div>
