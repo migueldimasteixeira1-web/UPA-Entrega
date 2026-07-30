@@ -88,7 +88,7 @@ function isAllowedOrigin(origin) {
   return IS_DEV && isPrivateLanOrigin(origin);
 }
 
-export function createApp({ loginRateLimit } = {}) {
+export function createApp({ loginRateLimit, confirmDeliveryRateLimit } = {}) {
   const app = express();
 
   app.use(helmet());
@@ -124,6 +124,17 @@ export function createApp({ loginRateLimit } = {}) {
   app.get('/api/auth/me', authenticate, me);
   app.post('/api/auth/change-password', authenticate, changePassword);
 
+  // O PIN de entrega tem só 6 dígitos (1M combinações) — sem limite de
+  // tentativas, quem tiver uma conta ENTREGADOR poderia forçar bruta o PIN de
+  // um pedido em vez de exigir que o paciente o informe.
+  const confirmDeliveryLimiter = rateLimit({
+    windowMs: confirmDeliveryRateLimit?.windowMs ?? 15 * 60 * 1000,
+    limit: confirmDeliveryRateLimit?.limit ?? 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Muitas tentativas de confirmação. Tente novamente em alguns minutos.' },
+  });
+
   // Protected routes
   app.use('/api', authenticate);
 
@@ -136,6 +147,7 @@ export function createApp({ loginRateLimit } = {}) {
   app.patch('/api/orders/:id/status', requireRole('ADMIN', 'OPERADOR'), validateBody(updateStatusSchema), updateStatus);
   app.post(
     '/api/orders/:id/confirm-delivery',
+    confirmDeliveryLimiter,
     requireRole('ADMIN', 'ENTREGADOR'),
     validateBody(confirmDeliverySchema),
     confirmDelivery
