@@ -89,6 +89,8 @@ export const api = {
   addNote: (id, note) =>
     request(`/api/orders/${id}/notes`, { method: 'POST', body: JSON.stringify({ note }) }),
 
+  resendConfirmationEmail: (id) => request(`/api/orders/${id}/resend-email`, { method: 'POST' }),
+
   getPatientByCpf: (cpf) => request(`/api/patients/by-cpf/${cpf}`),
 
   getPatient: (id) => request(`/api/patients/${id}`),

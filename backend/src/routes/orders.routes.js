@@ -8,9 +8,13 @@ import {
   maskName,
   STATUS_LABELS,
 } from '../lib/constants.js';
-import { ORDER_INCLUDE as orderInclude, formatOrder } from '../lib/orderSerializer.js';
+import { ORDER_INCLUDE as orderInclude, formatOrder, formatOrderForCourier } from '../lib/orderSerializer.js';
 import { validateCpf } from '../lib/validation.js';
 import { toCsv } from '../lib/csv.js';
+import { enqueueConfirmationEmail, EMAIL_TYPE } from '../lib/email/queue.js';
+import { confirmationEmailTemplate } from '../lib/email/templates.js';
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // Compartilhado entre listOrders e exportOrdersCsv — os dois filtram do
 // mesmo jeito, só muda o formato da resposta.
@@ -235,6 +239,7 @@ async function resolvePatient(tx, { patientId, patient }) {
       name: patient.name.trim(),
       cpf: cpfDigits,
       phone: patient.phone.trim(),
+      email: patient.email?.trim() || null,
     },
   });
 }
@@ -297,6 +302,7 @@ export async function createOrder(req, res) {
           patientName: resolvedPatient.name,
           patientPhone: resolvedPatient.phone,
           patientCpf: resolvedPatient.cpf,
+          patientEmail: resolvedPatient.email,
           street: resolvedAddress.street,
           number: resolvedAddress.number,
           complement: resolvedAddress.complement,
@@ -322,6 +328,13 @@ export async function createOrder(req, res) {
         toStatus: 'PEDIDO_RECEBIDO',
         details: `Pedido ${orderNumber} registrado para entrega`,
       });
+
+      // `created` já foi buscado com orderInclude (que traz `emails`) antes
+      // desta linha existir — sem reatribuir aqui, computeEmailStatus veria
+      // sempre `emails: []` e reportaria "sem_email" mesmo tendo acabado de
+      // enfileirar.
+      const emailRow = await enqueueConfirmationEmail(tx, created, FRONTEND_URL);
+      created.emails = emailRow ? [emailRow] : [];
 
       return created;
     });
@@ -525,8 +538,15 @@ export async function confirmDelivery(req, res) {
       return updated;
     });
 
+    // confirmDelivery é chamado tanto por ADMIN quanto por ENTREGADOR
+    // (requireRole('ADMIN', 'ENTREGADOR') em app.js) — a própria resposta
+    // desta requisição não pode vazar o PIN pro entregador que acabou de
+    // usá-lo, mesmo que já "gasto". Achado ao ligar o e-mail de confirmação
+    // (que embute o PIN no HTML) neste mesmo include.
+    const formatter = req.user.role === 'ENTREGADOR' ? formatOrderForCourier : formatOrder;
+
     res.json({
-      ...formatOrder(order),
+      ...formatter(order),
       allowedTransitions: getAllowedTransitions(order),
     });
   } catch (error) {
@@ -563,6 +583,52 @@ export async function addNote(req, res) {
   } catch (error) {
     console.error('Add note error:', error);
     res.status(500).json({ error: 'Erro ao adicionar observação' });
+  }
+}
+
+// Reenvia o e-mail de confirmação com o mesmo conteúdo (mesmo PIN) — nunca
+// gera um PIN novo. Único caminho manual que a equipe da UPA tem pra esse
+// canal, pro caso do paciente ter perdido/não achado o e-mail original.
+export async function resendConfirmationEmail(req, res) {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.order.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Pedido não encontrado' });
+    }
+
+    if (!existing.patientEmail) {
+      return res.status(400).json({ error: 'Paciente não tem e-mail cadastrado' });
+    }
+
+    const { subject, html } = confirmationEmailTemplate(existing, FRONTEND_URL);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.emailNotification.create({
+        data: {
+          orderId: id,
+          type: EMAIL_TYPE.CONFIRMACAO_PEDIDO,
+          to: existing.patientEmail,
+          subject,
+          html,
+        },
+      });
+
+      await addHistory(tx, {
+        orderId: id,
+        userId: req.user.id,
+        action: 'E-mail reenviado',
+        details: `Confirmação reenviada para ${existing.patientEmail}`,
+      });
+    });
+
+    const order = await prisma.order.findUnique({ where: { id }, include: orderInclude });
+
+    res.json(formatOrder(order));
+  } catch (error) {
+    console.error('Resend confirmation email error:', error);
+    res.status(500).json({ error: 'Erro ao reenviar e-mail' });
   }
 }
 

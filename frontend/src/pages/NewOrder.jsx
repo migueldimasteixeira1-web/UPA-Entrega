@@ -35,7 +35,7 @@ const emptyForm = {
   cpf: '',
   patientMode: 'idle', // idle | existing | new
   patient: null,
-  newPatient: { name: '', phone: '' },
+  newPatient: { name: '', phone: '', email: '' },
   selectedAddressId: '',
   addingNewAddress: false,
   newAddress: emptyNewAddress,
@@ -55,7 +55,7 @@ export default function NewOrder() {
   const [streetFromCep, setStreetFromCep] = useState(false);
   const [touchedAddressFields, setTouchedAddressFields] = useState(() => new Set());
   const [editPatientOpen, setEditPatientOpen] = useState(false);
-  const [editPatientForm, setEditPatientForm] = useState({ name: '', phone: '', notes: '' });
+  const [editPatientForm, setEditPatientForm] = useState({ name: '', phone: '', email: '', notes: '' });
   const [editPatientError, setEditPatientError] = useState('');
   const [editingAddress, setEditingAddress] = useState(null);
   const [editAddressForm, setEditAddressForm] = useState(null);
@@ -113,6 +113,7 @@ export default function NewOrder() {
     setEditPatientForm({
       name: form.patient.name,
       phone: maskPhone(form.patient.phone),
+      email: form.patient.email || '',
       notes: form.patient.notes || '',
     });
     setEditPatientError('');
@@ -159,7 +160,7 @@ export default function NewOrder() {
       cpf: '',
       patientMode: 'idle',
       patient: null,
-      newPatient: { name: '', phone: '' },
+      newPatient: { name: '', phone: '', email: '' },
       selectedAddressId: '',
       addingNewAddress: false,
       newAddress: emptyNewAddress,
@@ -343,6 +344,7 @@ export default function NewOrder() {
         name: form.newPatient.name.trim(),
         phone: onlyDigits(form.newPatient.phone),
         cpf: onlyDigits(form.cpf),
+        email: form.newPatient.email.trim() || undefined,
       };
       payload.address = addressPayload;
     }

@@ -31,10 +31,20 @@ const orderItemSchema = z.object({
     .positive('Quantidade deve ser maior que zero'),
 });
 
+// Opcional (nem todo paciente tem e-mail) — mas se vier preenchido, precisa
+// parecer um e-mail de verdade.
+const emailSchema = z
+  .string()
+  .trim()
+  .optional()
+  .nullable()
+  .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), { message: 'Informe um e-mail válido' });
+
 const newPatientSchema = z.object({
   name: requiredString('Nome do paciente é obrigatório'),
   phone: requiredString('Informe um telefone válido com DDD', 10),
   cpf: requiredString('CPF é obrigatório'),
+  email: emailSchema,
 });
 
 const newAddressSchema = z.object({
@@ -92,6 +102,7 @@ export const createPatientSchema = z.object({
   name: requiredString('Nome e telefone são obrigatórios'),
   phone: requiredString('Nome e telefone são obrigatórios'),
   cpf: requiredString('CPF é obrigatório'),
+  email: emailSchema,
   notes: z.string().trim().optional().nullable(),
 });
 
@@ -99,6 +110,7 @@ export const updatePatientSchema = z.object({
   name: z.string().trim().min(1).optional(),
   phone: z.string().trim().min(1).optional(),
   cpf: z.string().trim().min(1).optional(),
+  email: emailSchema,
   notes: z.string().trim().optional().nullable(),
   active: z.boolean().optional(),
 });

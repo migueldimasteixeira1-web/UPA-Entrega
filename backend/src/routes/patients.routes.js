@@ -48,7 +48,7 @@ export async function getPatient(req, res) {
 
 export async function createPatient(req, res) {
   try {
-    const { name, cpf, phone, notes } = req.body;
+    const { name, cpf, phone, email, notes } = req.body;
 
     let cpfDigits;
     try {
@@ -67,6 +67,7 @@ export async function createPatient(req, res) {
         name: name.trim(),
         cpf: cpfDigits,
         phone: phone.trim(),
+        email: email?.trim() || null,
         notes: notes?.trim() || null,
       },
       include: patientInclude,
@@ -82,7 +83,7 @@ export async function createPatient(req, res) {
 export async function updatePatient(req, res) {
   try {
     const { id } = req.params;
-    const { name, phone, cpf, notes, active } = req.body;
+    const { name, phone, cpf, email, notes, active } = req.body;
 
     const existing = await prisma.patient.findUnique({ where: { id } });
     if (!existing) {
@@ -92,6 +93,7 @@ export async function updatePatient(req, res) {
     const updateData = {};
     if (name !== undefined) updateData.name = name.trim();
     if (phone !== undefined) updateData.phone = phone.trim();
+    if (email !== undefined) updateData.email = email?.trim() || null;
     if (notes !== undefined) updateData.notes = notes?.trim() || null;
     if (active !== undefined) updateData.active = active;
 
