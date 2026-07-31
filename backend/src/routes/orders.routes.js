@@ -217,6 +217,26 @@ export async function getPrescriptionUrl(req, res) {
   }
 }
 
+// Mesma lógica de getPrescriptionUrl, pra foto de comprovação de entrega
+// (issue #39) — também só ADMIN/OPERADOR.
+export async function getDeliveryProofUrl(req, res) {
+  try {
+    const order = await prisma.order.findUnique({ where: { id: req.params.id } });
+    if (!order) {
+      return res.status(404).json({ error: 'Pedido não encontrado' });
+    }
+    if (!order.deliveryProofKey) {
+      return res.status(404).json({ error: 'Pedido não tem foto de comprovação' });
+    }
+
+    const url = await getSignedReadUrl(order.deliveryProofKey);
+    res.json({ url });
+  } catch (error) {
+    console.error('Get delivery proof url error:', error);
+    res.status(500).json({ error: 'Erro ao gerar link da foto' });
+  }
+}
+
 function getAllowedTransitions(order) {
   const base = [];
   const from = order.status;
@@ -555,10 +575,17 @@ export async function confirmDelivery(req, res) {
       return res.status(400).json({ error: 'PIN incorreto' });
     }
 
+    // Só exige/faz upload da foto depois do PIN validado — um PIN errado
+    // não deve custar uma compressão+upload pra nada (issue #39).
+    if (!req.file) {
+      return res.status(400).json({ error: 'Foto de comprovação é obrigatória para confirmar a entrega' });
+    }
+    const deliveryProofKey = await uploadImage(req.file.buffer, 'delivery-proofs');
+
     const order = await prisma.$transaction(async (tx) => {
       const updated = await tx.order.update({
         where: { id },
-        data: { status: 'ENTREGUE', deliveredAt: new Date(), deliveredById: req.user.id },
+        data: { status: 'ENTREGUE', deliveredAt: new Date(), deliveredById: req.user.id, deliveryProofKey },
         include: orderInclude,
       });
 

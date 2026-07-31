@@ -9,6 +9,7 @@ import {
   createPatientWithAddress,
   createMedicationRecord,
   createOrderRecord,
+  confirmDelivery,
   TEST_PIN,
 } from './helpers.js';
 
@@ -169,29 +170,20 @@ describe('Delivery PIN security', () => {
   });
 
   it('rejects confirm-delivery with the wrong PIN', async () => {
-    const res = await request(app)
-      .post(`/api/orders/${order.id}/confirm-delivery`)
-      .set('Authorization', `Bearer ${courierToken}`)
-      .send({ pin: '000000' });
+    const res = await confirmDelivery(courierToken, order.id, '000000');
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('PIN incorreto');
   });
 
   it('rejects confirm-delivery from a courier who does not own the route', async () => {
-    const res = await request(app)
-      .post(`/api/orders/${order.id}/confirm-delivery`)
-      .set('Authorization', `Bearer ${otherCourierToken}`)
-      .send({ pin: TEST_PIN });
+    const res = await confirmDelivery(otherCourierToken, order.id, TEST_PIN);
 
     expect(res.status).toBe(403);
   });
 
   it('confirms delivery with the right PIN and finalizes the route', async () => {
-    const res = await request(app)
-      .post(`/api/orders/${order.id}/confirm-delivery`)
-      .set('Authorization', `Bearer ${courierToken}`)
-      .send({ pin: TEST_PIN });
+    const res = await confirmDelivery(courierToken, order.id, TEST_PIN);
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ENTREGUE');
@@ -203,21 +195,28 @@ describe('Delivery PIN security', () => {
     expect(activeRoutes).toHaveLength(0); // rota finalizada não aparece mais em "mine" (só EM_ANDAMENTO)
   });
 
+  it('rejects confirm-delivery without a proof photo, even with the right PIN', async () => {
+    const res = await request(app)
+      .post(`/api/orders/${order.id}/confirm-delivery`)
+      .set('Authorization', `Bearer ${courierToken}`)
+      .field('pin', TEST_PIN);
+
+    expect(res.status).toBe(400);
+  });
+
   it('never includes the PIN (raw or via e-mail content) in the confirm-delivery response itself, for the courier', async () => {
     // Achado ao ligar o e-mail de confirmação (que embute o PIN no HTML) ao
     // mesmo include usado por formatOrder — sem tratamento por papel, a
     // própria resposta desta chamada vazaria o PIN pro entregador que
     // acabou de usá-lo.
-    const res = await request(app)
-      .post(`/api/orders/${order.id}/confirm-delivery`)
-      .set('Authorization', `Bearer ${courierToken}`)
-      .send({ pin: TEST_PIN });
+    const res = await confirmDelivery(courierToken, order.id, TEST_PIN);
 
     expect(res.status).toBe(200);
     const raw = JSON.stringify(res.body);
     expect(raw).not.toContain('deliveryPin');
     expect(raw).not.toContain(TEST_PIN);
     expect(raw).not.toContain('emails');
+    expect(raw).not.toContain('deliveryProofKey');
   });
 
   it('rate-limits repeated confirm-delivery attempts, so the PIN cannot be brute-forced', async () => {
@@ -227,10 +226,7 @@ describe('Delivery PIN security', () => {
 
     let lastStatus;
     for (let i = 0; i < 4; i += 1) {
-      const res = await request(isolatedApp)
-        .post(`/api/orders/${order.id}/confirm-delivery`)
-        .set('Authorization', `Bearer ${courierToken}`)
-        .send({ pin: '000000' });
+      const res = await confirmDelivery(courierToken, order.id, '000000', { app: isolatedApp });
       lastStatus = res.status;
     }
 
