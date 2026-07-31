@@ -7,6 +7,7 @@ import {
   createPatientWithAddress,
   createMedicationRecord,
   createOrderRecord,
+  postOrder,
   TEST_PIN,
 } from './helpers.js';
 import prisma from '../src/lib/prisma.js';
@@ -26,14 +27,11 @@ describe('Confirmation email on order creation', () => {
   it('enqueues a confirmation email with the PIN when the patient has an e-mail', async () => {
     const { patient, address } = await createPatientWithAddress({ data: { email: 'paciente@example.com' } });
 
-    const res = await request(app)
-      .post('/api/orders')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        patientId: patient.id,
-        addressId: address.id,
-        items: [{ medicationId: medication.id, quantity: 1 }],
-      });
+    const res = await postOrder(token, {
+      patientId: patient.id,
+      addressId: address.id,
+      items: [{ medicationId: medication.id, quantity: 1 }],
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.emailStatus).toBe('pendente');
@@ -57,14 +55,11 @@ describe('Confirmation email on order creation', () => {
   it('does not enqueue anything and does not fail order creation when the patient has no e-mail', async () => {
     const { patient, address } = await createPatientWithAddress();
 
-    const res = await request(app)
-      .post('/api/orders')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        patientId: patient.id,
-        addressId: address.id,
-        items: [{ medicationId: medication.id, quantity: 1 }],
-      });
+    const res = await postOrder(token, {
+      patientId: patient.id,
+      addressId: address.id,
+      items: [{ medicationId: medication.id, quantity: 1 }],
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.emailStatus).toBe('sem_email');
@@ -76,14 +71,11 @@ describe('Confirmation email on order creation', () => {
   it('never leaks the raw e-mail queue rows (html/content) in the order response', async () => {
     const { patient, address } = await createPatientWithAddress({ data: { email: 'paciente@example.com' } });
 
-    const res = await request(app)
-      .post('/api/orders')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        patientId: patient.id,
-        addressId: address.id,
-        items: [{ medicationId: medication.id, quantity: 1 }],
-      });
+    const res = await postOrder(token, {
+      patientId: patient.id,
+      addressId: address.id,
+      items: [{ medicationId: medication.id, quantity: 1 }],
+    });
 
     expect(res.body.emails).toBeUndefined();
   });

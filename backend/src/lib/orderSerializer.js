@@ -52,7 +52,7 @@ function computeEmailStatus(order) {
 // banco, e em texto puro só no e-mail de confirmação (issue #35) ou no
 // comprovante impresso (issue #40).
 export function formatOrder(order) {
-  const { deliveryPinHash, emails, ...rest } = order;
+  const { deliveryPinHash, emails, prescriptionKey, ...rest } = order;
   const mainMedication = order.items?.[0]?.medicationName || order.items?.[0]?.medication?.name;
   return {
     ...rest,
@@ -62,14 +62,18 @@ export function formatOrder(order) {
     publicTrackingUrl: getPublicTrackingUrl(order, FRONTEND_URL),
     messages: generateMessages(order, FRONTEND_URL),
     emailStatus: computeEmailStatus(order),
+    // Nunca a chave de storage crua — só um booleano, a URL assinada de
+    // leitura é buscada à parte (GET /api/orders/:id/prescription).
+    hasPrescription: Boolean(prescriptionKey),
   };
 }
 
 // Visão para o entregador: mesma regra do formatOrder — o PIN nunca aparece
 // (nem o hash, nem o conteúdo do e-mail de confirmação, que carrega o PIN
-// em texto puro no momento do envio).
+// em texto puro no momento do envio). Receita é dado de saúde, sensibilidade
+// maior que CPF — entregador não tem motivo pra saber nem que ela existe.
 export function formatOrderForCourier(order) {
-  const { deliveryPinHash, emails, ...rest } = order;
+  const { deliveryPinHash, emails, prescriptionKey, ...rest } = order;
   return {
     ...rest,
     patientCpf: maskCpf(order.patientCpf),

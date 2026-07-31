@@ -82,6 +82,22 @@ crontab -e
 
 Pede confirmação explícita antes de sobrescrever o banco atual. O dump é gerado com `--clean --if-exists`, então o mesmo arquivo restaura tanto num banco vazio (recuperação de desastre) quanto por cima de um banco já existente.
 
+### Backup do storage (receitas, fotos de comprovação)
+
+Mesmo raciocínio do banco: o volume `minio_data` sozinho não é backup. Anexos (receita médica, foto de comprovação de entrega — issues #38/#39) vivem ali, fora do Postgres.
+
+```bash
+./deploy/backup-storage.sh
+# ou: make backup-storage
+```
+
+Gera `backups/upa_entrega-storage-AAAAMMDD-HHMMSS.tar.gz`, mesma retenção/rotação do backup do banco. Restaurar:
+
+```bash
+./deploy/restore-storage.sh backups/upa_entrega-storage-AAAAMMDD-HHMMSS.tar.gz
+# ou: make restore-storage FILE=backups/upa_entrega-storage-AAAAMMDD-HHMMSS.tar.gz
+```
+
 ## Desenvolvimento local (sem Docker full)
 
 ```bash
@@ -94,10 +110,10 @@ chmod +x iniciar-local.sh
 
 O Vite faz proxy de `/api` para o backend. No celular use `http://IP-DO-PC:5173`.
 
-### Só o banco + processos manuais
+### Só o banco/storage + processos manuais
 
 ```bash
-docker compose -f compose.dev.yaml up -d db
+docker compose -f compose.dev.yaml up -d db minio
 cd backend && cp .env.example .env && npm ci && npm run db:migrate:dev && npm run db:seed && npm run dev
 cd frontend && npm ci && npm run dev
 ```

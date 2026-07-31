@@ -1,4 +1,4 @@
-.PHONY: up down logs reset dev-up dev-down vm certs backup restore
+.PHONY: up down logs reset dev-up dev-down vm certs backup restore backup-storage restore-storage
 
 certs:
 	./deploy/generate-self-signed-cert.sh $(or $(DOMAIN),localhost)
@@ -8,6 +8,12 @@ backup:
 
 restore:
 	./deploy/restore-db.sh $(FILE)
+
+backup-storage:
+	./deploy/backup-storage.sh
+
+restore-storage:
+	./deploy/restore-storage.sh $(FILE)
 
 up: certs
 	docker compose up --build

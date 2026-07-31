@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
-import { app, createUser, loginAs, createPatientWithAddress, createMedicationRecord, createOrderRecord } from './helpers.js';
+import { app, createUser, loginAs, createPatientWithAddress, createMedicationRecord, createOrderRecord, postOrder } from './helpers.js';
 
 describe('Order status transitions', () => {
   let token;
@@ -16,14 +16,11 @@ describe('Order status transitions', () => {
   });
 
   it('creates an order starting at PEDIDO_RECEBIDO without exposing the PIN in the response', async () => {
-    const res = await request(app)
-      .post('/api/orders')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        patientId: patient.id,
-        addressId: address.id,
-        items: [{ medicationId: medication.id, quantity: 2 }],
-      });
+    const res = await postOrder(token, {
+      patientId: patient.id,
+      addressId: address.id,
+      items: [{ medicationId: medication.id, quantity: 2 }],
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.status).toBe('PEDIDO_RECEBIDO');
@@ -112,9 +109,7 @@ describe('Order status transitions', () => {
     };
 
     const responses = await Promise.all(
-      Array.from({ length: 8 }).map(() =>
-        request(app).post('/api/orders').set('Authorization', `Bearer ${token}`).send(payload)
-      )
+      Array.from({ length: 8 }).map(() => postOrder(token, payload))
     );
 
     for (const res of responses) {
@@ -292,14 +287,11 @@ describe('Order number generation survives a pre-existing, uncounted order', () 
       extra: { orderNumber: `${prefix}-001` },
     });
 
-    const res = await request(app)
-      .post('/api/orders')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        patientId: patient.id,
-        addressId: address.id,
-        items: [{ medicationId: medication.id, quantity: 1 }],
-      });
+    const res = await postOrder(token, {
+      patientId: patient.id,
+      addressId: address.id,
+      items: [{ medicationId: medication.id, quantity: 1 }],
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.orderNumber).not.toBe(`${prefix}-001`);

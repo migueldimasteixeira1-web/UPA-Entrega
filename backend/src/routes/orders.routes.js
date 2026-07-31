@@ -13,6 +13,7 @@ import { validateCpf } from '../lib/validation.js';
 import { toCsv } from '../lib/csv.js';
 import { enqueueConfirmationEmail, enqueueStatusEmail, EMAIL_TYPE } from '../lib/email/queue.js';
 import { hashPassword, comparePassword } from '../lib/password.js';
+import { uploadImage, getSignedReadUrl } from '../lib/storage.js';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -195,6 +196,27 @@ export async function getOrder(req, res) {
   }
 }
 
+// URL assinada e temporária pra visualizar a receita — só ADMIN/OPERADOR
+// (rota registrada assim em app.js). Nunca exposta em formatOrderForCourier
+// nem em nenhuma resposta que o papel ENTREGADOR possa consumir.
+export async function getPrescriptionUrl(req, res) {
+  try {
+    const order = await prisma.order.findUnique({ where: { id: req.params.id } });
+    if (!order) {
+      return res.status(404).json({ error: 'Pedido não encontrado' });
+    }
+    if (!order.prescriptionKey) {
+      return res.status(404).json({ error: 'Pedido não tem receita anexada' });
+    }
+
+    const url = await getSignedReadUrl(order.prescriptionKey);
+    res.json({ url });
+  } catch (error) {
+    console.error('Get prescription url error:', error);
+    res.status(500).json({ error: 'Erro ao gerar link da receita' });
+  }
+}
+
 function getAllowedTransitions(order) {
   const base = [];
   const from = order.status;
@@ -271,7 +293,17 @@ async function resolveAddress(tx, { addressId, address }, patientId) {
 
 export async function createOrder(req, res) {
   try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'A receita é obrigatória para confirmar o pedido' });
+    }
+
     const { patientId, patient, addressId, address, internalNotes, patientNotes, items } = req.body;
+
+    // Upload fora da transação de propósito: se a criação do pedido falhar
+    // depois, sobra um objeto órfão no MinIO (aceitável, sem custo real de
+    // limpeza automática ainda) em vez de travar a criação do pedido
+    // esperando o storage responder dentro de uma transação de banco aberta.
+    const prescriptionKey = await uploadImage(req.file.buffer, 'prescriptions');
 
     const order = await prisma.$transaction(async (tx) => {
       const resolvedPatient = await resolvePatient(tx, { patientId, patient });
@@ -317,6 +349,7 @@ export async function createOrder(req, res) {
           referencePoint: resolvedAddress.referencePoint,
           internalNotes: internalNotes?.trim() || null,
           patientNotes: patientNotes?.trim() || null,
+          prescriptionKey,
           deliveryPinHash: await hashPassword(rawPin),
           status: 'PEDIDO_RECEBIDO',
           createdById: req.user.id,

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
-import { app, createUser, loginAs, createPatientWithAddress, createMedicationRecord } from './helpers.js';
+import { app, createUser, loginAs, createPatientWithAddress, createMedicationRecord, postOrder } from './helpers.js';
 
 describe('GET /api/orders/history', () => {
   let adminToken;
@@ -28,14 +28,11 @@ describe('GET /api/orders/history', () => {
   });
 
   it('aggregates history entries across different orders, most recent first', async () => {
-    const createRes = await request(app)
-      .post('/api/orders')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({
-        patientId: patient.id,
-        addressId: address.id,
-        items: [{ medicationId: medication.id, quantity: 1 }],
-      });
+    const createRes = await postOrder(adminToken, {
+      patientId: patient.id,
+      addressId: address.id,
+      items: [{ medicationId: medication.id, quantity: 1 }],
+    });
     const orderId = createRes.body.id;
 
     await request(app)
@@ -68,22 +65,16 @@ describe('GET /api/orders/history', () => {
     const otherAdmin = await createUser({ role: 'ADMIN' });
     const otherToken = await loginAs(otherAdmin);
 
-    await request(app)
-      .post('/api/orders')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({
-        patientId: patient.id,
-        addressId: address.id,
-        items: [{ medicationId: medication.id, quantity: 1 }],
-      });
-    await request(app)
-      .post('/api/orders')
-      .set('Authorization', `Bearer ${otherToken}`)
-      .send({
-        patientId: patient.id,
-        addressId: address.id,
-        items: [{ medicationId: medication.id, quantity: 1 }],
-      });
+    await postOrder(adminToken, {
+      patientId: patient.id,
+      addressId: address.id,
+      items: [{ medicationId: medication.id, quantity: 1 }],
+    });
+    await postOrder(otherToken, {
+      patientId: patient.id,
+      addressId: address.id,
+      items: [{ medicationId: medication.id, quantity: 1 }],
+    });
 
     const res = await request(app)
       .get('/api/orders/history')

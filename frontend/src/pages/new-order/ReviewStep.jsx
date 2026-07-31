@@ -1,11 +1,19 @@
-import { Check, ClipboardList } from 'lucide-react';
+import { Check, ClipboardList, FileImage } from 'lucide-react';
 import { maskPhone } from '../../lib/masks';
 
 function buildFullAddress(street, number) {
   return `${street?.trim() || ''}, ${number?.trim() || ''}`;
 }
 
-export default function ReviewStep({ form, showNewAddressForm, selectedMeds, selectedAddress }) {
+export default function ReviewStep({
+  form,
+  showNewAddressForm,
+  selectedMeds,
+  selectedAddress,
+  prescriptionFile,
+  onPrescriptionChange,
+  prescriptionError,
+}) {
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-upa-100 bg-upa-50/60 p-4 flex items-start gap-3">
@@ -65,6 +73,29 @@ export default function ReviewStep({ form, showNewAddressForm, selectedMeds, sel
           {selectedMeds.map((m) => (
             <p key={m.id}>{m.quantity}x {m.name}</p>
           ))}
+        </div>
+
+        <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 sm:col-span-2">
+          <h3 className="font-semibold text-slate-800 mb-2 flex items-center gap-2">
+            <FileImage className="w-4 h-4" /> Receita médica
+          </h3>
+          <p className="text-xs text-slate-500 mb-2">
+            Obrigatória para confirmar o pedido. Foto ou imagem da receita (JPEG, PNG ou WebP).
+          </p>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => onPrescriptionChange(e.target.files[0] || null)}
+            className="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-upa-50 file:text-upa-800 file:font-medium hover:file:bg-upa-100"
+          />
+          {prescriptionError && <p className="text-xs text-red-600 mt-2">{prescriptionError}</p>}
+          {prescriptionFile && (
+            <img
+              src={URL.createObjectURL(prescriptionFile)}
+              alt="Prévia da receita"
+              className="mt-3 max-h-48 rounded-lg border border-slate-200"
+            />
+          )}
         </div>
       </div>
     </div>

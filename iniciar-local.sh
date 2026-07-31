@@ -35,8 +35,8 @@ fi
 
 echo "Ambiente: Node $(node -v), npm $(npm -v)"
 
-echo "[1/5] Subindo PostgreSQL (compose.dev)..."
-docker compose -f "$ROOT_DIR/compose.dev.yaml" up -d db
+echo "[1/5] Subindo PostgreSQL e MinIO (compose.dev)..."
+docker compose -f "$ROOT_DIR/compose.dev.yaml" up -d db minio
 
 echo "[2/5] Instalando dependências do backend..."
 cd "$BACKEND_DIR"
