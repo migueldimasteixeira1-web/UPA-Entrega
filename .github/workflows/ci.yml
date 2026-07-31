@@ -22,10 +22,26 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # bitnamilegacy/minio (não a imagem oficial minio/minio): "services:" do
+      # GitHub Actions não permite sobrescrever o comando do container, e a
+      # imagem oficial exige `server /data` como argumento pra subir — sem
+      # isso ela só imprime o help e não escuta em lugar nenhum. A imagem da
+      # bitnami já vem com um entrypoint que sobe o servidor sozinho.
+      # "bitnami/minio" foi descontinuada (movida pro catálogo pago) — o
+      # equivalente livre agora fica em "bitnamilegacy/*" (validado localmente
+      # antes de subir esta correção).
+      minio:
+        image: bitnamilegacy/minio:latest
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        ports:
+          - 9000:9000
 
     env:
       TEST_DATABASE_URL: postgresql://upa:upa_secret@localhost:5432/upa_entrega_test?schema=public
       JWT_SECRET: ci_jwt_secret_not_for_production
+      TEST_S3_ENDPOINT: http://localhost:9000
 
     steps:
       - uses: actions/checkout@v4
