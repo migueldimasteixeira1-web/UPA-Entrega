@@ -27,6 +27,18 @@ export default function MyDeliveries() {
     refetchInterval: 15000,
   });
 
+  // Verifica o PIN de verdade no servidor antes de liberar a etapa de foto
+  // — sem isso, "Próximo" só checava 6 dígitos preenchidos no cliente, sem
+  // garantia nenhuma de que o código estava certo.
+  const verifyPinMutation = useMutation({
+    mutationFn: () => api.verifyDeliveryPin(confirmOrder.id, pin),
+    onSuccess: () => {
+      setModalError('');
+      setConfirmStep('photo');
+    },
+    onError: (err) => setModalError(err instanceof ApiError ? err.message : 'Erro ao verificar PIN'),
+  });
+
   const confirmMutation = useMutation({
     mutationFn: () => api.confirmDelivery(confirmOrder.id, pin, proofFile),
     onSuccess: () => {
@@ -145,18 +157,21 @@ export default function MyDeliveries() {
               <PinInput length={6} value={pin} onChange={setPin} autoFocus />
               <button
                 type="button"
-                onClick={() => setConfirmStep('photo')}
-                disabled={!/^\d{6}$/.test(pin)}
+                onClick={() => verifyPinMutation.mutate()}
+                disabled={!/^\d{6}$/.test(pin) || verifyPinMutation.isPending}
                 className={buttonClassName('success', 'md', 'w-full')}
               >
-                Próximo
+                {verifyPinMutation.isPending ? 'Verificando...' : 'Próximo'}
               </button>
             </>
           ) : (
             <>
               <button
                 type="button"
-                onClick={() => setConfirmStep('pin')}
+                onClick={() => {
+                  setConfirmStep('pin');
+                  setModalError('');
+                }}
                 className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
               >
                 <ChevronLeft className="w-4 h-4" /> Voltar

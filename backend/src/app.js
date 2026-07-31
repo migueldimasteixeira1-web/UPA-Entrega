@@ -37,6 +37,7 @@ import {
   updateOrder,
   updateStatus,
   confirmDelivery,
+  verifyDeliveryPin,
   addNote,
   resendConfirmationEmail,
   getPrescriptionUrl,
@@ -174,6 +175,18 @@ export function createApp({ loginRateLimit, confirmDeliveryRateLimit, resendEmai
   );
   app.put('/api/orders/:id', requireRole('ADMIN', 'OPERADOR'), validateBody(updateOrderSchema), updateOrder);
   app.patch('/api/orders/:id/status', requireRole('ADMIN', 'OPERADOR'), validateBody(updateStatusSchema), updateStatus);
+  // Verifica o PIN sem finalizar a entrega — dá feedback real antes de
+  // liberar a etapa de foto no app do entregador. Mesma instância de
+  // confirmDeliveryLimiter (não uma nova com a mesma config): as tentativas
+  // aqui e em confirm-delivery consomem o mesmo orçamento por IP, senão
+  // esta rota vira uma segunda superfície de força bruta pro PIN.
+  app.post(
+    '/api/orders/:id/verify-pin',
+    confirmDeliveryLimiter,
+    requireRole('ADMIN', 'ENTREGADOR'),
+    validateBody(confirmDeliverySchema),
+    verifyDeliveryPin
+  );
   app.post(
     '/api/orders/:id/confirm-delivery',
     confirmDeliveryLimiter,

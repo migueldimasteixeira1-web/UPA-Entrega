@@ -105,6 +105,9 @@ export const api = {
   // multipart/form-data (issue #39) — foto de comprovação obrigatória junto
   // com o PIN, mesmo motivo de createOrder não usar request(): o navegador
   // precisa definir o Content-Type com o boundary do multipart sozinho.
+  verifyDeliveryPin: (id, pin) =>
+    request(`/api/orders/${id}/verify-pin`, { method: 'POST', body: JSON.stringify({ pin }) }),
+
   confirmDelivery: async (id, pin, proofFile) => {
     const token = localStorage.getItem('upa_token');
     const formData = new FormData();
