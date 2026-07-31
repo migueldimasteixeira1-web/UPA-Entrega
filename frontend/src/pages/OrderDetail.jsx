@@ -19,6 +19,7 @@ import {
   Printer,
   RefreshCw,
   FileImage,
+  Camera,
   Route as RouteIcon,
 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
@@ -60,6 +61,7 @@ export default function OrderDetail() {
   const [copyLinkError, setCopyLinkError] = useState(false);
   const [sharedPublicLink, setSharedPublicLink] = useState(false);
   const [prescriptionLoading, setPrescriptionLoading] = useState(false);
+  const [deliveryProofLoading, setDeliveryProofLoading] = useState(false);
   const { showToast } = useToast();
 
   const { data: order, isLoading, error: loadError } = useQuery({
@@ -94,6 +96,19 @@ export default function OrderDetail() {
       setActionError(err instanceof ApiError ? err.message : 'Erro ao abrir a receita');
     } finally {
       setPrescriptionLoading(false);
+    }
+  };
+
+  const openDeliveryProof = async () => {
+    setDeliveryProofLoading(true);
+    setActionError('');
+    try {
+      const { url } = await api.getDeliveryProofUrl(id);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : 'Erro ao abrir a foto de comprovação');
+    } finally {
+      setDeliveryProofLoading(false);
     }
   };
 
@@ -362,6 +377,18 @@ export default function OrderDetail() {
                 </button>
               )}
             </div>
+
+            {order.hasDeliveryProof && (
+              <button
+                type="button"
+                onClick={openDeliveryProof}
+                disabled={deliveryProofLoading}
+                className="mt-4 inline-flex items-center gap-1.5 text-sm text-upa-700 hover:text-upa-900 min-h-9 px-2 rounded-lg hover:bg-upa-50"
+              >
+                <Camera className="w-4 h-4" />
+                {deliveryProofLoading ? 'Abrindo...' : 'Ver foto de comprovação'}
+              </button>
+            )}
 
             <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
               <a

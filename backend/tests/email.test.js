@@ -8,6 +8,7 @@ import {
   createMedicationRecord,
   createOrderRecord,
   postOrder,
+  confirmDelivery,
   TEST_PIN,
 } from './helpers.js';
 import prisma from '../src/lib/prisma.js';
@@ -295,10 +296,7 @@ describe('Status update emails', () => {
       .send({ courierId: courier.id, orderIds: [order.id] });
 
     const courierToken = await loginAs(courier);
-    const res = await request(app)
-      .post(`/api/orders/${order.id}/confirm-delivery`)
-      .set('Authorization', `Bearer ${courierToken}`)
-      .send({ pin: TEST_PIN });
+    const res = await confirmDelivery(courierToken, order.id, TEST_PIN);
 
     expect(res.status).toBe(200);
     expect(routeRes.status).toBe(201);

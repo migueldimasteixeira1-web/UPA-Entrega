@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MapPin, Phone, Package, KeyRound, CheckCircle2, Navigation } from 'lucide-react';
+import { MapPin, Phone, Package, KeyRound, Camera, CheckCircle2, Navigation, ChevronLeft } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { formatPhone } from '../lib/constants';
 import { buildMapsUrl } from '../lib/masks';
@@ -14,7 +14,9 @@ import PinInput from '../components/PinInput';
 
 export default function MyDeliveries() {
   const [confirmOrder, setConfirmOrder] = useState(null);
+  const [confirmStep, setConfirmStep] = useState('pin'); // 'pin' | 'photo'
   const [pin, setPin] = useState('');
+  const [proofFile, setProofFile] = useState(null);
   const [modalError, setModalError] = useState('');
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -25,13 +27,27 @@ export default function MyDeliveries() {
     refetchInterval: 15000,
   });
 
+  // Verifica o PIN de verdade no servidor antes de liberar a etapa de foto
+  // — sem isso, "Próximo" só checava 6 dígitos preenchidos no cliente, sem
+  // garantia nenhuma de que o código estava certo.
+  const verifyPinMutation = useMutation({
+    mutationFn: () => api.verifyDeliveryPin(confirmOrder.id, pin),
+    onSuccess: () => {
+      setModalError('');
+      setConfirmStep('photo');
+    },
+    onError: (err) => setModalError(err instanceof ApiError ? err.message : 'Erro ao verificar PIN'),
+  });
+
   const confirmMutation = useMutation({
-    mutationFn: () => api.confirmDelivery(confirmOrder.id, pin),
+    mutationFn: () => api.confirmDelivery(confirmOrder.id, pin, proofFile),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-routes', 'mine'] });
       showToast('Entrega confirmada com sucesso');
       setConfirmOrder(null);
+      setConfirmStep('pin');
       setPin('');
+      setProofFile(null);
       setModalError('');
     },
     onError: (err) => setModalError(err instanceof ApiError ? err.message : 'Erro ao confirmar entrega'),
@@ -39,7 +55,9 @@ export default function MyDeliveries() {
 
   const openConfirm = (order) => {
     setConfirmOrder(order);
+    setConfirmStep('pin');
     setPin('');
+    setProofFile(null);
     setModalError('');
   };
 
@@ -129,19 +147,64 @@ export default function MyDeliveries() {
       <Modal open={!!confirmOrder} onClose={() => setConfirmOrder(null)} title="Confirmar entrega">
         <div className="space-y-4">
           {modalError && <Alert message={modalError} onDismiss={() => setModalError('')} />}
-          <p className="text-sm text-slate-600 flex items-start gap-2">
-            <KeyRound className="w-4 h-4 mt-0.5 shrink-0" />
-            Peça ao paciente o código de confirmação recebido por e-mail ou no comprovante impresso.
-          </p>
-          <PinInput length={6} value={pin} onChange={setPin} autoFocus />
-          <button
-            type="button"
-            onClick={() => confirmMutation.mutate()}
-            disabled={!/^\d{6}$/.test(pin) || confirmMutation.isPending}
-            className={buttonClassName('success', 'md', 'w-full')}
-          >
-            {confirmMutation.isPending ? 'Confirmando...' : 'Confirmar entrega'}
-          </button>
+
+          {confirmStep === 'pin' ? (
+            <>
+              <p className="text-sm text-slate-600 flex items-start gap-2">
+                <KeyRound className="w-4 h-4 mt-0.5 shrink-0" />
+                Peça ao paciente o código de confirmação recebido por e-mail ou no comprovante impresso.
+              </p>
+              <PinInput length={6} value={pin} onChange={setPin} autoFocus />
+              <button
+                type="button"
+                onClick={() => verifyPinMutation.mutate()}
+                disabled={!/^\d{6}$/.test(pin) || verifyPinMutation.isPending}
+                className={buttonClassName('success', 'md', 'w-full')}
+              >
+                {verifyPinMutation.isPending ? 'Verificando...' : 'Próximo'}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmStep('pin');
+                  setModalError('');
+                }}
+                className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
+              >
+                <ChevronLeft className="w-4 h-4" /> Voltar
+              </button>
+              <p className="text-sm text-slate-600 flex items-start gap-2">
+                <Camera className="w-4 h-4 mt-0.5 shrink-0" />
+                Fotografe o medicamento entregue no local. Evite mostrar o rosto do paciente, documentos ou o
+                interior da residência.
+              </p>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                capture="environment"
+                onChange={(e) => setProofFile(e.target.files[0] || null)}
+                className="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-upa-50 file:text-upa-800 file:font-medium hover:file:bg-upa-100"
+              />
+              {proofFile && (
+                <img
+                  src={URL.createObjectURL(proofFile)}
+                  alt="Prévia da foto de comprovação"
+                  className="max-h-48 rounded-lg border border-slate-200"
+                />
+              )}
+              <button
+                type="button"
+                onClick={() => confirmMutation.mutate()}
+                disabled={!proofFile || confirmMutation.isPending}
+                className={buttonClassName('success', 'md', 'w-full')}
+              >
+                {confirmMutation.isPending ? 'Confirmando...' : 'Confirmar entrega'}
+              </button>
+            </>
+          )}
         </div>
       </Modal>
     </div>

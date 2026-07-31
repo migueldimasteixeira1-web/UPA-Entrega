@@ -17,22 +17,32 @@ export const app = createApp({
 
 // PNG 4x4 gerado pelo próprio sharp (já é dependência do projeto) — garante
 // bytes válidos de verdade pro pipeline real de compressão/upload passar
-// (issue #38), sem precisar versionar um arquivo de imagem no repo. POST
-// /api/orders exige receita anexada, então todo teste que cria pedido via
-// HTTP precisa desse arquivo — daí o helper `postOrder`.
-const testPrescriptionPngPromise = sharp({
+// (issues #38/#39), sem precisar versionar um arquivo de imagem no repo.
+// POST /api/orders exige receita anexada e confirm-delivery exige foto de
+// comprovação, então todo teste que cria pedido ou confirma entrega via
+// HTTP precisa desse arquivo — daí os helpers `postOrder`/`confirmDelivery`.
+const testImagePngPromise = sharp({
   create: { width: 4, height: 4, channels: 3, background: { r: 200, g: 50, b: 50 } },
 })
   .png()
   .toBuffer();
 
 export async function postOrder(token, payload) {
-  const prescriptionBuffer = await testPrescriptionPngPromise;
+  const prescriptionBuffer = await testImagePngPromise;
   return request(app)
     .post('/api/orders')
     .set('Authorization', `Bearer ${token}`)
     .field('data', JSON.stringify(payload))
     .attach('prescription', prescriptionBuffer, { filename: 'receita.png', contentType: 'image/png' });
+}
+
+export async function confirmDelivery(token, orderId, pin, { app: targetApp = app } = {}) {
+  const proofBuffer = await testImagePngPromise;
+  return request(targetApp)
+    .post(`/api/orders/${orderId}/confirm-delivery`)
+    .set('Authorization', `Bearer ${token}`)
+    .field('pin', pin)
+    .attach('proof', proofBuffer, { filename: 'comprovante.png', contentType: 'image/png' });
 }
 
 export async function createUser({ role = 'OPERADOR', email, password = 'Senha@123', name = 'Usuário Teste', active = true } = {}) {

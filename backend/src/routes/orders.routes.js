@@ -217,6 +217,26 @@ export async function getPrescriptionUrl(req, res) {
   }
 }
 
+// Mesma lógica de getPrescriptionUrl, pra foto de comprovação de entrega
+// (issue #39) — também só ADMIN/OPERADOR.
+export async function getDeliveryProofUrl(req, res) {
+  try {
+    const order = await prisma.order.findUnique({ where: { id: req.params.id } });
+    if (!order) {
+      return res.status(404).json({ error: 'Pedido não encontrado' });
+    }
+    if (!order.deliveryProofKey) {
+      return res.status(404).json({ error: 'Pedido não tem foto de comprovação' });
+    }
+
+    const url = await getSignedReadUrl(order.deliveryProofKey);
+    res.json({ url });
+  } catch (error) {
+    console.error('Get delivery proof url error:', error);
+    res.status(500).json({ error: 'Erro ao gerar link da foto' });
+  }
+}
+
 function getAllowedTransitions(order) {
   const base = [];
   const from = order.status;
@@ -528,37 +548,77 @@ export async function updateStatus(req, res) {
   }
 }
 
+// Compartilhado entre verifyDeliveryPin e confirmDelivery: pedido existe, está
+// EM_ROTA, quem chama é o entregador dono da rota (ou ADMIN), e o PIN bate
+// com o hash. confirmDelivery não pode confiar num "já verifiquei" vindo só
+// do cliente — reaplica essa checagem inteira na hora de finalizar de
+// verdade, mesmo que o front já tenha passado pela etapa de verificação.
+async function loadOrderForDeliveryConfirmation(req) {
+  const { id } = req.params;
+  const { pin } = req.body;
+
+  const existing = await prisma.order.findUnique({
+    where: { id },
+    include: { route: true },
+  });
+
+  if (!existing) {
+    return { error: { status: 404, message: 'Pedido não encontrado' } };
+  }
+
+  if (existing.status !== 'EM_ROTA') {
+    return { error: { status: 400, message: 'Pedido não está em rota de entrega' } };
+  }
+
+  const isOwningCourier = existing.route && existing.route.courierId === req.user.id;
+  if (req.user.role !== 'ADMIN' && !isOwningCourier) {
+    return { error: { status: 403, message: 'Você não é o entregador responsável por este pedido' } };
+  }
+
+  if (!(await comparePassword(pin.trim(), existing.deliveryPinHash))) {
+    return { error: { status: 400, message: 'PIN incorreto' } };
+  }
+
+  return { order: existing };
+}
+
+// Verifica o PIN sem finalizar nada (sem trocar status, sem exigir foto,
+// sem registrar histórico) — dá feedback real antes de liberar a etapa de
+// foto no app do entregador (issue #39). Usa o mesmo rate limiter de
+// confirmDelivery (mesma instância, registrada em app.js), pra não abrir uma
+// segunda superfície de força bruta com orçamento de tentativas separado.
+export async function verifyDeliveryPin(req, res) {
+  try {
+    const { error } = await loadOrderForDeliveryConfirmation(req);
+    if (error) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    res.json({ valid: true });
+  } catch (error) {
+    console.error('Verify delivery PIN error:', error);
+    res.status(500).json({ error: 'Erro ao verificar PIN' });
+  }
+}
+
 export async function confirmDelivery(req, res) {
   try {
     const { id } = req.params;
-    const { pin } = req.body;
-
-    const existing = await prisma.order.findUnique({
-      where: { id },
-      include: { route: true },
-    });
-
-    if (!existing) {
-      return res.status(404).json({ error: 'Pedido não encontrado' });
+    const { error: pinError, order: existing } = await loadOrderForDeliveryConfirmation(req);
+    if (pinError) {
+      return res.status(pinError.status).json({ error: pinError.message });
     }
 
-    if (existing.status !== 'EM_ROTA') {
-      return res.status(400).json({ error: 'Pedido não está em rota de entrega' });
+    // Só exige/faz upload da foto depois do PIN validado — um PIN errado
+    // não deve custar uma compressão+upload pra nada (issue #39).
+    if (!req.file) {
+      return res.status(400).json({ error: 'Foto de comprovação é obrigatória para confirmar a entrega' });
     }
-
-    const isOwningCourier = existing.route && existing.route.courierId === req.user.id;
-    if (req.user.role !== 'ADMIN' && !isOwningCourier) {
-      return res.status(403).json({ error: 'Você não é o entregador responsável por este pedido' });
-    }
-
-    if (!(await comparePassword(pin.trim(), existing.deliveryPinHash))) {
-      return res.status(400).json({ error: 'PIN incorreto' });
-    }
+    const deliveryProofKey = await uploadImage(req.file.buffer, 'delivery-proofs');
 
     const order = await prisma.$transaction(async (tx) => {
       const updated = await tx.order.update({
         where: { id },
-        data: { status: 'ENTREGUE', deliveredAt: new Date(), deliveredById: req.user.id },
+        data: { status: 'ENTREGUE', deliveredAt: new Date(), deliveredById: req.user.id, deliveryProofKey },
         include: orderInclude,
       });
 

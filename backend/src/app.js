@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 
 import { authenticate, requireAdmin, requireRole } from './middleware/auth.js';
-import { handlePrescriptionUpload, parseMultipartOrderBody } from './middleware/upload.js';
+import { handlePrescriptionUpload, handleDeliveryProofUpload, parseMultipartOrderBody } from './middleware/upload.js';
 import { login, me, changePassword } from './routes/auth.routes.js';
 import { listUsers, listCouriers, createUser, updateUser, resetPassword } from './routes/users.routes.js';
 import {
@@ -37,9 +37,11 @@ import {
   updateOrder,
   updateStatus,
   confirmDelivery,
+  verifyDeliveryPin,
   addNote,
   resendConfirmationEmail,
   getPrescriptionUrl,
+  getDeliveryProofUrl,
   getPublicOrder,
   getDashboardStats,
 } from './routes/orders.routes.js';
@@ -162,6 +164,7 @@ export function createApp({ loginRateLimit, confirmDeliveryRateLimit, resendEmai
   app.get('/api/orders/history', requireAdmin, listOrderHistory);
   app.get('/api/orders/:id', requireRole('ADMIN', 'OPERADOR'), getOrder);
   app.get('/api/orders/:id/prescription', requireRole('ADMIN', 'OPERADOR'), getPrescriptionUrl);
+  app.get('/api/orders/:id/delivery-proof', requireRole('ADMIN', 'OPERADOR'), getDeliveryProofUrl);
   app.post(
     '/api/orders',
     requireRole('ADMIN', 'OPERADOR'),
@@ -172,10 +175,23 @@ export function createApp({ loginRateLimit, confirmDeliveryRateLimit, resendEmai
   );
   app.put('/api/orders/:id', requireRole('ADMIN', 'OPERADOR'), validateBody(updateOrderSchema), updateOrder);
   app.patch('/api/orders/:id/status', requireRole('ADMIN', 'OPERADOR'), validateBody(updateStatusSchema), updateStatus);
+  // Verifica o PIN sem finalizar a entrega — dá feedback real antes de
+  // liberar a etapa de foto no app do entregador. Mesma instância de
+  // confirmDeliveryLimiter (não uma nova com a mesma config): as tentativas
+  // aqui e em confirm-delivery consomem o mesmo orçamento por IP, senão
+  // esta rota vira uma segunda superfície de força bruta pro PIN.
+  app.post(
+    '/api/orders/:id/verify-pin',
+    confirmDeliveryLimiter,
+    requireRole('ADMIN', 'ENTREGADOR'),
+    validateBody(confirmDeliverySchema),
+    verifyDeliveryPin
+  );
   app.post(
     '/api/orders/:id/confirm-delivery',
     confirmDeliveryLimiter,
     requireRole('ADMIN', 'ENTREGADOR'),
+    handleDeliveryProofUpload,
     validateBody(confirmDeliverySchema),
     confirmDelivery
   );

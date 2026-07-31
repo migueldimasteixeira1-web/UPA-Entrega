@@ -102,8 +102,30 @@ export const api = {
   updateStatus: (id, data) =>
     request(`/api/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify(data) }),
 
-  confirmDelivery: (id, pin) =>
-    request(`/api/orders/${id}/confirm-delivery`, { method: 'POST', body: JSON.stringify({ pin }) }),
+  // multipart/form-data (issue #39) — foto de comprovação obrigatória junto
+  // com o PIN, mesmo motivo de createOrder não usar request(): o navegador
+  // precisa definir o Content-Type com o boundary do multipart sozinho.
+  verifyDeliveryPin: (id, pin) =>
+    request(`/api/orders/${id}/verify-pin`, { method: 'POST', body: JSON.stringify({ pin }) }),
+
+  confirmDelivery: async (id, pin, proofFile) => {
+    const token = localStorage.getItem('upa_token');
+    const formData = new FormData();
+    formData.append('pin', pin);
+    formData.append('proof', proofFile);
+
+    const response = await fetch(`${API_URL}/api/orders/${id}/confirm-delivery`, {
+      method: 'POST',
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      body: formData,
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new ApiError(data.error || 'Erro na requisição', response.status);
+    }
+    return data;
+  },
 
   addNote: (id, note) =>
     request(`/api/orders/${id}/notes`, { method: 'POST', body: JSON.stringify({ note }) }),
@@ -111,6 +133,8 @@ export const api = {
   resendConfirmationEmail: (id) => request(`/api/orders/${id}/resend-email`, { method: 'POST' }),
 
   getPrescriptionUrl: (id) => request(`/api/orders/${id}/prescription`),
+
+  getDeliveryProofUrl: (id) => request(`/api/orders/${id}/delivery-proof`),
 
   getPatientByCpf: (cpf) => request(`/api/patients/by-cpf/${cpf}`),
 

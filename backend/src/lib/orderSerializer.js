@@ -52,7 +52,7 @@ function computeEmailStatus(order) {
 // banco, e em texto puro só no e-mail de confirmação (issue #35) ou no
 // comprovante impresso (issue #40).
 export function formatOrder(order) {
-  const { deliveryPinHash, emails, prescriptionKey, ...rest } = order;
+  const { deliveryPinHash, emails, prescriptionKey, deliveryProofKey, ...rest } = order;
   const mainMedication = order.items?.[0]?.medicationName || order.items?.[0]?.medication?.name;
   return {
     ...rest,
@@ -63,8 +63,10 @@ export function formatOrder(order) {
     messages: generateMessages(order, FRONTEND_URL),
     emailStatus: computeEmailStatus(order),
     // Nunca a chave de storage crua — só um booleano, a URL assinada de
-    // leitura é buscada à parte (GET /api/orders/:id/prescription).
+    // leitura é buscada à parte (GET /api/orders/:id/prescription e
+    // .../delivery-proof).
     hasPrescription: Boolean(prescriptionKey),
+    hasDeliveryProof: Boolean(deliveryProofKey),
   };
 }
 
@@ -72,8 +74,10 @@ export function formatOrder(order) {
 // (nem o hash, nem o conteúdo do e-mail de confirmação, que carrega o PIN
 // em texto puro no momento do envio). Receita é dado de saúde, sensibilidade
 // maior que CPF — entregador não tem motivo pra saber nem que ela existe.
+// Foto de comprovação também fica só com staff, mesmo sendo o próprio
+// entregador quem a tirou — nenhum motivo funcional pra reconsultar depois.
 export function formatOrderForCourier(order) {
-  const { deliveryPinHash, emails, prescriptionKey, ...rest } = order;
+  const { deliveryPinHash, emails, prescriptionKey, deliveryProofKey, ...rest } = order;
   return {
     ...rest,
     patientCpf: maskCpf(order.patientCpf),
