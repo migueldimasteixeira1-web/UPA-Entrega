@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 
 import { authenticate, requireAdmin, requireRole } from './middleware/auth.js';
+import { handlePrescriptionUpload, parseMultipartOrderBody } from './middleware/upload.js';
 import { login, me, changePassword } from './routes/auth.routes.js';
 import { listUsers, listCouriers, createUser, updateUser, resetPassword } from './routes/users.routes.js';
 import {
@@ -38,6 +39,7 @@ import {
   confirmDelivery,
   addNote,
   resendConfirmationEmail,
+  getPrescriptionUrl,
   getPublicOrder,
   getDashboardStats,
 } from './routes/orders.routes.js';
@@ -159,7 +161,15 @@ export function createApp({ loginRateLimit, confirmDeliveryRateLimit, resendEmai
   // Visão cruzada entre pedidos ("quem mudou o quê") — só Admin.
   app.get('/api/orders/history', requireAdmin, listOrderHistory);
   app.get('/api/orders/:id', requireRole('ADMIN', 'OPERADOR'), getOrder);
-  app.post('/api/orders', requireRole('ADMIN', 'OPERADOR'), validateBody(createOrderSchema), createOrder);
+  app.get('/api/orders/:id/prescription', requireRole('ADMIN', 'OPERADOR'), getPrescriptionUrl);
+  app.post(
+    '/api/orders',
+    requireRole('ADMIN', 'OPERADOR'),
+    handlePrescriptionUpload,
+    parseMultipartOrderBody,
+    validateBody(createOrderSchema),
+    createOrder
+  );
   app.put('/api/orders/:id', requireRole('ADMIN', 'OPERADOR'), validateBody(updateOrderSchema), updateOrder);
   app.patch('/api/orders/:id/status', requireRole('ADMIN', 'OPERADOR'), validateBody(updateStatusSchema), updateStatus);
   app.post(

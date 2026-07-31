@@ -158,6 +158,7 @@ describe('Delivery PIN security', () => {
     expect(res.status).toBe(200);
     const raw = JSON.stringify(res.body);
     expect(raw).not.toContain('deliveryPin');
+    expect(raw).not.toContain('prescriptionKey');
     expect(res.body[0].orders[0].patientCpf).toMatch(/\*\*\*/);
   });
 

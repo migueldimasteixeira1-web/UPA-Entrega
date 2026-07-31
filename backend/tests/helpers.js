@@ -1,4 +1,5 @@
 import request from 'supertest';
+import sharp from 'sharp';
 import { createApp } from '../src/app.js';
 import prisma from '../src/lib/prisma.js';
 import { hashPassword } from '../src/lib/password.js';
@@ -13,6 +14,26 @@ export const app = createApp({
   confirmDeliveryRateLimit: { windowMs: 15 * 60 * 1000, limit: 100000 },
   resendEmailRateLimit: { windowMs: 15 * 60 * 1000, limit: 100000 },
 });
+
+// PNG 4x4 gerado pelo próprio sharp (já é dependência do projeto) — garante
+// bytes válidos de verdade pro pipeline real de compressão/upload passar
+// (issue #38), sem precisar versionar um arquivo de imagem no repo. POST
+// /api/orders exige receita anexada, então todo teste que cria pedido via
+// HTTP precisa desse arquivo — daí o helper `postOrder`.
+const testPrescriptionPngPromise = sharp({
+  create: { width: 4, height: 4, channels: 3, background: { r: 200, g: 50, b: 50 } },
+})
+  .png()
+  .toBuffer();
+
+export async function postOrder(token, payload) {
+  const prescriptionBuffer = await testPrescriptionPngPromise;
+  return request(app)
+    .post('/api/orders')
+    .set('Authorization', `Bearer ${token}`)
+    .field('data', JSON.stringify(payload))
+    .attach('prescription', prescriptionBuffer, { filename: 'receita.png', contentType: 'image/png' });
+}
 
 export async function createUser({ role = 'OPERADOR', email, password = 'Senha@123', name = 'Usuário Teste', active = true } = {}) {
   const finalEmail = email || `${role.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2)}@upa.local`;

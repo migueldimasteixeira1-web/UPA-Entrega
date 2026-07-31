@@ -18,6 +18,7 @@ import {
   Truck,
   Printer,
   RefreshCw,
+  FileImage,
   Route as RouteIcon,
 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
@@ -58,6 +59,7 @@ export default function OrderDetail() {
   const [copiedPublicLink, setCopiedPublicLink] = useState(false);
   const [copyLinkError, setCopyLinkError] = useState(false);
   const [sharedPublicLink, setSharedPublicLink] = useState(false);
+  const [prescriptionLoading, setPrescriptionLoading] = useState(false);
   const { showToast } = useToast();
 
   const { data: order, isLoading, error: loadError } = useQuery({
@@ -79,6 +81,21 @@ export default function OrderDetail() {
     },
     onError: (err) => setActionError(err instanceof ApiError ? err.message : 'Erro ao reenviar e-mail'),
   });
+
+  // URL assinada e de curta duração — busca sob demanda em vez de deixar
+  // fixa na tela, pra não sobreviver além do necessário.
+  const openPrescription = async () => {
+    setPrescriptionLoading(true);
+    setActionError('');
+    try {
+      const { url } = await api.getPrescriptionUrl(id);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : 'Erro ao abrir a receita');
+    } finally {
+      setPrescriptionLoading(false);
+    }
+  };
 
   const updateStatusMutation = useMutation({
     mutationFn: (data) => api.updateStatus(id, data),
@@ -275,6 +292,19 @@ export default function OrderDetail() {
                   </div>
                 ))}
               </div>
+
+              {order.hasPrescription && (
+                <button
+                  type="button"
+                  onClick={openPrescription}
+                  disabled={prescriptionLoading}
+                  className="mt-4 inline-flex items-center gap-1.5 text-sm text-upa-700 hover:text-upa-900 min-h-9 px-2 rounded-lg hover:bg-upa-50"
+                >
+                  <FileImage className="w-4 h-4" />
+                  {prescriptionLoading ? 'Abrindo...' : 'Ver receita'}
+                </button>
+              )}
+
               {order.internalNotes && (
                 <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
                   <p className="font-medium text-slate-700 mb-1">Observação interna</p>

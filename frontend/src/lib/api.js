@@ -74,8 +74,27 @@ export const api = {
 
   getOrder: (id) => request(`/api/orders/${id}`),
 
-  createOrder: (data) =>
-    request('/api/orders', { method: 'POST', body: JSON.stringify(data) }),
+  // multipart/form-data (receita + os demais campos como um único campo
+  // "data" em JSON) — não usa request(): o navegador precisa definir o
+  // Content-Type com o boundary do multipart sozinho, não "application/json".
+  createOrder: async (data, prescriptionFile) => {
+    const token = localStorage.getItem('upa_token');
+    const formData = new FormData();
+    formData.append('data', JSON.stringify(data));
+    formData.append('prescription', prescriptionFile);
+
+    const response = await fetch(`${API_URL}/api/orders`, {
+      method: 'POST',
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      body: formData,
+    });
+
+    const responseData = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new ApiError(responseData.error || 'Erro na requisição', response.status);
+    }
+    return responseData;
+  },
 
   updateOrder: (id, data) =>
     request(`/api/orders/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -90,6 +109,8 @@ export const api = {
     request(`/api/orders/${id}/notes`, { method: 'POST', body: JSON.stringify({ note }) }),
 
   resendConfirmationEmail: (id) => request(`/api/orders/${id}/resend-email`, { method: 'POST' }),
+
+  getPrescriptionUrl: (id) => request(`/api/orders/${id}/prescription`),
 
   getPatientByCpf: (cpf) => request(`/api/patients/by-cpf/${cpf}`),
 

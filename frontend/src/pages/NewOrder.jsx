@@ -60,6 +60,7 @@ export default function NewOrder() {
   const [editingAddress, setEditingAddress] = useState(null);
   const [editAddressForm, setEditAddressForm] = useState(null);
   const [editAddressError, setEditAddressError] = useState('');
+  const [prescriptionFile, setPrescriptionFile] = useState(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -70,7 +71,7 @@ export default function NewOrder() {
   });
 
   const mutation = useMutation({
-    mutationFn: (data) => api.createOrder(data),
+    mutationFn: (data) => api.createOrder(data, prescriptionFile),
     onSuccess: (order) => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
@@ -282,6 +283,12 @@ export default function NewOrder() {
       return errors;
     }
 
+    if (targetStep === 3) {
+      const errors = {};
+      if (!prescriptionFile) errors.prescription = 'Anexe a receita médica para confirmar o pedido';
+      return errors;
+    }
+
     return {};
   };
 
@@ -470,6 +477,9 @@ export default function NewOrder() {
             showNewAddressForm={showNewAddressForm}
             selectedMeds={selectedMeds}
             selectedAddress={selectedAddress}
+            prescriptionFile={prescriptionFile}
+            onPrescriptionChange={setPrescriptionFile}
+            prescriptionError={fieldErrors.prescription}
           />
         )}
 
