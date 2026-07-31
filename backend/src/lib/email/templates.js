@@ -49,3 +49,47 @@ export function confirmationEmailTemplate(order, rawPin, baseUrl) {
 
   return { subject, html };
 }
+
+// Conteúdo de cada notificação de andamento (#36): curto, sem repetir PIN
+// nem endereço completo — só a confirmação inicial carrega o PIN. Cada
+// entrada gera o assunto e o corpo a partir do pedido + link público.
+const STATUS_EMAIL_CONTENT = {
+  separado: {
+    subject: (order) => `Pedido ${order.orderNumber} separado — UPA Entrega`,
+    title: 'Medicamento separado',
+    body: (firstName) =>
+      `<p>Olá, ${firstName}. Seu medicamento já foi separado e será encaminhado para entrega em breve.</p>`,
+  },
+  em_rota: {
+    subject: (order) => `Pedido ${order.orderNumber} saiu para entrega — UPA Entrega`,
+    title: 'Pedido em rota',
+    body: (firstName) =>
+      `<p>Olá, ${firstName}. Seu medicamento saiu para entrega. Tenha em mãos o código que você recebeu por e-mail (ou o comprovante impresso) para informar ao entregador.</p>`,
+  },
+  entregue: {
+    subject: (order) => `Pedido ${order.orderNumber} entregue — UPA Entrega`,
+    title: 'Entrega concluída',
+    body: (firstName) =>
+      `<p>Olá, ${firstName}. Sua entrega de medicamento foi registrada como concluída. Em caso de dúvidas, entre em contato com a UPA.</p>`,
+  },
+  tentativa_falha: {
+    subject: (order) => `Pedido ${order.orderNumber}: entrega não concluída — UPA Entrega`,
+    title: 'Tentativa de entrega não concluída',
+    body: (firstName) =>
+      `<p>Olá, ${firstName}. Não foi possível concluir a entrega do seu medicamento nesta tentativa. A unidade poderá entrar em contato para orientar os próximos passos.</p>`,
+  },
+};
+
+export function statusUpdateEmailTemplate(order, kind, baseUrl) {
+  const content = STATUS_EMAIL_CONTENT[kind];
+  const firstName = escapeHtml(order.patientName.split(' ')[0]);
+  const publicLink = getPublicTrackingUrl(order, baseUrl);
+
+  const subject = content.subject(order);
+  const html = wrapEmail(
+    content.title,
+    `${content.body(firstName)}<p>Acompanhe seu pedido: <a href="${publicLink}">${publicLink}</a></p>`
+  );
+
+  return { subject, html };
+}

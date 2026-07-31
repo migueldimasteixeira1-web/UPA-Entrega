@@ -131,7 +131,7 @@ export default function MyDeliveries() {
           {modalError && <Alert message={modalError} onDismiss={() => setModalError('')} />}
           <p className="text-sm text-slate-600 flex items-start gap-2">
             <KeyRound className="w-4 h-4 mt-0.5 shrink-0" />
-            Peça ao paciente o código de confirmação recebido por mensagem ou exibido na página de acompanhamento.
+            Peça ao paciente o código de confirmação recebido por e-mail ou no comprovante impresso.
           </p>
           <PinInput length={6} value={pin} onChange={setPin} autoFocus />
           <button

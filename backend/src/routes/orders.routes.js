@@ -11,7 +11,7 @@ import {
 import { ORDER_INCLUDE as orderInclude, formatOrder, formatOrderForCourier } from '../lib/orderSerializer.js';
 import { validateCpf } from '../lib/validation.js';
 import { toCsv } from '../lib/csv.js';
-import { enqueueConfirmationEmail, EMAIL_TYPE } from '../lib/email/queue.js';
+import { enqueueConfirmationEmail, enqueueStatusEmail, EMAIL_TYPE } from '../lib/email/queue.js';
 import { hashPassword, comparePassword } from '../lib/password.js';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -471,6 +471,17 @@ export async function updateStatus(req, res) {
         details: notes?.trim() || (status === 'CANCELADO' ? cancelReason.trim() : STATUS_LABELS[status]),
       });
 
+      if (status === 'SEPARADO') {
+        await enqueueStatusEmail(tx, updated, 'separado', FRONTEND_URL);
+      }
+      // "Tentativa de entrega não concluída": só quando o cancelamento
+      // interrompe uma entrega já em andamento (EM_ROTA) — cancelamento a
+      // partir de qualquer outro status não é uma tentativa de entrega
+      // frustrada, é o pedido nunca ter chegado a sair.
+      if (status === 'CANCELADO' && existing.status === 'EM_ROTA') {
+        await enqueueStatusEmail(tx, updated, 'tentativa_falha', FRONTEND_URL);
+      }
+
       return updated;
     });
 
@@ -526,6 +537,8 @@ export async function confirmDelivery(req, res) {
         toStatus: 'ENTREGUE',
         details: 'Entrega confirmada com PIN',
       });
+
+      await enqueueStatusEmail(tx, updated, 'entregue', FRONTEND_URL);
 
       if (existing.routeId) {
         const remaining = await tx.order.count({
