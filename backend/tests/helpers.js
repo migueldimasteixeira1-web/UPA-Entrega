@@ -68,6 +68,11 @@ export async function createMedicationRecord(overrides = {}) {
   });
 }
 
+// PIN de teste fixo ('123456') — os testes que precisam confirmar entrega
+// enviam esse valor; o hash é o que realmente vai para o banco, igual ao
+// fluxo real (ver issue #37).
+export const TEST_PIN = '123456';
+
 export async function createOrderRecord({ patientId, addressId, medicationId, status = 'PEDIDO_RECEBIDO', createdById, extra = {} }) {
   const orderNumber = `TEST-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   return prisma.order.create({
@@ -83,7 +88,7 @@ export async function createOrderRecord({ patientId, addressId, medicationId, st
       neighborhood: 'Centro',
       city: 'Cabo Frio',
       state: 'RJ',
-      deliveryPin: '123456',
+      deliveryPinHash: await hashPassword(TEST_PIN),
       status,
       createdById,
       items: {

@@ -12,7 +12,7 @@ import { ORDER_INCLUDE as orderInclude, formatOrder, formatOrderForCourier } fro
 import { validateCpf } from '../lib/validation.js';
 import { toCsv } from '../lib/csv.js';
 import { enqueueConfirmationEmail, EMAIL_TYPE } from '../lib/email/queue.js';
-import { confirmationEmailTemplate } from '../lib/email/templates.js';
+import { hashPassword, comparePassword } from '../lib/password.js';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -293,6 +293,10 @@ export async function createOrder(req, res) {
       );
 
       const orderNumber = await generateOrderNumber(tx);
+      // Único lugar do sistema que segura o PIN em texto puro — usado só
+      // para o hash gravado no banco e para o e-mail de confirmação; nunca
+      // volta a existir em lugar nenhum depois deste bloco.
+      const rawPin = generateDeliveryPin();
 
       const created = await tx.order.create({
         data: {
@@ -313,7 +317,7 @@ export async function createOrder(req, res) {
           referencePoint: resolvedAddress.referencePoint,
           internalNotes: internalNotes?.trim() || null,
           patientNotes: patientNotes?.trim() || null,
-          deliveryPin: generateDeliveryPin(),
+          deliveryPinHash: await hashPassword(rawPin),
           status: 'PEDIDO_RECEBIDO',
           createdById: req.user.id,
           items: { create: orderItemsData },
@@ -333,7 +337,7 @@ export async function createOrder(req, res) {
       // desta linha existir — sem reatribuir aqui, computeEmailStatus veria
       // sempre `emails: []` e reportaria "sem_email" mesmo tendo acabado de
       // enfileirar.
-      const emailRow = await enqueueConfirmationEmail(tx, created, FRONTEND_URL);
+      const emailRow = await enqueueConfirmationEmail(tx, created, rawPin, FRONTEND_URL);
       created.emails = emailRow ? [emailRow] : [];
 
       return created;
@@ -503,7 +507,7 @@ export async function confirmDelivery(req, res) {
       return res.status(403).json({ error: 'Você não é o entregador responsável por este pedido' });
     }
 
-    if (pin.trim() !== existing.deliveryPin) {
+    if (!(await comparePassword(pin.trim(), existing.deliveryPinHash))) {
       return res.status(400).json({ error: 'PIN incorreto' });
     }
 
@@ -586,9 +590,10 @@ export async function addNote(req, res) {
   }
 }
 
-// Reenvia o e-mail de confirmação com o mesmo conteúdo (mesmo PIN) — nunca
-// gera um PIN novo. Único caminho manual que a equipe da UPA tem pra esse
-// canal, pro caso do paciente ter perdido/não achado o e-mail original.
+// Reenvia o e-mail de confirmação com o mesmo conteúdo já gerado — nunca
+// re-renderiza a partir do PIN (que agora só existe como hash, irreversível
+// por design). Clona o texto do e-mail enfileirado mais recente pra esse
+// pedido; é por isso que o registro em EmailNotification nunca é apagado.
 export async function resendConfirmationEmail(req, res) {
   try {
     const { id } = req.params;
@@ -598,20 +603,23 @@ export async function resendConfirmationEmail(req, res) {
       return res.status(404).json({ error: 'Pedido não encontrado' });
     }
 
-    if (!existing.patientEmail) {
-      return res.status(400).json({ error: 'Paciente não tem e-mail cadastrado' });
-    }
+    const lastEmail = await prisma.emailNotification.findFirst({
+      where: { orderId: id, type: EMAIL_TYPE.CONFIRMACAO_PEDIDO },
+      orderBy: { createdAt: 'desc' },
+    });
 
-    const { subject, html } = confirmationEmailTemplate(existing, FRONTEND_URL);
+    if (!lastEmail) {
+      return res.status(400).json({ error: 'Nenhum e-mail de confirmação foi enviado para este pedido' });
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.emailNotification.create({
         data: {
           orderId: id,
           type: EMAIL_TYPE.CONFIRMACAO_PEDIDO,
-          to: existing.patientEmail,
-          subject,
-          html,
+          to: lastEmail.to,
+          subject: lastEmail.subject,
+          html: lastEmail.html,
         },
       });
 
@@ -619,7 +627,7 @@ export async function resendConfirmationEmail(req, res) {
         orderId: id,
         userId: req.user.id,
         action: 'E-mail reenviado',
-        details: `Confirmação reenviada para ${existing.patientEmail}`,
+        details: `Confirmação reenviada para ${lastEmail.to}`,
       });
     });
 
@@ -667,8 +675,6 @@ export async function getPublicOrder(req, res) {
       statusLabel: STATUS_LABELS[order.status],
       statusMessage: PUBLIC_STATUS_MESSAGES[order.status],
       courierName: order.route?.courier?.name || null,
-      deliveryPin: order.deliveryPin,
-      pinInstruction: 'Informe este código ao entregador no momento do recebimento. Ele garante a entrega segura do medicamento.',
       items: order.items.map((i) => ({
         name: i.medicationName,
         quantity: i.quantity,

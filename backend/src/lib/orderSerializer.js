@@ -47,10 +47,12 @@ function computeEmailStatus(order) {
   return 'pendente';
 }
 
-// Visão para ADMIN/OPERADOR: CPF mascarado (nunca sai em texto puro pela API),
-// PIN visível — a equipe da UPA pode precisar repassá-lo ao paciente por telefone.
+// Visão para ADMIN/OPERADOR: CPF mascarado (nunca sai em texto puro pela
+// API). O PIN não aparece mais aqui (issue #37) — vive só como hash no
+// banco, e em texto puro só no e-mail de confirmação (issue #35) ou no
+// comprovante impresso (issue #40).
 export function formatOrder(order) {
-  const { emails, ...rest } = order;
+  const { deliveryPinHash, emails, ...rest } = order;
   const mainMedication = order.items?.[0]?.medicationName || order.items?.[0]?.medication?.name;
   return {
     ...rest,
@@ -63,12 +65,11 @@ export function formatOrder(order) {
   };
 }
 
-// Visão para o entregador: o PIN só deve ser conhecido pelo paciente — é a
-// prova de que a entrega foi de fato recebida por quem de direito. Nunca
-// incluir deliveryPin (nem o conteúdo do e-mail de confirmação, que também
-// carrega o PIN) numa resposta que o papel ENTREGADOR possa consumir.
+// Visão para o entregador: mesma regra do formatOrder — o PIN nunca aparece
+// (nem o hash, nem o conteúdo do e-mail de confirmação, que carrega o PIN
+// em texto puro no momento do envio).
 export function formatOrderForCourier(order) {
-  const { deliveryPin, emails, ...rest } = order;
+  const { deliveryPinHash, emails, ...rest } = order;
   return {
     ...rest,
     patientCpf: maskCpf(order.patientCpf),

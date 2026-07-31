@@ -88,7 +88,10 @@ export function generateMessages(order, baseUrl) {
     messages.push({
       id: 'rota',
       title: 'Pedido em rota',
-      text: `Olá, ${name}. Seu medicamento saiu para entrega. No momento do recebimento, informe ao entregador o código: ${order.deliveryPin}. Acompanhe: ${publicLink}.`,
+      // Sem o PIN aqui (issue #37) — ele já foi enviado por e-mail na
+      // criação do pedido (issue #35) ou está no comprovante impresso;
+      // mensagem manual de WhatsApp não é mais canal do PIN.
+      text: `Olá, ${name}. Seu medicamento saiu para entrega. Tenha em mãos o código que você recebeu por e-mail (ou o comprovante impresso) para informar ao entregador. Acompanhe: ${publicLink}.`,
     });
   }
 

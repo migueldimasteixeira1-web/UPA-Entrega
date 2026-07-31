@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
-  Key,
   Clock,
   User,
   MapPin,
@@ -59,7 +58,6 @@ export default function OrderDetail() {
   const [copiedPublicLink, setCopiedPublicLink] = useState(false);
   const [copyLinkError, setCopyLinkError] = useState(false);
   const [sharedPublicLink, setSharedPublicLink] = useState(false);
-  const [copiedPin, setCopiedPin] = useState(false);
   const { showToast } = useToast();
 
   const { data: order, isLoading, error: loadError } = useQuery({
@@ -153,14 +151,6 @@ export default function OrderDetail() {
     if (ok) {
       setSharedPublicLink(true);
       setTimeout(() => setSharedPublicLink(false), 2000);
-    }
-  };
-
-  const copyPin = async () => {
-    const ok = await copyToClipboard(order.deliveryPin);
-    if (ok) {
-      setCopiedPin(true);
-      setTimeout(() => setCopiedPin(false), 2000);
     }
   };
 
@@ -303,38 +293,18 @@ export default function OrderDetail() {
           <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm">
             <h2 className="font-semibold text-slate-800 mb-5">Entrega</h2>
 
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="rounded-xl border border-upa-200 bg-upa-50/60 p-4">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <Key className="w-4 h-4" /> PIN de confirmação
-                  </div>
-                  <button
-                    type="button"
-                    onClick={copyPin}
-                    className="inline-flex items-center gap-1 text-xs text-upa-700 hover:text-upa-900 min-h-9 px-2 rounded-lg hover:bg-white/60"
-                  >
-                    {copiedPin ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                    {copiedPin ? 'Copiado' : 'Copiar'}
-                  </button>
-                </div>
-                <p className="font-mono font-bold text-lg select-text">{order.deliveryPin}</p>
-                <p className="text-xs text-slate-500 mt-1">Gerado pelo sistema. O entregador solicita ao paciente no ato da entrega.</p>
+            <div className={`rounded-xl border p-4 ${order.route ? 'border-upa-100 bg-upa-50/40' : 'border-slate-100'}`}>
+              <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
+                <Truck className="w-4 h-4" /> Rota / Entregador
               </div>
-
-              <div className={`rounded-xl border p-4 ${order.route ? 'border-upa-100 bg-upa-50/40' : 'border-slate-100'}`}>
-                <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-                  <Truck className="w-4 h-4" /> Rota / Entregador
-                </div>
-                {order.route ? (
-                  <>
-                    <p className="font-medium">{order.route.routeNumber}</p>
-                    <p className="text-sm text-slate-600">{order.route.courier?.name}</p>
-                  </>
-                ) : (
-                  <p className="text-slate-400">Ainda não atribuído</p>
-                )}
-              </div>
+              {order.route ? (
+                <>
+                  <p className="font-medium">{order.route.routeNumber}</p>
+                  <p className="text-sm text-slate-600">{order.route.courier?.name}</p>
+                </>
+              ) : (
+                <p className="text-slate-400">Ainda não atribuído</p>
+              )}
             </div>
 
             <div className="mt-4 rounded-xl border border-slate-100 p-4">

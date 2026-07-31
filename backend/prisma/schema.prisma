@@ -127,7 +127,7 @@ model Order {
   referencePoint String?
   internalNotes  String?
   patientNotes   String?
-  deliveryPin    String
+  deliveryPinHash String
   routeId        String?
   routeSequence  Int?
   status         OrderStatus @default(PEDIDO_RECEBIDO)

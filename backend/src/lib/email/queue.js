@@ -15,13 +15,14 @@ async function enqueue(client, { orderId, type, to, subject, html }) {
   });
 }
 
-// Chamado na confirmação do pedido. Se o paciente não tem e-mail cadastrado,
-// não enfileira nada — isso não é uma falha, é o caminho esperado pro
-// fallback de comprovante impresso (issue #40).
-export async function enqueueConfirmationEmail(client, order, baseUrl) {
+// Chamado na confirmação do pedido, com o PIN em texto puro que acabou de
+// ser gerado (nunca lido de volta do banco — lá só fica o hash). Se o
+// paciente não tem e-mail cadastrado, não enfileira nada — isso não é uma
+// falha, é o caminho esperado pro fallback de comprovante impresso (#40).
+export async function enqueueConfirmationEmail(client, order, rawPin, baseUrl) {
   if (!order.patientEmail) return null;
 
-  const { subject, html } = confirmationEmailTemplate(order, baseUrl);
+  const { subject, html } = confirmationEmailTemplate(order, rawPin, baseUrl);
   return enqueue(client, {
     orderId: order.id,
     type: EMAIL_TYPE.CONFIRMACAO_PEDIDO,
