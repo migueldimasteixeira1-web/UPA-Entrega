@@ -1,6 +1,9 @@
 import prisma from '../lib/prisma.js';
 import { generateRouteNumber, STATUS_LABELS } from '../lib/constants.js';
 import { formatOrderForCourier } from '../lib/orderSerializer.js';
+import { enqueueStatusEmail } from '../lib/email/queue.js';
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 const routeInclude = {
   courier: { select: { id: true, name: true, phone: true } },
@@ -118,7 +121,7 @@ export async function createRoute(req, res) {
 
       for (let i = 0; i < orderIds.length; i += 1) {
         const orderId = orderIds[i];
-        await tx.order.update({
+        const updatedOrder = await tx.order.update({
           where: { id: orderId },
           data: { routeId: created.id, routeSequence: i, status: 'EM_ROTA' },
         });
@@ -133,6 +136,8 @@ export async function createRoute(req, res) {
             details: `Vinculado à rota ${routeNumber} (${courier.name})`,
           },
         });
+
+        await enqueueStatusEmail(tx, updatedOrder, 'em_rota', FRONTEND_URL);
       }
 
       return tx.route.findUnique({ where: { id: created.id }, include: routeInclude });

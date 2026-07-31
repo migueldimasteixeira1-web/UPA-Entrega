@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
-import { app, createUser, loginAs, createPatientWithAddress, createMedicationRecord, createOrderRecord } from './helpers.js';
+import {
+  app,
+  createUser,
+  loginAs,
+  createPatientWithAddress,
+  createMedicationRecord,
+  createOrderRecord,
+  TEST_PIN,
+} from './helpers.js';
 import prisma from '../src/lib/prisma.js';
 import { processPendingEmails } from '../src/lib/email/worker.js';
 import { comparePassword } from '../src/lib/password.js';
@@ -211,5 +219,147 @@ describe('Email worker', () => {
     expect(notification.status).toBe('SENT');
     expect(notification.attempts).toBe(1);
     expect(notification.sentAt).toBeTruthy();
+  });
+});
+
+describe('Status update emails', () => {
+  let operatorToken;
+  let admin;
+  let courier;
+  let patient;
+  let address;
+  let medication;
+
+  async function notificationsFor(orderId, type) {
+    return prisma.emailNotification.findMany({ where: { orderId, type } });
+  }
+
+  beforeEach(async () => {
+    const operator = await createUser({ role: 'OPERADOR' });
+    operatorToken = await loginAs(operator);
+    admin = await createUser({ role: 'ADMIN' });
+    courier = await createUser({ role: 'ENTREGADOR' });
+    ({ patient, address } = await createPatientWithAddress({ data: { email: 'paciente@example.com' } }));
+    medication = await createMedicationRecord();
+  });
+
+  it('enqueues a "separado" e-mail without repeating the PIN', async () => {
+    const order = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'EM_SEPARACAO',
+      extra: { patientEmail: 'paciente@example.com' },
+    });
+
+    const res = await request(app)
+      .patch(`/api/orders/${order.id}/status`)
+      .set('Authorization', `Bearer ${operatorToken}`)
+      .send({ status: 'SEPARADO' });
+
+    expect(res.status).toBe(200);
+
+    const notifications = await notificationsFor(order.id, 'status_separado');
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].html).not.toContain('data-pin-code');
+  });
+
+  it('enqueues an "em_rota" e-mail when a route is created', async () => {
+    const order = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'AGUARDANDO_SAIDA',
+      extra: { patientEmail: 'paciente@example.com' },
+    });
+
+    const res = await request(app)
+      .post('/api/delivery-routes')
+      .set('Authorization', `Bearer ${operatorToken}`)
+      .send({ courierId: courier.id, orderIds: [order.id] });
+
+    expect(res.status).toBe(201);
+
+    const notifications = await notificationsFor(order.id, 'status_em_rota');
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].html).not.toContain('data-pin-code');
+  });
+
+  it('enqueues an "entregue" e-mail when the PIN confirms the delivery', async () => {
+    const order = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'AGUARDANDO_SAIDA',
+      extra: { patientEmail: 'paciente@example.com' },
+    });
+
+    const routeRes = await request(app)
+      .post('/api/delivery-routes')
+      .set('Authorization', `Bearer ${operatorToken}`)
+      .send({ courierId: courier.id, orderIds: [order.id] });
+
+    const courierToken = await loginAs(courier);
+    const res = await request(app)
+      .post(`/api/orders/${order.id}/confirm-delivery`)
+      .set('Authorization', `Bearer ${courierToken}`)
+      .send({ pin: TEST_PIN });
+
+    expect(res.status).toBe(200);
+    expect(routeRes.status).toBe(201);
+
+    const notifications = await notificationsFor(order.id, 'status_entregue');
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].html).not.toContain('data-pin-code');
+  });
+
+  it('enqueues a "tentativa_falha" e-mail when a route delivery is cancelled mid-route', async () => {
+    const order = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'AGUARDANDO_SAIDA',
+      extra: { patientEmail: 'paciente@example.com' },
+    });
+
+    await request(app)
+      .post('/api/delivery-routes')
+      .set('Authorization', `Bearer ${operatorToken}`)
+      .send({ courierId: courier.id, orderIds: [order.id] });
+
+    const res = await request(app)
+      .patch(`/api/orders/${order.id}/status`)
+      .set('Authorization', `Bearer ${operatorToken}`)
+      .send({ status: 'CANCELADO', cancelReason: 'Endereço não encontrado' });
+
+    expect(res.status).toBe(200);
+
+    const notifications = await notificationsFor(order.id, 'status_tentativa_falha');
+    expect(notifications).toHaveLength(1);
+  });
+
+  it('does not send a "tentativa_falha" e-mail when cancelling before the order ever went out for delivery', async () => {
+    const order = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'PEDIDO_RECEBIDO',
+      extra: { patientEmail: 'paciente@example.com' },
+    });
+
+    const res = await request(app)
+      .patch(`/api/orders/${order.id}/status`)
+      .set('Authorization', `Bearer ${operatorToken}`)
+      .send({ status: 'CANCELADO', cancelReason: 'Paciente desistiu' });
+
+    expect(res.status).toBe(200);
+
+    const notifications = await notificationsFor(order.id, 'status_tentativa_falha');
+    expect(notifications).toHaveLength(0);
   });
 });
