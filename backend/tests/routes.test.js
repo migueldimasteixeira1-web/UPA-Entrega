@@ -9,6 +9,7 @@ import {
   createPatientWithAddress,
   createMedicationRecord,
   createOrderRecord,
+  TEST_PIN,
 } from './helpers.js';
 
 describe('Delivery routes', () => {
@@ -180,7 +181,7 @@ describe('Delivery PIN security', () => {
     const res = await request(app)
       .post(`/api/orders/${order.id}/confirm-delivery`)
       .set('Authorization', `Bearer ${otherCourierToken}`)
-      .send({ pin: order.deliveryPin || '123456' });
+      .send({ pin: TEST_PIN });
 
     expect(res.status).toBe(403);
   });
@@ -189,7 +190,7 @@ describe('Delivery PIN security', () => {
     const res = await request(app)
       .post(`/api/orders/${order.id}/confirm-delivery`)
       .set('Authorization', `Bearer ${courierToken}`)
-      .send({ pin: '123456' });
+      .send({ pin: TEST_PIN });
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ENTREGUE');
@@ -209,12 +210,12 @@ describe('Delivery PIN security', () => {
     const res = await request(app)
       .post(`/api/orders/${order.id}/confirm-delivery`)
       .set('Authorization', `Bearer ${courierToken}`)
-      .send({ pin: '123456' });
+      .send({ pin: TEST_PIN });
 
     expect(res.status).toBe(200);
     const raw = JSON.stringify(res.body);
     expect(raw).not.toContain('deliveryPin');
-    expect(raw).not.toContain('123456');
+    expect(raw).not.toContain(TEST_PIN);
     expect(raw).not.toContain('emails');
   });
 

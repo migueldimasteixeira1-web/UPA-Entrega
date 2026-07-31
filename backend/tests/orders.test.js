@@ -15,7 +15,7 @@ describe('Order status transitions', () => {
     medication = await createMedicationRecord();
   });
 
-  it('creates an order starting at PEDIDO_RECEBIDO with a generated PIN', async () => {
+  it('creates an order starting at PEDIDO_RECEBIDO without exposing the PIN in the response', async () => {
     const res = await request(app)
       .post('/api/orders')
       .set('Authorization', `Bearer ${token}`)
@@ -27,7 +27,10 @@ describe('Order status transitions', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.status).toBe('PEDIDO_RECEBIDO');
-    expect(res.body.deliveryPin).toMatch(/^\d{6}$/);
+    // O PIN nunca sai em nenhuma resposta de staff, nem no momento da
+    // criação (issue #37) — só existe como hash no banco e, em texto puro,
+    // no e-mail de confirmação (issue #35, coberto em email.test.js).
+    expect(JSON.stringify(res.body)).not.toContain('deliveryPin');
   });
 
   it('walks the full happy path PEDIDO_RECEBIDO -> EM_SEPARACAO -> SEPARADO -> AGUARDANDO_SAIDA', async () => {

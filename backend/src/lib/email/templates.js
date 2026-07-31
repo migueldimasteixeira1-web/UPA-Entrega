@@ -21,7 +21,12 @@ function wrapEmail(title, bodyHtml) {
 // Conteúdo minimizado de propósito: nunca CPF completo, receita anexada ou
 // dado clínico. O PIN só aparece aqui, uma única vez — nas notificações de
 // andamento (#36) ele não é repetido.
-export function confirmationEmailTemplate(order, baseUrl) {
+//
+// `rawPin` vem de fora (não de `order.deliveryPinHash`, que é irreversível
+// por design — ver issue #37): quem chama isto é o único lugar do sistema
+// que ainda tem o PIN em texto puro em mãos, no instante em que acabou de
+// ser gerado.
+export function confirmationEmailTemplate(order, rawPin, baseUrl) {
   const firstName = order.patientName.split(' ')[0];
   const publicLink = getPublicTrackingUrl(order, baseUrl);
   const createdAt = new Date(order.createdAt).toLocaleString('pt-BR');
@@ -35,7 +40,7 @@ export function confirmationEmailTemplate(order, baseUrl) {
       <strong>Data:</strong> ${escapeHtml(createdAt)}</p>
       <p style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; text-align: center;">
         <span style="font-size: 13px; color: #475569;">Código de recebimento</span><br/>
-        <strong style="font-size: 28px; letter-spacing: 4px; color: #0f4c65;">${escapeHtml(order.deliveryPin)}</strong>
+        <strong data-pin-code style="font-size: 28px; letter-spacing: 4px; color: #0f4c65;">${escapeHtml(rawPin)}</strong>
       </p>
       <p><strong>Guarde este código.</strong> Ele será solicitado pelo entregador no momento do recebimento. Não compartilhe o código antes de receber o medicamento.</p>
       <p>Acompanhe seu pedido: <a href="${publicLink}">${publicLink}</a></p>

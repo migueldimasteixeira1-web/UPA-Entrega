@@ -151,7 +151,7 @@ async function main() {
         zipCode: address.zipCode,
         referencePoint: address.referencePoint,
         internalNotes,
-        deliveryPin: generateDeliveryPin(),
+        deliveryPinHash: await hashPassword(generateDeliveryPin()),
         status: 'PEDIDO_RECEBIDO',
         createdById: admin.id,
         items: {
