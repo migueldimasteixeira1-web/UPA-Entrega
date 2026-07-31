@@ -52,6 +52,13 @@ export default function PatientStep({
               <p className="font-semibold text-emerald-900">Paciente encontrado</p>
               <p className="text-sm text-emerald-800 mt-1">{form.patient.name}</p>
               <p className="text-sm text-emerald-700/90">{maskPhone(form.patient.phone)}</p>
+              {form.patient.email ? (
+                <p className="text-sm text-emerald-700/90">{form.patient.email}</p>
+              ) : (
+                <p className="text-xs text-amber-700 mt-1">
+                  Sem e-mail cadastrado — o PIN não será enviado automaticamente, informe-o pessoalmente ao paciente.
+                </p>
+              )}
             </div>
             <div className="flex flex-col items-end gap-2 shrink-0">
               <button
@@ -110,6 +117,24 @@ export default function PatientStep({
               inputMode="tel"
             />
           </FormField>
+
+          <FormField
+            label="E-mail"
+            error={fieldErrors.email}
+            hint="Opcional. Se informado, o paciente recebe o PIN de entrega automaticamente por e-mail."
+            htmlFor="patientEmail"
+          >
+            <input
+              id="patientEmail"
+              type="email"
+              value={form.newPatient.email}
+              onChange={(e) => updateNewPatient('email', e.target.value)}
+              onBlur={() => onBlurField('email')}
+              className={inputClassName(fieldErrors.email)}
+              placeholder="paciente@exemplo.com"
+              autoComplete="email"
+            />
+          </FormField>
         </div>
       )}
 
@@ -135,6 +160,17 @@ export default function PatientStep({
               inputMode="tel"
             />
           </FormField>
+          <FormField label="E-mail" htmlFor="editPatientEmail">
+            <input
+              id="editPatientEmail"
+              type="email"
+              value={editPatientForm.email}
+              onChange={(e) => setEditPatientForm((f) => ({ ...f, email: e.target.value }))}
+              className={inputClassName()}
+              placeholder="paciente@exemplo.com"
+              autoComplete="email"
+            />
+          </FormField>
           <FormField label="Observações" htmlFor="editPatientNotes">
             <textarea
               id="editPatientNotes"
@@ -150,6 +186,7 @@ export default function PatientStep({
               updatePatientMutation.mutate({
                 name: editPatientForm.name.trim(),
                 phone: onlyDigits(editPatientForm.phone),
+                email: editPatientForm.email.trim() || null,
                 notes: editPatientForm.notes.trim() || null,
               })
             }

@@ -37,6 +37,7 @@ import {
   updateStatus,
   confirmDelivery,
   addNote,
+  resendConfirmationEmail,
   getPublicOrder,
   getDashboardStats,
 } from './routes/orders.routes.js';
@@ -90,7 +91,7 @@ function isAllowedOrigin(origin) {
   return IS_DEV && isPrivateLanOrigin(origin);
 }
 
-export function createApp({ loginRateLimit, confirmDeliveryRateLimit } = {}) {
+export function createApp({ loginRateLimit, confirmDeliveryRateLimit, resendEmailRateLimit } = {}) {
   const app = express();
 
   app.use(helmet());
@@ -137,6 +138,16 @@ export function createApp({ loginRateLimit, confirmDeliveryRateLimit } = {}) {
     message: { error: 'Muitas tentativas de confirmação. Tente novamente em alguns minutos.' },
   });
 
+  // Reenvio manual do e-mail de confirmação — não deve virar um jeito de
+  // martelar a caixa de entrada do paciente nem de sondar o worker.
+  const resendEmailLimiter = rateLimit({
+    windowMs: resendEmailRateLimit?.windowMs ?? 15 * 60 * 1000,
+    limit: resendEmailRateLimit?.limit ?? 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Muitas tentativas de reenvio. Tente novamente em alguns minutos.' },
+  });
+
   // Protected routes
   app.use('/api', authenticate);
 
@@ -159,6 +170,12 @@ export function createApp({ loginRateLimit, confirmDeliveryRateLimit } = {}) {
     confirmDelivery
   );
   app.post('/api/orders/:id/notes', requireRole('ADMIN', 'OPERADOR'), validateBody(addNoteSchema), addNote);
+  app.post(
+    '/api/orders/:id/resend-email',
+    resendEmailLimiter,
+    requireRole('ADMIN', 'OPERADOR'),
+    resendConfirmationEmail
+  );
 
   app.get('/api/patients/by-cpf/:cpf', requireRole('ADMIN', 'OPERADOR'), getPatientByCpf);
   app.get('/api/patients/:id', requireRole('ADMIN', 'OPERADOR'), getPatient);

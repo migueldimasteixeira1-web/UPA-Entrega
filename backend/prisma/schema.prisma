@@ -51,6 +51,7 @@ model Patient {
   name      String
   cpf       String   @unique
   phone     String
+  email     String?
   notes     String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -115,6 +116,7 @@ model Order {
   patientName    String
   patientPhone   String
   patientCpf     String
+  patientEmail   String?
   street         String
   number         String
   complement     String?
@@ -144,6 +146,7 @@ model Order {
   route       Route?         @relation(fields: [routeId], references: [id])
   items       OrderItem[]
   history     OrderHistory[]
+  emails      EmailNotification[]
 }
 
 model OrderItem {
@@ -183,4 +186,32 @@ model DailyCounter {
   counter Int    @default(0)
 
   @@unique([scope, dateKey])
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+// Fila de e-mail assíncrona: criar o pedido nunca deve esperar (nem falhar)
+// por causa do provedor de e-mail estar lento/fora do ar. Um worker separado
+// (lib/email/worker.js) processa as linhas PENDING/FAILED com retentativa.
+model EmailNotification {
+  id        String      @id @default(uuid())
+  orderId   String
+  type      String
+  to        String
+  subject   String
+  html      String
+  status    EmailStatus @default(PENDING)
+  attempts  Int         @default(0)
+  lastError String?
+  sentAt    DateTime?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status])
 }

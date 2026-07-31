@@ -201,6 +201,23 @@ describe('Delivery PIN security', () => {
     expect(activeRoutes).toHaveLength(0); // rota finalizada não aparece mais em "mine" (só EM_ANDAMENTO)
   });
 
+  it('never includes the PIN (raw or via e-mail content) in the confirm-delivery response itself, for the courier', async () => {
+    // Achado ao ligar o e-mail de confirmação (que embute o PIN no HTML) ao
+    // mesmo include usado por formatOrder — sem tratamento por papel, a
+    // própria resposta desta chamada vazaria o PIN pro entregador que
+    // acabou de usá-lo.
+    const res = await request(app)
+      .post(`/api/orders/${order.id}/confirm-delivery`)
+      .set('Authorization', `Bearer ${courierToken}`)
+      .send({ pin: '123456' });
+
+    expect(res.status).toBe(200);
+    const raw = JSON.stringify(res.body);
+    expect(raw).not.toContain('deliveryPin');
+    expect(raw).not.toContain('123456');
+    expect(raw).not.toContain('emails');
+  });
+
   it('rate-limits repeated confirm-delivery attempts, so the PIN cannot be brute-forced', async () => {
     // App próprio, com limite baixo, para não depender/afetar o contador em
     // memória do rate limiter compartilhado pelos demais testes.

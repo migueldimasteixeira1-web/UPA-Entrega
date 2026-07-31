@@ -9,6 +9,7 @@ import {
   MapPin,
   Navigation,
   Phone,
+  Mail,
   ExternalLink,
   MessageSquare,
   Copy,
@@ -17,12 +18,14 @@ import {
   Share2,
   Truck,
   Printer,
+  RefreshCw,
   Route as RouteIcon,
 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { formatDate, formatPhone } from '../lib/constants';
 import { formatCpfDisplay, buildMapsUrl } from '../lib/masks';
 import { copyToClipboard, canShare, shareText } from '../lib/clipboard';
+import { useToast } from '../lib/toast';
 import StatusBadge from '../components/StatusBadge';
 import OrderStatusStepper from '../components/OrderStatusStepper';
 import CopyMessage from '../components/CopyMessage';
@@ -30,6 +33,20 @@ import Modal from '../components/Modal';
 import Alert from '../components/Alert';
 import { SkeletonOrderDetail } from '../components/Skeleton';
 import { buttonClassName } from '../components/Button';
+
+const EMAIL_STATUS_LABELS = {
+  sem_email: 'Sem e-mail',
+  pendente: 'Pendente',
+  enviado: 'Enviado',
+  falha: 'Falha no envio',
+};
+
+const EMAIL_STATUS_STYLES = {
+  sem_email: 'bg-slate-100 text-slate-500',
+  pendente: 'bg-amber-50 text-amber-700',
+  enviado: 'bg-emerald-50 text-emerald-700',
+  falha: 'bg-rose-50 text-rose-700',
+};
 
 export default function OrderDetail() {
   const { id } = useParams();
@@ -43,6 +60,7 @@ export default function OrderDetail() {
   const [copyLinkError, setCopyLinkError] = useState(false);
   const [sharedPublicLink, setSharedPublicLink] = useState(false);
   const [copiedPin, setCopiedPin] = useState(false);
+  const { showToast } = useToast();
 
   const { data: order, isLoading, error: loadError } = useQuery({
     queryKey: ['order', id],
@@ -54,6 +72,15 @@ export default function OrderDetail() {
     queryClient.invalidateQueries({ queryKey: ['orders'] });
     queryClient.invalidateQueries({ queryKey: ['stats'] });
   };
+
+  const resendEmailMutation = useMutation({
+    mutationFn: () => api.resendConfirmationEmail(id),
+    onSuccess: () => {
+      invalidate();
+      showToast('E-mail de confirmação reenviado');
+    },
+    onError: (err) => setActionError(err instanceof ApiError ? err.message : 'Erro ao reenviar e-mail'),
+  });
 
   const updateStatusMutation = useMutation({
     mutationFn: (data) => api.updateStatus(id, data),
@@ -218,6 +245,15 @@ export default function OrderDetail() {
                     <p className="font-medium">{formatPhone(order.patientPhone)}</p>
                   </div>
                 </div>
+                {order.patientEmail && (
+                  <div className="flex items-start gap-3">
+                    <Mail className="w-5 h-5 text-slate-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-slate-500">E-mail</p>
+                      <p className="font-medium break-all">{order.patientEmail}</p>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-slate-400 mt-0.5" />
@@ -299,6 +335,32 @@ export default function OrderDetail() {
                   <p className="text-slate-400">Ainda não atribuído</p>
                 )}
               </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-slate-100 p-4">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <Mail className="w-4 h-4" /> E-mail de confirmação (PIN)
+                </div>
+                <span className={`text-xs font-medium px-2 py-1 rounded-full ${EMAIL_STATUS_STYLES[order.emailStatus] || EMAIL_STATUS_STYLES.sem_email}`}>
+                  {EMAIL_STATUS_LABELS[order.emailStatus] || EMAIL_STATUS_LABELS.sem_email}
+                </span>
+              </div>
+              {order.emailStatus === 'sem_email' ? (
+                <p className="text-xs text-slate-500 mt-2">
+                  Paciente sem e-mail cadastrado — o PIN não é enviado automaticamente.
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => resendEmailMutation.mutate()}
+                  disabled={resendEmailMutation.isPending}
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs text-upa-700 hover:text-upa-900 min-h-9 px-2 rounded-lg hover:bg-upa-50"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  {resendEmailMutation.isPending ? 'Reenviando...' : 'Reenviar e-mail'}
+                </button>
+              )}
             </div>
 
             <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">

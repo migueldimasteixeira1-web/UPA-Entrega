@@ -11,6 +11,7 @@ import { hashPassword } from '../src/lib/password.js';
 export const app = createApp({
   loginRateLimit: { windowMs: 15 * 60 * 1000, limit: 100000 },
   confirmDeliveryRateLimit: { windowMs: 15 * 60 * 1000, limit: 100000 },
+  resendEmailRateLimit: { windowMs: 15 * 60 * 1000, limit: 100000 },
 });
 
 export async function createUser({ role = 'OPERADOR', email, password = 'Senha@123', name = 'Usuário Teste', active = true } = {}) {
