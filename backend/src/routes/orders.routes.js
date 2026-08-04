@@ -63,12 +63,22 @@ export async function listOrders(req, res) {
     });
 
     res.json(
-      orders.map((order) => ({
-        ...order,
-        patientCpf: maskCpf(order.patientCpf),
-        mainMedication: order.items[0]?.medicationName,
-        statusLabel: STATUS_LABELS[order.status],
-      }))
+      orders.map((order) => {
+        // Mesma filtragem de formatOrder (orderSerializer.js) — sem passar
+        // por ela porque essa consulta usa um include mais enxuto (não tem
+        // history/createdBy/emails que o card de listagem não usa). Sem
+        // isso, deliveryPinHash ia parar na resposta: só 1 milhão de
+        // combinações (000000-999999), um hash bcrypt vazado é suficiente
+        // pra quebra offline em minutos, o que anula a garantia da #37 (PIN
+        // nunca mais recuperável).
+        const { deliveryPinHash, prescriptionKey, deliveryProofKey, ...rest } = order;
+        return {
+          ...rest,
+          patientCpf: maskCpf(order.patientCpf),
+          mainMedication: order.items[0]?.medicationName,
+          statusLabel: STATUS_LABELS[order.status],
+        };
+      })
     );
   } catch (error) {
     console.error('List orders error:', error);
