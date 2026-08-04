@@ -19,6 +19,7 @@ import {
   Printer,
   RefreshCw,
   FileImage,
+  FileText,
   Camera,
   Route as RouteIcon,
 } from 'lucide-react';
@@ -62,6 +63,7 @@ export default function OrderDetail() {
   const [sharedPublicLink, setSharedPublicLink] = useState(false);
   const [prescriptionLoading, setPrescriptionLoading] = useState(false);
   const [deliveryProofLoading, setDeliveryProofLoading] = useState(false);
+  const [receiptLoading, setReceiptLoading] = useState(false);
   const { showToast } = useToast();
 
   const { data: order, isLoading, error: loadError } = useQuery({
@@ -109,6 +111,21 @@ export default function OrderDetail() {
       setActionError(err instanceof ApiError ? err.message : 'Erro ao abrir a foto de comprovação');
     } finally {
       setDeliveryProofLoading(false);
+    }
+  };
+
+  // Gerado na hora pelo backend (nunca fica salvo em disco) — abre num blob
+  // URL local, igual o PDF fosse um arquivo baixado (issue #40).
+  const openReceipt = async () => {
+    setReceiptLoading(true);
+    setActionError('');
+    try {
+      const blob = await api.getReceiptPdf(id);
+      window.open(URL.createObjectURL(blob), '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : 'Erro ao gerar comprovante');
+    } finally {
+      setReceiptLoading(false);
     }
   };
 
@@ -205,6 +222,14 @@ export default function OrderDetail() {
         </div>
 
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={openReceipt}
+            disabled={receiptLoading}
+            className={buttonClassName('secondary', 'md', 'flex-1 sm:flex-none')}
+          >
+            <FileText className="w-4 h-4" /> {receiptLoading ? 'Gerando...' : 'Baixar comprovante'}
+          </button>
           {canPrintLabel && (
             <Link
               to={`/pedidos/${order.id}/etiqueta`}

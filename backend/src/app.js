@@ -42,7 +42,9 @@ import {
   resendConfirmationEmail,
   getPrescriptionUrl,
   getDeliveryProofUrl,
+  getReceiptPdf,
   getPublicOrder,
+  getPublicReceiptPdf,
   getDashboardStats,
 } from './routes/orders.routes.js';
 import {
@@ -116,6 +118,7 @@ export function createApp({ loginRateLimit, confirmDeliveryRateLimit, resendEmai
 
   // Public routes (somente leitura)
   app.get('/api/public/orders/:token', getPublicOrder);
+  app.get('/api/public/orders/:token/receipt-pdf', getPublicReceiptPdf);
 
   // Login sem limite de tentativas seria um alvo fácil de força bruta.
   const loginLimiter = rateLimit({
@@ -165,6 +168,7 @@ export function createApp({ loginRateLimit, confirmDeliveryRateLimit, resendEmai
   app.get('/api/orders/:id', requireRole('ADMIN', 'OPERADOR'), getOrder);
   app.get('/api/orders/:id/prescription', requireRole('ADMIN', 'OPERADOR'), getPrescriptionUrl);
   app.get('/api/orders/:id/delivery-proof', requireRole('ADMIN', 'OPERADOR'), getDeliveryProofUrl);
+  app.get('/api/orders/:id/receipt-pdf', requireRole('ADMIN', 'OPERADOR'), getReceiptPdf);
   app.post(
     '/api/orders',
     requireRole('ADMIN', 'OPERADOR'),

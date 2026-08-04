@@ -254,6 +254,9 @@ export default function NewOrder() {
         if (!form.newPatient.name.trim()) errors.name = 'Nome do paciente é obrigatório';
         const phoneDigits = onlyDigits(form.newPatient.phone);
         if (phoneDigits.length < 10) errors.phone = 'Informe um telefone válido com DDD';
+        const email = form.newPatient.email.trim();
+        if (!email) errors.email = 'E-mail é obrigatório';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Informe um e-mail válido';
       }
       if (form.patientMode === 'idle') errors.cpf = errors.cpf || 'Aguarde a consulta do CPF';
       return errors;

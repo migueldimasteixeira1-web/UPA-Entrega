@@ -163,6 +163,17 @@ describe('Delivery PIN security', () => {
     expect(res.body[0].orders[0].patientCpf).toMatch(/\*\*\*/);
   });
 
+  it('never includes deliveryPinHash or storage keys in GET /api/orders for staff (regression: issue #48)', async () => {
+    const adminToken = await loginAs(admin);
+    const res = await request(app).get('/api/orders').set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    const raw = JSON.stringify(res.body);
+    expect(raw).not.toContain('deliveryPinHash');
+    expect(raw).not.toContain('prescriptionKey');
+    expect(raw).not.toContain('deliveryProofKey');
+  });
+
   it('blocks a courier from fetching the full order via GET /api/orders/:id', async () => {
     const res = await request(app).get(`/api/orders/${order.id}`).set('Authorization', `Bearer ${courierToken}`);
 

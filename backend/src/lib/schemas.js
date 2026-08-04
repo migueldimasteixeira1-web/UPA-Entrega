@@ -31,8 +31,9 @@ const orderItemSchema = z.object({
     .positive('Quantidade deve ser maior que zero'),
 });
 
-// Opcional (nem todo paciente tem e-mail) — mas se vier preenchido, precisa
-// parecer um e-mail de verdade.
+// Opcional — usado só em edição de paciente, pra não travar quem edita um
+// cadastro legado (seed/dado antigo) que ainda não tem e-mail. Se vier
+// preenchido, precisa parecer um e-mail de verdade.
 const emailSchema = z
   .string()
   .trim()
@@ -40,11 +41,19 @@ const emailSchema = z
   .nullable()
   .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), { message: 'Informe um e-mail válido' });
 
+// Obrigatório na criação (issue #40): o PIN de confirmação só existe por
+// e-mail, então todo paciente novo precisa ter um pra receber. Cadastros
+// antigos sem e-mail são só dado legado da seed — não passam por aqui.
+const requiredEmailSchema = requiredString('E-mail é obrigatório').refine(
+  (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+  { message: 'Informe um e-mail válido' }
+);
+
 const newPatientSchema = z.object({
   name: requiredString('Nome do paciente é obrigatório'),
   phone: requiredString('Informe um telefone válido com DDD', 10),
   cpf: requiredString('CPF é obrigatório'),
-  email: emailSchema,
+  email: requiredEmailSchema,
 });
 
 const newAddressSchema = z.object({
@@ -102,7 +111,7 @@ export const createPatientSchema = z.object({
   name: requiredString('Nome e telefone são obrigatórios'),
   phone: requiredString('Nome e telefone são obrigatórios'),
   cpf: requiredString('CPF é obrigatório'),
-  email: emailSchema,
+  email: requiredEmailSchema,
   notes: z.string().trim().optional().nullable(),
 });
 
