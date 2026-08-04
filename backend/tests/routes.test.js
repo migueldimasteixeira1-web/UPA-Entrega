@@ -174,6 +174,42 @@ describe('Delivery PIN security', () => {
     expect(raw).not.toContain('deliveryProofKey');
   });
 
+  it('never includes deliveryPinHash or storage keys, and masks CPF, in staff delivery-routes responses (regression: issue #50)', async () => {
+    const adminToken = await loginAs(admin);
+
+    const { patient, address } = await createPatientWithAddress();
+    const medication = await createMedicationRecord();
+    const readyOrder = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'AGUARDANDO_SAIDA',
+    });
+
+    const createRes = await request(app)
+      .post('/api/delivery-routes')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ courierId: otherCourier.id, orderIds: [readyOrder.id] });
+    expect(createRes.status).toBe(201);
+
+    const listRes = await request(app).get('/api/delivery-routes').set('Authorization', `Bearer ${adminToken}`);
+    const getRes = await request(app)
+      .get(`/api/delivery-routes/${createRes.body.id}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(listRes.status).toBe(200);
+    expect(getRes.status).toBe(200);
+    for (const res of [createRes, listRes, getRes]) {
+      const raw = JSON.stringify(res.body);
+      expect(raw).not.toContain('deliveryPinHash');
+      expect(raw).not.toContain('prescriptionKey');
+      expect(raw).not.toContain('deliveryProofKey');
+    }
+    expect(createRes.body.orders[0].patientCpf).toMatch(/\*\*\*/);
+    expect(getRes.body.orders[0].patientCpf).toMatch(/\*\*\*/);
+  });
+
   it('blocks a courier from fetching the full order via GET /api/orders/:id', async () => {
     const res = await request(app).get(`/api/orders/${order.id}`).set('Authorization', `Bearer ${courierToken}`);
 
