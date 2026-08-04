@@ -162,6 +162,11 @@ export const resetPasswordSchema = z.object({
   password: requiredRaw('Nova senha deve ter no mínimo 6 caracteres', 6),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: requiredRaw('Senha atual e nova senha (mín. 6 caracteres) são obrigatórias'),
+  newPassword: requiredRaw('Senha atual e nova senha (mín. 6 caracteres) são obrigatórias', 6),
+});
+
 export const loginSchema = z.object({
   email: requiredString('E-mail e senha são obrigatórios'),
   password: requiredRaw('E-mail e senha são obrigatórios'),

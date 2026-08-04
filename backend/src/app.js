@@ -65,6 +65,7 @@ import {
   createUserSchema,
   updateUserSchema,
   resetPasswordSchema,
+  changePasswordSchema,
 } from './lib/schemas.js';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -132,7 +133,7 @@ export function createApp({ loginRateLimit, confirmDeliveryRateLimit, resendEmai
   // Auth
   app.post('/api/auth/login', loginLimiter, validateBody(loginSchema), login);
   app.get('/api/auth/me', authenticate, me);
-  app.post('/api/auth/change-password', authenticate, changePassword);
+  app.post('/api/auth/change-password', authenticate, validateBody(changePasswordSchema), changePassword);
 
   // O PIN de entrega tem só 6 dígitos (1M combinações) — sem limite de
   // tentativas, quem tiver uma conta ENTREGADOR poderia forçar bruta o PIN de
