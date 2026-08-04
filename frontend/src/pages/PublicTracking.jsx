@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Package, Info, ShieldCheck, Clock, Truck } from 'lucide-react';
-import { api } from '../lib/api';
+import { Package, Info, ShieldCheck, Clock, Truck, FileText } from 'lucide-react';
+import { api, API_URL } from '../lib/api';
 import StatusBadge from '../components/StatusBadge';
 import OrderStatusStepper from '../components/OrderStatusStepper';
 import AppBrand, { MunicipalityBrand } from '../components/AppBrand';
@@ -96,6 +96,15 @@ export default function PublicTracking() {
               ))}
             </div>
           </div>
+
+          <a
+            href={`${API_URL}/api/public/orders/${token}/receipt-pdf`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-upa-700 hover:text-upa-900"
+          >
+            <FileText className="w-4 h-4" /> Baixar comprovante do pedido
+          </a>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">

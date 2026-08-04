@@ -1,6 +1,9 @@
 // Em produção (gateway nginx) a API é same-origin: paths /api/... relativos.
 // Em desenvolvimento o Vite faz proxy de /api para o backend (vite.config.js).
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+// Exportado porque a página pública de acompanhamento monta o link do
+// comprovante em PDF direto (sem passar por request()/token — a rota é
+// pública, autorizada pelo próprio token do pedido na URL).
+export const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 class ApiError extends Error {
   constructor(message, status) {
@@ -135,6 +138,22 @@ export const api = {
   getPrescriptionUrl: (id) => request(`/api/orders/${id}/prescription`),
 
   getDeliveryProofUrl: (id) => request(`/api/orders/${id}/delivery-proof`),
+
+  // Não usa request(): a resposta é o PDF puro, não JSON (mesmo motivo de
+  // exportOrdersReport) — issue #40.
+  getReceiptPdf: async (id) => {
+    const token = localStorage.getItem('upa_token');
+    const response = await fetch(`${API_URL}/api/orders/${id}/receipt-pdf`, {
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new ApiError(data.error || 'Erro ao gerar comprovante', response.status);
+    }
+
+    return response.blob();
+  },
 
   getPatientByCpf: (cpf) => request(`/api/patients/by-cpf/${cpf}`),
 

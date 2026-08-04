@@ -36,7 +36,7 @@ describe('Patients', () => {
     const res = await request(app)
       .post('/api/patients')
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Outro Nome', phone: '22999991111', cpf: '55566677788' });
+      .send({ name: 'Outro Nome', phone: '22999991111', cpf: '55566677788', email: 'outro@exemplo.com' });
 
     expect(res.status).toBe(409);
   });

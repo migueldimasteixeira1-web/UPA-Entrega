@@ -14,6 +14,7 @@ import { toCsv } from '../lib/csv.js';
 import { enqueueConfirmationEmail, enqueueStatusEmail, EMAIL_TYPE } from '../lib/email/queue.js';
 import { hashPassword, comparePassword } from '../lib/password.js';
 import { uploadImage, getSignedReadUrl } from '../lib/storage.js';
+import { buildReceiptPdf } from '../lib/pdf/receiptPdf.js';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -234,6 +235,28 @@ export async function getDeliveryProofUrl(req, res) {
   } catch (error) {
     console.error('Get delivery proof url error:', error);
     res.status(500).json({ error: 'Erro ao gerar link da foto' });
+  }
+}
+
+// Comprovante de pedido em PDF (issue #40) — gerado na hora a partir do
+// snapshot já salvo no Order, nunca persistido em disco/MinIO. Mesmo
+// conteúdo anexado automaticamente ao e-mail de confirmação; esta rota
+// existe pra equipe conseguir baixar de novo sem depender do e-mail (ex.:
+// paciente perdeu, quer conferir na hora).
+export async function getReceiptPdf(req, res) {
+  try {
+    const order = await prisma.order.findUnique({ where: { id: req.params.id }, include: orderInclude });
+    if (!order) {
+      return res.status(404).json({ error: 'Pedido não encontrado' });
+    }
+
+    const pdf = await buildReceiptPdf(order);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="comprovante-${order.orderNumber}.pdf"`);
+    res.send(pdf);
+  } catch (error) {
+    console.error('Get receipt pdf error:', error);
+    res.status(500).json({ error: 'Erro ao gerar comprovante' });
   }
 }
 
@@ -797,6 +820,26 @@ export async function getPublicOrder(req, res) {
   } catch (error) {
     console.error('Public order error:', error);
     res.status(500).json({ error: 'Erro ao consultar pedido' });
+  }
+}
+
+// Mesmo comprovante de getReceiptPdf, mas pelo token público — o próprio
+// paciente consegue baixar de novo se perder o e-mail, sem login e sem
+// precisar ligar pra UPA (issue #40).
+export async function getPublicReceiptPdf(req, res) {
+  try {
+    const order = await prisma.order.findUnique({ where: { publicToken: req.params.token }, include: orderInclude });
+    if (!order) {
+      return res.status(404).json({ error: 'Pedido não encontrado' });
+    }
+
+    const pdf = await buildReceiptPdf(order);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="comprovante-${order.orderNumber}.pdf"`);
+    res.send(pdf);
+  } catch (error) {
+    console.error('Get public receipt pdf error:', error);
+    res.status(500).json({ error: 'Erro ao gerar comprovante' });
   }
 }
 

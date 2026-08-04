@@ -120,8 +120,9 @@ export default function PatientStep({
 
           <FormField
             label="E-mail"
+            required
             error={fieldErrors.email}
-            hint="Opcional. Se informado, o paciente recebe o PIN de entrega automaticamente por e-mail."
+            hint="Obrigatório — é por aqui que o paciente recebe o PIN de entrega e o comprovante do pedido."
             htmlFor="patientEmail"
           >
             <input

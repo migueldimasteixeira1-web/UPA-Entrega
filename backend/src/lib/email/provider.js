@@ -29,7 +29,7 @@ function getTransporter() {
   return transporter;
 }
 
-export async function sendEmail({ to, subject, html }) {
+export async function sendEmail({ to, subject, html, attachments }) {
   const from = process.env.SMTP_FROM || 'UPA Entrega <nao-responda@upa-entrega.local>';
   const client = getTransporter();
 
@@ -38,7 +38,7 @@ export async function sendEmail({ to, subject, html }) {
     return;
   }
 
-  await client.sendMail({ from, to, subject, html });
+  await client.sendMail({ from, to, subject, html, attachments });
 }
 
 // Só para os testes poderem resetar o transporte memoizado entre casos.
