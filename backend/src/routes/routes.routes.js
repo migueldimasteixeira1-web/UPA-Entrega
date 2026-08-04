@@ -1,5 +1,5 @@
 import prisma from '../lib/prisma.js';
-import { generateRouteNumber, STATUS_LABELS } from '../lib/constants.js';
+import { generateRouteNumber, maskCpf, STATUS_LABELS } from '../lib/constants.js';
 import { formatOrderForCourier } from '../lib/orderSerializer.js';
 import { enqueueStatusEmail } from '../lib/email/queue.js';
 
@@ -16,13 +16,24 @@ const routeInclude = {
   },
 };
 
+// Mesma filtragem de formatOrder (orderSerializer.js) — sem trocar pro
+// include completo porque routeInclude é mais enxuto (sem history/emails,
+// que a tela de rota não usa). Sem isso, deliveryPinHash, CPF sem máscara e
+// as chaves cruas de storage vazavam pra qualquer ADMIN/OPERADOR que
+// visse uma rota (issue #50 — mesma classe de bug corrigida em listOrders
+// na #48: só 1 milhão de combinações de PIN, um hash bcrypt vazado é
+// suficiente pra quebra offline em minutos).
 function formatRoute(route) {
   return {
     ...route,
-    orders: route.orders.map((order) => ({
-      ...order,
-      statusLabel: STATUS_LABELS[order.status],
-    })),
+    orders: route.orders.map((order) => {
+      const { deliveryPinHash, prescriptionKey, deliveryProofKey, ...rest } = order;
+      return {
+        ...rest,
+        patientCpf: maskCpf(order.patientCpf),
+        statusLabel: STATUS_LABELS[order.status],
+      };
+    }),
   };
 }
 
