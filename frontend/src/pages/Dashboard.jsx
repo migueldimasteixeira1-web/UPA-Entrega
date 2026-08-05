@@ -36,10 +36,6 @@ function daysAgoISODate(days) {
 
 const DEFAULT_FILTERS = { status: '', dateFrom: '', dateTo: '', courierId: '' };
 
-function formatPillDate(isoDate) {
-  return new Date(`${isoDate}T00:00:00`).toLocaleDateString('pt-BR');
-}
-
 const ACCENT_STYLES = {
   amber: { border: 'border-l-amber-400', icon: 'bg-amber-50 text-amber-600' },
   indigo: { border: 'border-l-indigo-400', icon: 'bg-indigo-50 text-indigo-600' },
@@ -114,7 +110,6 @@ export default function Dashboard() {
     setSearchInput('');
   };
 
-  const clearDateFilter = () => setFilters((f) => ({ ...f, dateFrom: '', dateTo: '' }));
   const clearCourierFilter = () => setFilters((f) => ({ ...f, courierId: '' }));
 
   const { data: stats } = useQuery({
@@ -159,15 +154,6 @@ export default function Dashboard() {
       setIsExporting(false);
     }
   };
-
-  const datePillLabel =
-    filters.dateFrom && filters.dateTo
-      ? `${formatPillDate(filters.dateFrom)} – ${formatPillDate(filters.dateTo)}`
-      : filters.dateFrom
-        ? `A partir de ${formatPillDate(filters.dateFrom)}`
-        : filters.dateTo
-          ? `Até ${formatPillDate(filters.dateTo)}`
-          : null;
 
   const courierPillLabel = couriers.find((c) => c.id === filters.courierId)?.name;
 
@@ -237,16 +223,6 @@ export default function Dashboard() {
               ))}
             </select>
 
-            {datePillLabel && (
-              <button
-                type="button"
-                onClick={clearDateFilter}
-                className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full bg-upa-50 text-upa-800 ring-1 ring-upa-100 hover:bg-upa-100"
-              >
-                {datePillLabel} <X className="w-3 h-3" />
-              </button>
-            )}
-
             {courierPillLabel && (
               <button
                 type="button"
@@ -277,6 +253,25 @@ export default function Dashboard() {
                 <X className="w-3.5 h-3.5" /> Limpar filtros
               </button>
             )}
+
+            <div className="flex rounded-xl border border-slate-200 overflow-hidden bg-white shrink-0">
+              <button
+                type="button"
+                onClick={() => setView('kanban')}
+                className={`inline-flex items-center justify-center min-h-11 min-w-11 px-3 ${view === 'kanban' ? 'bg-upa-50 text-upa-800' : 'text-slate-500 hover:bg-slate-50'}`}
+                aria-label="Visualização kanban"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('list')}
+                className={`inline-flex items-center justify-center min-h-11 min-w-11 px-3 border-l border-slate-200 ${view === 'list' ? 'bg-upa-50 text-upa-800' : 'text-slate-500 hover:bg-slate-50'}`}
+                aria-label="Visualização lista"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -318,25 +313,6 @@ export default function Dashboard() {
               <Download className="w-4 h-4" />
               {isExporting ? 'Exportando...' : 'Exportar CSV'}
             </button>
-
-            <div className="flex rounded-xl border border-slate-200 overflow-hidden bg-white shrink-0">
-              <button
-                type="button"
-                onClick={() => setView('kanban')}
-                className={`inline-flex items-center justify-center min-h-11 min-w-11 px-3 ${view === 'kanban' ? 'bg-upa-50 text-upa-800' : 'text-slate-500 hover:bg-slate-50'}`}
-                aria-label="Visualização kanban"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setView('list')}
-                className={`inline-flex items-center justify-center min-h-11 min-w-11 px-3 border-l border-slate-200 ${view === 'list' ? 'bg-upa-50 text-upa-800' : 'text-slate-500 hover:bg-slate-50'}`}
-                aria-label="Visualização lista"
-              >
-                <List className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         )}
 
