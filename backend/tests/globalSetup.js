@@ -18,6 +18,13 @@ export default async function globalSetup() {
   process.env.S3_BUCKET = 'upa-entrega-test';
   process.env.S3_ACCESS_KEY = 'minioadmin';
   process.env.S3_SECRET_KEY = 'minioadmin';
+
+  // Uma ORS_API_KEY real no .env do desenvolvedor não pode vazar pra
+  // suíte — testes de geocoding.js/optimize.js usam vi.stubEnv pra
+  // simular a chave caso a caso; o resto da suíte (que cria endereços e
+  // rotas por tabela) precisa continuar batendo no caminho sem API key
+  // (determinístico, sem rede, sem consumir cota real).
+  process.env.ORS_API_KEY = '';
   const { ensureBucket } = await import('../src/lib/storage.js');
   await ensureBucket();
 }
