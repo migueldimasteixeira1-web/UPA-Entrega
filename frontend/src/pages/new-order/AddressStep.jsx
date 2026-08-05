@@ -62,7 +62,7 @@ export default function AddressStep({
   return (
     <div className="space-y-4">
       {form.patientMode === 'existing' && form.patient.addresses.length > 0 && (
-        <div className="space-y-2">
+        <div className="rounded-xl border border-slate-100 p-4 space-y-3">
           <p className="text-sm font-medium text-slate-700">Endereços cadastrados</p>
           {fieldErrors.selectedAddressId && (
             <p className="text-xs text-red-600">{fieldErrors.selectedAddressId}</p>
@@ -120,7 +120,9 @@ export default function AddressStep({
       )}
 
       {showNewAddressForm && (
-        <div className="space-y-4">
+        <div className="rounded-xl border border-slate-100 p-4 space-y-4">
+          <p className="text-sm font-medium text-slate-700">Novo endereço</p>
+
           <AddressLabelField
             value={form.newAddress.label}
             onChange={(v) => updateNewAddress('label', v)}
