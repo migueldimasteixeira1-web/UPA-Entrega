@@ -89,20 +89,23 @@ export default function Dashboard() {
   // Sem um padrão, o Painel carregava o histórico inteiro de pedidos —
   // a coluna ENTREGUE do Kanban só crescia até alguém filtrar manualmente
   // (issue #56). "Limpar filtros" abaixo continua dando acesso ao histórico
-  // completo quando necessário.
-  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS, dateFrom: daysAgoISODate(7) });
+  // completo quando necessário. `defaultDateFrom` fica travado no valor do
+  // primeiro render pra "Limpar filtros" poder distinguir esse padrão
+  // silencioso de uma data escolhida de verdade pelo usuário.
+  const [defaultDateFrom] = useState(() => daysAgoISODate(7));
+  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS, dateFrom: defaultDateFrom });
   const [isExporting, setIsExporting] = useState(false);
-  // Data/entregador/exportar/alternância de visualização ficam colapsados
-  // por padrão (issue #67) — só busca e status, os mais usados, abrem
-  // direto. Filtro colapsado que esteja ativo (ex.: o padrão de 7 dias da
-  // #56) aparece como pill mesmo com o painel fechado, pra nunca esconder
-  // do usuário que os dados já estão filtrados.
+  // Data/entregador/exportar ficam colapsados por padrão (issue #67) — só
+  // busca e status, os mais usados, abrem direto.
   const [filtersOpen, setFiltersOpen] = useState(false);
   const debouncedSearch = useDebouncedValue(searchInput, 300);
   const { showToast } = useToast();
 
+  // O padrão de 7 dias não conta como "filtro ativo" aqui — só o que o
+  // usuário de fato escolheu (status, busca, entregador, ou uma data
+  // diferente do padrão) faz "Limpar filtros" aparecer.
   const hasActiveFilters = Boolean(
-    filters.status || filters.dateFrom || filters.dateTo || filters.courierId || searchInput
+    filters.status || filters.dateFrom !== defaultDateFrom || filters.dateTo || filters.courierId || searchInput
   );
 
   const clearFilters = () => {
