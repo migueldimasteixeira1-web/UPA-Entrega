@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma.js';
 import { validateCpf } from '../lib/validation.js';
+import { geocodeAddress } from '../lib/geocoding.js';
 
 const patientInclude = {
   addresses: { orderBy: { createdAt: 'asc' } },
@@ -137,18 +138,34 @@ export async function addPatientAddress(req, res) {
       return res.status(404).json({ error: 'Paciente não encontrado' });
     }
 
+    const trimmedStreet = street.trim();
+    const trimmedNumber = number.trim();
+    const trimmedNeighborhood = neighborhood.trim();
+    const trimmedCity = city.trim();
+    const trimmedState = state.trim();
+    const trimmedZipCode = zipCode?.trim() || null;
+    const coords = await geocodeAddress({
+      street: trimmedStreet,
+      number: trimmedNumber,
+      city: trimmedCity,
+      state: trimmedState,
+      zipCode: trimmedZipCode,
+    });
+
     const address = await prisma.address.create({
       data: {
         patientId: id,
         label: label?.trim() || 'Endereço',
-        street: street.trim(),
-        number: number.trim(),
+        street: trimmedStreet,
+        number: trimmedNumber,
         complement: complement?.trim() || null,
-        neighborhood: neighborhood.trim(),
-        city: city.trim(),
-        state: state.trim(),
-        zipCode: zipCode?.trim() || null,
+        neighborhood: trimmedNeighborhood,
+        city: trimmedCity,
+        state: trimmedState,
+        zipCode: trimmedZipCode,
         referencePoint: referencePoint?.trim() || null,
+        latitude: coords?.latitude,
+        longitude: coords?.longitude,
       },
     });
 
@@ -179,6 +196,29 @@ export async function updateAddress(req, res) {
     if (state !== undefined) updateData.state = state.trim();
     if (zipCode !== undefined) updateData.zipCode = zipCode?.trim() || null;
     if (referencePoint !== undefined) updateData.referencePoint = referencePoint?.trim() || null;
+
+    // Só regeocodifica se um campo que a geocodificação de fato usa mudou
+    // (rua/número/cidade/estado/CEP — bairro não entra na busca, ver
+    // geocoding.js) — evita chamada desnecessária quando a edição é só,
+    // por exemplo, o rótulo ou o bairro. Se a nova geocodificação falhar,
+    // mantém a coordenada anterior em vez de apagar um dado bom que já
+    // existia.
+    const addressChanged = ['street', 'number', 'city', 'state', 'zipCode'].some(
+      (field) => updateData[field] !== undefined
+    );
+    if (addressChanged) {
+      const coords = await geocodeAddress({
+        street: updateData.street ?? existing.street,
+        number: updateData.number ?? existing.number,
+        city: updateData.city ?? existing.city,
+        state: updateData.state ?? existing.state,
+        zipCode: updateData.zipCode !== undefined ? updateData.zipCode : existing.zipCode,
+      });
+      if (coords) {
+        updateData.latitude = coords.latitude;
+        updateData.longitude = coords.longitude;
+      }
+    }
 
     const address = await prisma.address.update({
       where: { id: addressId },

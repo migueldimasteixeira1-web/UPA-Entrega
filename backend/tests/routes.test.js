@@ -49,6 +49,36 @@ describe('Delivery routes', () => {
     expect(res.body.orders[0].routeSequence).toBe(0);
   });
 
+  // Regressão #73: sem ORS_API_KEY configurada (não é o caso nos testes),
+  // optimizeDeliverySequence retorna null e o despacho cai pra ordem FIFO
+  // recebida — o próprio comportamento da #69, sem otimização nenhuma.
+  it('keeps FIFO order when route optimization is unavailable (no ORS_API_KEY)', async () => {
+    const orderA = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'AGUARDANDO_SAIDA',
+    });
+    const orderB = await createOrderRecord({
+      patientId: patient.id,
+      addressId: address.id,
+      medicationId: medication.id,
+      createdById: admin.id,
+      status: 'AGUARDANDO_SAIDA',
+    });
+
+    const res = await request(app)
+      .post('/api/delivery-routes')
+      .set('Authorization', `Bearer ${operatorToken}`)
+      .send({ courierId: courier.id, orderIds: [orderA.id, orderB.id] });
+
+    expect(res.status).toBe(201);
+    const sequenceById = Object.fromEntries(res.body.orders.map((o) => [o.id, o.routeSequence]));
+    expect(sequenceById[orderA.id]).toBe(0);
+    expect(sequenceById[orderB.id]).toBe(1);
+  });
+
   it('rejects orders that are not AGUARDANDO_SAIDA', async () => {
     const order = await createOrderRecord({
       patientId: patient.id,

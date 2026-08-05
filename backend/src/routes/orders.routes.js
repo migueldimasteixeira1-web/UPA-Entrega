@@ -15,6 +15,7 @@ import { enqueueConfirmationEmail, enqueueStatusEmail, EMAIL_TYPE } from '../lib
 import { hashPassword, comparePassword } from '../lib/password.js';
 import { uploadImage, getSignedReadUrl } from '../lib/storage.js';
 import { buildReceiptPdf } from '../lib/pdf/receiptPdf.js';
+import { geocodeAddress } from '../lib/geocoding.js';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -328,18 +329,28 @@ async function resolveAddress(tx, { addressId, address }, patientId) {
     return existing;
   }
 
+  const street = address.street.trim();
+  const number = address.number.trim();
+  const neighborhood = address.neighborhood.trim();
+  const city = address.city.trim();
+  const state = address.state.trim();
+  const zipCode = address.zipCode?.trim() || null;
+  const coords = await geocodeAddress({ street, number, city, state, zipCode });
+
   return tx.address.create({
     data: {
       patientId,
       label: address.label?.trim() || 'Endereço',
-      street: address.street.trim(),
-      number: address.number.trim(),
+      street,
+      number,
       complement: address.complement?.trim() || null,
-      neighborhood: address.neighborhood.trim(),
-      city: address.city.trim(),
-      state: address.state.trim(),
-      zipCode: address.zipCode?.trim() || null,
+      neighborhood,
+      city,
+      state,
+      zipCode,
       referencePoint: address.referencePoint?.trim() || null,
+      latitude: coords?.latitude,
+      longitude: coords?.longitude,
     },
   });
 }
@@ -400,6 +411,8 @@ export async function createOrder(req, res) {
           state: resolvedAddress.state,
           zipCode: resolvedAddress.zipCode,
           referencePoint: resolvedAddress.referencePoint,
+          latitude: resolvedAddress.latitude,
+          longitude: resolvedAddress.longitude,
           internalNotes: internalNotes?.trim() || null,
           patientNotes: patientNotes?.trim() || null,
           prescriptionKey,
