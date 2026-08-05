@@ -13,6 +13,7 @@ import {
   List,
   Inbox,
   Download,
+  X,
 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { formatDate, KANBAN_COLUMNS, STATUS_LABELS, STATUS_DOT_COLORS } from '../lib/constants';
@@ -22,6 +23,15 @@ import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import { SkeletonKanban } from '../components/Skeleton';
 import { buttonClassName } from '../components/Button';
+
+// Data local (não UTC) de N dias atrás, no formato aceito por <input type="date">.
+function daysAgoISODate(days) {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+const DEFAULT_FILTERS = { status: '', dateFrom: '', dateTo: '', courierId: '' };
 
 const ACCENT_STYLES = {
   amber: { border: 'border-l-amber-400', icon: 'bg-amber-50 text-amber-600' },
@@ -73,15 +83,23 @@ function OrderCard({ order }) {
 export default function Dashboard() {
   const [view, setView] = useState('kanban');
   const [searchInput, setSearchInput] = useState('');
-  const [filters, setFilters] = useState({
-    status: '',
-    dateFrom: '',
-    dateTo: '',
-    courierId: '',
-  });
+  // Sem um padrão, o Painel carregava o histórico inteiro de pedidos —
+  // a coluna ENTREGUE do Kanban só crescia até alguém filtrar manualmente
+  // (issue #56). "Limpar filtros" abaixo continua dando acesso ao histórico
+  // completo quando necessário.
+  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS, dateFrom: daysAgoISODate(7) });
   const [isExporting, setIsExporting] = useState(false);
   const debouncedSearch = useDebouncedValue(searchInput, 300);
   const { showToast } = useToast();
+
+  const hasActiveFilters = Boolean(
+    filters.status || filters.dateFrom || filters.dateTo || filters.courierId || searchInput
+  );
+
+  const clearFilters = () => {
+    setFilters(DEFAULT_FILTERS);
+    setSearchInput('');
+  };
 
   const { data: stats } = useQuery({
     queryKey: ['stats'],
@@ -218,6 +236,16 @@ export default function Dashboard() {
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1.5 px-3 py-2.5 min-h-11 text-sm text-slate-500 hover:text-slate-700 shrink-0"
+              >
+                <X className="w-3.5 h-3.5" /> Limpar filtros
+              </button>
+            )}
 
             <button
               type="button"
