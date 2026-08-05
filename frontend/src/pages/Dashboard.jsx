@@ -14,6 +14,9 @@ import {
   Inbox,
   Download,
   X,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { formatDate, KANBAN_COLUMNS, STATUS_LABELS, STATUS_DOT_COLORS } from '../lib/constants';
@@ -32,6 +35,10 @@ function daysAgoISODate(days) {
 }
 
 const DEFAULT_FILTERS = { status: '', dateFrom: '', dateTo: '', courierId: '' };
+
+function formatPillDate(isoDate) {
+  return new Date(`${isoDate}T00:00:00`).toLocaleDateString('pt-BR');
+}
 
 const ACCENT_STYLES = {
   amber: { border: 'border-l-amber-400', icon: 'bg-amber-50 text-amber-600' },
@@ -89,6 +96,12 @@ export default function Dashboard() {
   // completo quando necessário.
   const [filters, setFilters] = useState({ ...DEFAULT_FILTERS, dateFrom: daysAgoISODate(7) });
   const [isExporting, setIsExporting] = useState(false);
+  // Data/entregador/exportar/alternância de visualização ficam colapsados
+  // por padrão (issue #67) — só busca e status, os mais usados, abrem
+  // direto. Filtro colapsado que esteja ativo (ex.: o padrão de 7 dias da
+  // #56) aparece como pill mesmo com o painel fechado, pra nunca esconder
+  // do usuário que os dados já estão filtrados.
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const debouncedSearch = useDebouncedValue(searchInput, 300);
   const { showToast } = useToast();
 
@@ -100,6 +113,9 @@ export default function Dashboard() {
     setFilters(DEFAULT_FILTERS);
     setSearchInput('');
   };
+
+  const clearDateFilter = () => setFilters((f) => ({ ...f, dateFrom: '', dateTo: '' }));
+  const clearCourierFilter = () => setFilters((f) => ({ ...f, courierId: '' }));
 
   const { data: stats } = useQuery({
     queryKey: ['stats'],
@@ -143,6 +159,17 @@ export default function Dashboard() {
       setIsExporting(false);
     }
   };
+
+  const datePillLabel =
+    filters.dateFrom && filters.dateTo
+      ? `${formatPillDate(filters.dateFrom)} – ${formatPillDate(filters.dateTo)}`
+      : filters.dateFrom
+        ? `A partir de ${formatPillDate(filters.dateFrom)}`
+        : filters.dateTo
+          ? `Até ${formatPillDate(filters.dateTo)}`
+          : null;
+
+  const courierPillLabel = couriers.find((c) => c.id === filters.courierId)?.name;
 
   const statCards = [
     { label: 'Em separação', value: stats?.emSeparacao ?? 0, icon: Package, accent: 'amber' },
@@ -198,7 +225,7 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             <select
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
@@ -210,6 +237,51 @@ export default function Dashboard() {
               ))}
             </select>
 
+            {datePillLabel && (
+              <button
+                type="button"
+                onClick={clearDateFilter}
+                className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full bg-upa-50 text-upa-800 ring-1 ring-upa-100 hover:bg-upa-100"
+              >
+                {datePillLabel} <X className="w-3 h-3" />
+              </button>
+            )}
+
+            {courierPillLabel && (
+              <button
+                type="button"
+                onClick={clearCourierFilter}
+                className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full bg-upa-50 text-upa-800 ring-1 ring-upa-100 hover:bg-upa-100"
+              >
+                {courierPillLabel} <X className="w-3 h-3" />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((o) => !o)}
+              className={buttonClassName('secondary', 'md', 'w-full sm:w-auto shrink-0')}
+              aria-expanded={filtersOpen}
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              Mais filtros
+              {filtersOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1.5 px-3 py-2.5 min-h-11 text-sm text-slate-500 hover:text-slate-700 shrink-0"
+              >
+                <X className="w-3.5 h-3.5" /> Limpar filtros
+              </button>
+            )}
+          </div>
+        </div>
+
+        {filtersOpen && (
+          <div className="flex flex-wrap gap-2 mb-6 -mt-2 pb-4 border-b border-slate-100">
             <input
               type="date"
               value={filters.dateFrom}
@@ -236,16 +308,6 @@ export default function Dashboard() {
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
-
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="inline-flex items-center gap-1.5 px-3 py-2.5 min-h-11 text-sm text-slate-500 hover:text-slate-700 shrink-0"
-              >
-                <X className="w-3.5 h-3.5" /> Limpar filtros
-              </button>
-            )}
 
             <button
               type="button"
@@ -276,7 +338,7 @@ export default function Dashboard() {
               </button>
             </div>
           </div>
-        </div>
+        )}
 
         {isLoading ? (
           <SkeletonKanban />
