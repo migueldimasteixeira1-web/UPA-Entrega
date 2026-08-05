@@ -14,6 +14,9 @@ import {
   Inbox,
   Download,
   X,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { formatDate, KANBAN_COLUMNS, STATUS_LABELS, STATUS_DOT_COLORS } from '../lib/constants';
@@ -86,20 +89,31 @@ export default function Dashboard() {
   // Sem um padrão, o Painel carregava o histórico inteiro de pedidos —
   // a coluna ENTREGUE do Kanban só crescia até alguém filtrar manualmente
   // (issue #56). "Limpar filtros" abaixo continua dando acesso ao histórico
-  // completo quando necessário.
-  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS, dateFrom: daysAgoISODate(7) });
+  // completo quando necessário. `defaultDateFrom` fica travado no valor do
+  // primeiro render pra "Limpar filtros" poder distinguir esse padrão
+  // silencioso de uma data escolhida de verdade pelo usuário.
+  const [defaultDateFrom] = useState(() => daysAgoISODate(7));
+  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS, dateFrom: defaultDateFrom });
   const [isExporting, setIsExporting] = useState(false);
+  // Data/entregador/exportar ficam colapsados por padrão (issue #67) — só
+  // busca e status, os mais usados, abrem direto.
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const debouncedSearch = useDebouncedValue(searchInput, 300);
   const { showToast } = useToast();
 
+  // O padrão de 7 dias não conta como "filtro ativo" aqui — só o que o
+  // usuário de fato escolheu (status, busca, entregador, ou uma data
+  // diferente do padrão) faz "Limpar filtros" aparecer.
   const hasActiveFilters = Boolean(
-    filters.status || filters.dateFrom || filters.dateTo || filters.courierId || searchInput
+    filters.status || filters.dateFrom !== defaultDateFrom || filters.dateTo || filters.courierId || searchInput
   );
 
   const clearFilters = () => {
     setFilters(DEFAULT_FILTERS);
     setSearchInput('');
   };
+
+  const clearCourierFilter = () => setFilters((f) => ({ ...f, courierId: '' }));
 
   const { data: stats } = useQuery({
     queryKey: ['stats'],
@@ -143,6 +157,8 @@ export default function Dashboard() {
       setIsExporting(false);
     }
   };
+
+  const courierPillLabel = couriers.find((c) => c.id === filters.courierId)?.name;
 
   const statCards = [
     { label: 'Em separação', value: stats?.emSeparacao ?? 0, icon: Package, accent: 'amber' },
@@ -198,7 +214,7 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             <select
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
@@ -210,6 +226,60 @@ export default function Dashboard() {
               ))}
             </select>
 
+            {courierPillLabel && (
+              <button
+                type="button"
+                onClick={clearCourierFilter}
+                className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full bg-upa-50 text-upa-800 ring-1 ring-upa-100 hover:bg-upa-100"
+              >
+                {courierPillLabel} <X className="w-3 h-3" />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((o) => !o)}
+              className={buttonClassName('secondary', 'md', 'w-full sm:w-auto shrink-0')}
+              aria-expanded={filtersOpen}
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              Mais filtros
+              {filtersOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1.5 px-3 py-2.5 min-h-11 text-sm text-slate-500 hover:text-slate-700 shrink-0"
+              >
+                <X className="w-3.5 h-3.5" /> Limpar filtros
+              </button>
+            )}
+
+            <div className="flex rounded-xl border border-slate-200 overflow-hidden bg-white shrink-0">
+              <button
+                type="button"
+                onClick={() => setView('kanban')}
+                className={`inline-flex items-center justify-center min-h-11 min-w-11 px-3 ${view === 'kanban' ? 'bg-upa-50 text-upa-800' : 'text-slate-500 hover:bg-slate-50'}`}
+                aria-label="Visualização kanban"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('list')}
+                className={`inline-flex items-center justify-center min-h-11 min-w-11 px-3 border-l border-slate-200 ${view === 'list' ? 'bg-upa-50 text-upa-800' : 'text-slate-500 hover:bg-slate-50'}`}
+                aria-label="Visualização lista"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {filtersOpen && (
+          <div className="flex flex-wrap gap-2 mb-6 -mt-2 pb-4 border-b border-slate-100">
             <input
               type="date"
               value={filters.dateFrom}
@@ -237,16 +307,6 @@ export default function Dashboard() {
               ))}
             </select>
 
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="inline-flex items-center gap-1.5 px-3 py-2.5 min-h-11 text-sm text-slate-500 hover:text-slate-700 shrink-0"
-              >
-                <X className="w-3.5 h-3.5" /> Limpar filtros
-              </button>
-            )}
-
             <button
               type="button"
               onClick={handleExport}
@@ -256,27 +316,8 @@ export default function Dashboard() {
               <Download className="w-4 h-4" />
               {isExporting ? 'Exportando...' : 'Exportar CSV'}
             </button>
-
-            <div className="flex rounded-xl border border-slate-200 overflow-hidden bg-white shrink-0">
-              <button
-                type="button"
-                onClick={() => setView('kanban')}
-                className={`inline-flex items-center justify-center min-h-11 min-w-11 px-3 ${view === 'kanban' ? 'bg-upa-50 text-upa-800' : 'text-slate-500 hover:bg-slate-50'}`}
-                aria-label="Visualização kanban"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setView('list')}
-                className={`inline-flex items-center justify-center min-h-11 min-w-11 px-3 border-l border-slate-200 ${view === 'list' ? 'bg-upa-50 text-upa-800' : 'text-slate-500 hover:bg-slate-50'}`}
-                aria-label="Visualização lista"
-              >
-                <List className="w-4 h-4" />
-              </button>
-            </div>
           </div>
-        </div>
+        )}
 
         {isLoading ? (
           <SkeletonKanban />
