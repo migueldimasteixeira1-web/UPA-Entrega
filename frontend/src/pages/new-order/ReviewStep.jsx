@@ -1,5 +1,6 @@
 import { Check, ClipboardList, FileImage } from 'lucide-react';
 import { maskPhone } from '../../lib/masks';
+import { useObjectUrl } from '../../lib/useObjectUrl';
 
 function buildFullAddress(street, number) {
   return `${street?.trim() || ''}, ${number?.trim() || ''}`;
@@ -14,6 +15,8 @@ export default function ReviewStep({
   onPrescriptionChange,
   prescriptionError,
 }) {
+  const prescriptionPreviewUrl = useObjectUrl(prescriptionFile);
+
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-upa-100 bg-upa-50/60 p-4 flex items-start gap-3">
@@ -89,9 +92,9 @@ export default function ReviewStep({
             className="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-upa-50 file:text-upa-800 file:font-medium hover:file:bg-upa-100"
           />
           {prescriptionError && <p className="text-xs text-red-600 mt-2">{prescriptionError}</p>}
-          {prescriptionFile && (
+          {prescriptionPreviewUrl && (
             <img
-              src={URL.createObjectURL(prescriptionFile)}
+              src={prescriptionPreviewUrl}
               alt="Prévia da receita"
               className="mt-3 max-h-48 rounded-lg border border-slate-200"
             />
