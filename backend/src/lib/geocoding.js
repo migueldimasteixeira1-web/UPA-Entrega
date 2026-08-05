@@ -1,23 +1,53 @@
 const ORS_BASE_URL = 'https://api.openrouteservice.org';
+const AWESOME_CEP_URL = 'https://cep.awesomeapi.com.br/json';
 
-// Sem ORS_API_KEY configurada (issue #73 — grátis dentro da cota do ORS,
-// mas precisa de cadastro), geocodificação vira no-op: endereço fica sem
-// coordenada, dispatch cai pra ordem FIFO (ver routing/optimize.js). Nunca
-// lança exceção — uma falha de geocodificação não pode travar o cadastro
-// de paciente/endereço nem a criação de pedido.
+// Geocodificação nunca lança exceção — uma falha não pode travar o
+// cadastro de paciente/endereço nem a criação de pedido.
 //
-// Deliberadamente NÃO inclui bairro nem CEP no texto de busca — validado
-// manualmente contra endereços reais de Cabo Frio: incluir bairro+CEP no
-// mesmo texto livre confundia o parser do ORS a ponto de devolver, com
-// confiança máxima, um endereço em Florianópolis/SC (~800km de distância)
-// pra "Rua das Palmeiras, 120, Braga, Cabo Frio, RJ". Só rua+número+cidade+
-// estado é seguro: rua encontrada = ponto real da rua; rua não encontrada =
-// cai pro centro da cidade (impreciso, mas nunca errado de cidade).
+// Estratégia em duas etapas, validada manualmente contra endereços reais
+// de Cabo Frio (issue #73):
+//
+// 1. Por CEP (AwesomeAPI) — fonte principal. Não exige ORS_API_KEY (a
+//    consulta de CEP não passa pelo ORS), 100 mil requisições/mês grátis
+//    sem cadastro, e devolveu coordenada real e diferenciada por CEP nos
+//    testes (inclusive fora de Cabo Frio). Como o CEP já é validado no
+//    cadastro via ViaCEP, a maioria dos endereços tem um pra consultar.
+// 2. Por texto — respaldo pra endereço sem CEP. Exige ORS_API_KEY. Usa só
+//    rua+número+cidade+estado, deliberadamente SEM bairro nem CEP no texto
+//    livre: incluir bairro+CEP juntos confundia o parser do ORS a ponto de
+//    devolver, com confiança máxima, um endereço em Florianópolis/SC
+//    (~800km de distância) pra uma rua de Cabo Frio. Rua não encontrada
+//    cai pro centro da cidade (impreciso, mas nunca errado de cidade).
+export async function geocodeAddress(address) {
+  const byCep = await geocodeByCep(address.zipCode);
+  if (byCep) return byCep;
+
+  return geocodeByText(address);
+}
+
+async function geocodeByCep(zipCode) {
+  const digits = (zipCode || '').replace(/\D/g, '');
+  if (digits.length !== 8) return null;
+
+  try {
+    const res = await fetch(`${AWESOME_CEP_URL}/${digits}`);
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (data.lat == null || data.lng == null) return null;
+
+    return { latitude: Number(data.lat), longitude: Number(data.lng) };
+  } catch (error) {
+    console.error('[geocoding] Erro ao consultar CEP:', error);
+    return null;
+  }
+}
+
 function buildAddressText({ street, number, city, state }) {
   return [street && number ? `${street}, ${number}` : street, city, state].filter(Boolean).join(', ');
 }
 
-export async function geocodeAddress(address) {
+async function geocodeByText(address) {
   const apiKey = process.env.ORS_API_KEY;
   if (!apiKey) return null;
 
