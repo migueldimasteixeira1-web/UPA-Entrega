@@ -2,6 +2,7 @@ import prisma from '../lib/prisma.js';
 import { generateRouteNumber, maskCpf, STATUS_LABELS } from '../lib/constants.js';
 import { formatOrderForCourier } from '../lib/orderSerializer.js';
 import { enqueueStatusEmail } from '../lib/email/queue.js';
+import { optimizeDeliverySequence } from '../lib/routing/optimize.js';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -118,6 +119,16 @@ export async function createRoute(req, res) {
       });
     }
 
+    // Chamada de rede fora da transação de propósito (mesmo motivo do
+    // upload em createOrder) — não segura uma transação de banco aberta
+    // esperando a API do ORS responder. Sem ORS_API_KEY, com só 1 pedido no
+    // lote, ou se a chamada falhar, cai pra ordem recebida (FIFO — ver
+    // #69), o despacho nunca fica bloqueado por isso (issue #73).
+    const optimizedIds = await optimizeDeliverySequence(
+      orders.map((o) => ({ id: o.id, latitude: o.latitude, longitude: o.longitude }))
+    );
+    const sequencedIds = optimizedIds || orderIds;
+
     const route = await prisma.$transaction(async (tx) => {
       const routeNumber = await generateRouteNumber(tx);
 
@@ -130,8 +141,8 @@ export async function createRoute(req, res) {
         },
       });
 
-      for (let i = 0; i < orderIds.length; i += 1) {
-        const orderId = orderIds[i];
+      for (let i = 0; i < sequencedIds.length; i += 1) {
+        const orderId = sequencedIds[i];
         const updatedOrder = await tx.order.update({
           where: { id: orderId },
           data: { routeId: created.id, routeSequence: i, status: 'EM_ROTA' },

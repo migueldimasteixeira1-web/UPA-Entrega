@@ -73,6 +73,12 @@ model Address {
   state          String
   zipCode        String?
   referencePoint String?
+  // Geocodificados sob demanda ao criar/editar o endereço (issue #73) —
+  // null enquanto ORS_API_KEY não estiver configurada ou se a
+  // geocodificação falhar (endereço não encontrado/ambíguo). Nunca bloqueia
+  // o cadastro.
+  latitude       Float?
+  longitude      Float?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -125,6 +131,11 @@ model Order {
   state          String
   zipCode        String?
   referencePoint String?
+  // Snapshot da coordenada do Address no momento da criação do pedido (não
+  // a coordenada atual — endereço pode ser editado depois, ver #73). Usado
+  // pra otimização de sequência de entrega no despacho.
+  latitude       Float?
+  longitude      Float?
   internalNotes  String?
   patientNotes   String?
   prescriptionKey String?
