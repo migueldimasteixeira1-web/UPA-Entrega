@@ -33,6 +33,7 @@ import OrderStatusStepper from '../components/OrderStatusStepper';
 import CopyMessage from '../components/CopyMessage';
 import Modal from '../components/Modal';
 import Alert from '../components/Alert';
+import ActionMenu from '../components/ActionMenu';
 import { SkeletonOrderDetail } from '../components/Skeleton';
 import { buttonClassName } from '../components/Button';
 
@@ -205,6 +206,28 @@ export default function OrderDetail() {
 
   const canPrintLabel = !['PEDIDO_RECEBIDO', 'EM_SEPARACAO'].includes(order.status);
 
+  // "Baixar comprovante"/"Imprimir etiqueta" são ações de referência, não de
+  // fluxo — tiradas da linha de ação primária (que fica só com as transições
+  // de status) e agrupadas aqui (issue #66). Ver receita, reenviar e-mail e
+  // ver foto de comprovação continuam junto do card de conteúdo a que se
+  // referem: mover pra um menu genérico só pioraria a descoberta.
+  const moreActions = [
+    {
+      key: 'receipt',
+      label: receiptLoading ? 'Gerando...' : 'Baixar comprovante',
+      icon: FileText,
+      onClick: openReceipt,
+      disabled: receiptLoading,
+    },
+    canPrintLabel && {
+      key: 'label',
+      label: 'Imprimir etiqueta',
+      icon: Printer,
+      to: `/pedidos/${order.id}/etiqueta`,
+      target: '_blank',
+    },
+  ].filter(Boolean);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -222,23 +245,6 @@ export default function OrderDetail() {
         </div>
 
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          <button
-            type="button"
-            onClick={openReceipt}
-            disabled={receiptLoading}
-            className={buttonClassName('secondary', 'md', 'flex-1 sm:flex-none')}
-          >
-            <FileText className="w-4 h-4" /> {receiptLoading ? 'Gerando...' : 'Baixar comprovante'}
-          </button>
-          {canPrintLabel && (
-            <Link
-              to={`/pedidos/${order.id}/etiqueta`}
-              target="_blank"
-              className={buttonClassName('secondary', 'md', 'flex-1 sm:flex-none')}
-            >
-              <Printer className="w-4 h-4" /> Imprimir etiqueta
-            </Link>
-          )}
           {order.allowedTransitions?.map((t) => (
             <button
               key={t.to}
@@ -250,6 +256,7 @@ export default function OrderDetail() {
               {t.label}
             </button>
           ))}
+          <ActionMenu items={moreActions} />
         </div>
       </div>
 
