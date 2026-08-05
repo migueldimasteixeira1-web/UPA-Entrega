@@ -335,7 +335,7 @@ async function resolveAddress(tx, { addressId, address }, patientId) {
   const city = address.city.trim();
   const state = address.state.trim();
   const zipCode = address.zipCode?.trim() || null;
-  const coords = await geocodeAddress({ street, number, neighborhood, city, state, zipCode });
+  const coords = await geocodeAddress({ street, number, city, state, zipCode });
 
   return tx.address.create({
     data: {

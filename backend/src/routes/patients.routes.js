@@ -147,7 +147,6 @@ export async function addPatientAddress(req, res) {
     const coords = await geocodeAddress({
       street: trimmedStreet,
       number: trimmedNumber,
-      neighborhood: trimmedNeighborhood,
       city: trimmedCity,
       state: trimmedState,
       zipCode: trimmedZipCode,
@@ -198,18 +197,19 @@ export async function updateAddress(req, res) {
     if (zipCode !== undefined) updateData.zipCode = zipCode?.trim() || null;
     if (referencePoint !== undefined) updateData.referencePoint = referencePoint?.trim() || null;
 
-    // Só regeocodifica se algum campo de endereço de fato mudou — evita
-    // chamada desnecessária quando a edição é só, por exemplo, o rótulo.
-    // Se a nova geocodificação falhar, mantém a coordenada anterior em vez
-    // de apagar um dado bom que já existia.
-    const addressChanged = ['street', 'number', 'neighborhood', 'city', 'state', 'zipCode'].some(
+    // Só regeocodifica se um campo que a geocodificação de fato usa mudou
+    // (rua/número/cidade/estado/CEP — bairro não entra na busca, ver
+    // geocoding.js) — evita chamada desnecessária quando a edição é só,
+    // por exemplo, o rótulo ou o bairro. Se a nova geocodificação falhar,
+    // mantém a coordenada anterior em vez de apagar um dado bom que já
+    // existia.
+    const addressChanged = ['street', 'number', 'city', 'state', 'zipCode'].some(
       (field) => updateData[field] !== undefined
     );
     if (addressChanged) {
       const coords = await geocodeAddress({
         street: updateData.street ?? existing.street,
         number: updateData.number ?? existing.number,
-        neighborhood: updateData.neighborhood ?? existing.neighborhood,
         city: updateData.city ?? existing.city,
         state: updateData.state ?? existing.state,
         zipCode: updateData.zipCode !== undefined ? updateData.zipCode : existing.zipCode,
