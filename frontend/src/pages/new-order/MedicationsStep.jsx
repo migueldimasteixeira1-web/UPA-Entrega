@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react';
 import FormField, { inputClassName } from '../../components/FormField';
 import QuantityStepper from '../../components/QuantityStepper';
+import MedicationCombobox from '../../components/MedicationCombobox';
 
 export default function MedicationsStep({ form, fieldErrors, medications, updateField, updateItem, addItem, removeItem }) {
   return (
@@ -11,18 +12,11 @@ export default function MedicationsStep({ form, fieldErrors, medications, update
         <div key={index} className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <div className="flex-1 min-w-0 w-full">
             <FormField label="Medicamento">
-              <select
+              <MedicationCombobox
+                medications={medications}
                 value={item.medicationId}
-                onChange={(e) => updateItem(index, 'medicationId', e.target.value)}
-                className={inputClassName(false, 'bg-white')}
-              >
-                <option value="">Selecione...</option>
-                {medications.map((med) => (
-                  <option key={med.id} value={med.id}>
-                    {med.name} ({med.unit})
-                  </option>
-                ))}
-              </select>
+                onChange={(medicationId) => updateItem(index, 'medicationId', medicationId)}
+              />
             </FormField>
           </div>
           <div className="w-full sm:w-auto">
