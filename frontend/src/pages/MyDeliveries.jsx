@@ -5,6 +5,7 @@ import { api, ApiError } from '../lib/api';
 import { formatPhone } from '../lib/constants';
 import { buildMapsUrl } from '../lib/masks';
 import { useToast } from '../lib/toast';
+import { useObjectUrl } from '../lib/useObjectUrl';
 import Alert from '../components/Alert';
 import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
@@ -20,6 +21,7 @@ export default function MyDeliveries() {
   const [modalError, setModalError] = useState('');
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const proofPreviewUrl = useObjectUrl(proofFile);
 
   const { data: routes = [], isLoading } = useQuery({
     queryKey: ['delivery-routes', 'mine'],
@@ -188,9 +190,9 @@ export default function MyDeliveries() {
                 onChange={(e) => setProofFile(e.target.files[0] || null)}
                 className="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-upa-50 file:text-upa-800 file:font-medium hover:file:bg-upa-100"
               />
-              {proofFile && (
+              {proofPreviewUrl && (
                 <img
-                  src={URL.createObjectURL(proofFile)}
+                  src={proofPreviewUrl}
                   alt="Prévia da foto de comprovação"
                   className="max-h-48 rounded-lg border border-slate-200"
                 />
