@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Truck, Package, CheckCircle2, Circle, Route as RouteIcon, ChevronUp, ChevronDown } from 'lucide-react';
+import { Truck, Package, CheckCircle2, Circle, Route as RouteIcon } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { formatDate } from '../lib/constants';
 import { useToast } from '../lib/toast';
@@ -11,16 +11,18 @@ import { SkeletonList } from '../components/Skeleton';
 import { buttonClassName } from '../components/Button';
 
 export default function DeliveryRoutes() {
-  const [selectedOrderIds, setSelectedOrderIds] = useState([]);
   const [courierId, setCourierId] = useState('');
   const [error, setError] = useState('');
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
-  const { data: readyOrders = [], isLoading: loadingOrders } = useQuery({
+  // Ordenado do mais antigo pro mais novo — vira a sequência de entrega
+  // (routeSequence) até a #73 substituir por ordem otimizada por distância.
+  const { data: readyOrdersDesc = [], isLoading: loadingOrders } = useQuery({
     queryKey: ['orders', { status: 'AGUARDANDO_SAIDA' }],
     queryFn: () => api.getOrders({ status: 'AGUARDANDO_SAIDA' }),
   });
+  const readyOrders = [...readyOrdersDesc].reverse();
 
   const { data: couriers = [] } = useQuery({
     queryKey: ['couriers'],
@@ -33,37 +35,22 @@ export default function DeliveryRoutes() {
     refetchInterval: 15000,
   });
 
-  const createRouteMutation = useMutation({
+  const dispatchMutation = useMutation({
     mutationFn: (data) => api.createDeliveryRoute(data),
     onSuccess: (route) => {
       setError('');
-      setSelectedOrderIds([]);
       setCourierId('');
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['delivery-routes'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
-      showToast(`Rota ${route.routeNumber} criada com ${route.orders.length} pedido(s)`);
+      showToast(`Rota ${route.routeNumber} despachada com ${route.orders.length} pedido(s)`);
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : 'Erro ao criar rota'),
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Erro ao despachar rota'),
   });
 
-  const toggleOrder = (orderId) => {
-    setSelectedOrderIds((ids) => (ids.includes(orderId) ? ids.filter((i) => i !== orderId) : [...ids, orderId]));
-  };
-
-  const moveSelected = (index, direction) => {
-    setSelectedOrderIds((ids) => {
-      const target = index + direction;
-      if (target < 0 || target >= ids.length) return ids;
-      const next = [...ids];
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
-    });
-  };
-
-  const handleCreateRoute = () => {
-    if (!courierId || !selectedOrderIds.length) return;
-    createRouteMutation.mutate({ courierId, orderIds: selectedOrderIds });
+  const handleDispatch = () => {
+    if (!courierId || !readyOrders.length) return;
+    dispatchMutation.mutate({ courierId, orderIds: readyOrders.map((o) => o.id) });
   };
 
   return (
@@ -71,7 +58,7 @@ export default function DeliveryRoutes() {
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Rotas de entrega</h1>
         <p className="text-slate-500 mt-1 text-sm sm:text-base">
-          Agrupe pedidos prontos e atribua a um entregador da UPA
+          Despache os pedidos prontos para um entregador da UPA
         </p>
       </div>
 
@@ -89,72 +76,12 @@ export default function DeliveryRoutes() {
         ) : (
           <div className="space-y-2 mb-6">
             {readyOrders.map((order) => (
-              <label
-                key={order.id}
-                className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-colors ${
-                  selectedOrderIds.includes(order.id)
-                    ? 'border-upa-400 bg-upa-50/60 ring-1 ring-upa-200'
-                    : 'border-slate-200 hover:border-upa-200'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedOrderIds.includes(order.id)}
-                  onChange={() => toggleOrder(order.id)}
-                  className="mt-1"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-slate-800">{order.patientName}</p>
-                  <p className="text-xs text-slate-500">{order.orderNumber} · {order.neighborhood}</p>
-                  <p className="text-xs text-slate-500">{order.mainMedication}</p>
-                </div>
-              </label>
+              <div key={order.id} className="rounded-xl border border-slate-200 p-3">
+                <p className="text-sm font-semibold text-slate-800">{order.patientName}</p>
+                <p className="text-xs text-slate-500">{order.orderNumber} · {order.neighborhood}</p>
+                <p className="text-xs text-slate-500">{order.mainMedication}</p>
+              </div>
             ))}
-          </div>
-        )}
-
-        {selectedOrderIds.length > 0 && (
-          <div className="mb-6">
-            <p className="text-sm font-medium text-slate-700 mb-2">
-              Ordem de entrega ({selectedOrderIds.length})
-            </p>
-            <div className="space-y-2">
-              {selectedOrderIds.map((id, index) => {
-                const order = readyOrders.find((o) => o.id === id);
-                if (!order) return null;
-                return (
-                  <div key={id} className="flex items-center gap-3 rounded-xl border border-slate-200 p-2.5">
-                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-upa-800 text-white text-xs font-bold shrink-0">
-                      {index + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-slate-800 truncate">{order.patientName}</p>
-                      <p className="text-xs text-slate-500">{order.orderNumber}</p>
-                    </div>
-                    <div className="flex flex-col shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => moveSelected(index, -1)}
-                        disabled={index === 0}
-                        className="inline-flex items-center justify-center h-5 w-7 text-slate-400 hover:text-upa-700 disabled:opacity-30 disabled:cursor-not-allowed"
-                        aria-label="Mover para cima"
-                      >
-                        <ChevronUp className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveSelected(index, 1)}
-                        disabled={index === selectedOrderIds.length - 1}
-                        className="inline-flex items-center justify-center h-5 w-7 text-slate-400 hover:text-upa-700 disabled:opacity-30 disabled:cursor-not-allowed"
-                        aria-label="Mover para baixo"
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </div>
         )}
 
@@ -171,12 +98,12 @@ export default function DeliveryRoutes() {
           </select>
           <button
             type="button"
-            onClick={handleCreateRoute}
-            disabled={!courierId || !selectedOrderIds.length || createRouteMutation.isPending}
+            onClick={handleDispatch}
+            disabled={!courierId || !readyOrders.length || dispatchMutation.isPending}
             className={buttonClassName('primary', 'md', 'px-6')}
           >
             <Truck className="w-4 h-4" />
-            {createRouteMutation.isPending ? 'Criando rota...' : `Criar rota (${selectedOrderIds.length})`}
+            {dispatchMutation.isPending ? 'Despachando...' : `Despachar (${readyOrders.length})`}
           </button>
         </div>
         {couriers.length === 0 && (
