@@ -12,17 +12,17 @@ describe('Patients', () => {
 
   it('returns 404 for a CPF with no matching patient', async () => {
     const res = await request(app)
-      .get('/api/patients/by-cpf/99988877766')
+      .get('/api/patients/by-cpf/99988877714')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(404);
   });
 
   it('finds a patient by CPF with their addresses', async () => {
-    const { patient } = await createPatientWithAddress({ cpf: '11122233344' });
+    const { patient } = await createPatientWithAddress({ cpf: '11122233396' });
 
     const res = await request(app)
-      .get('/api/patients/by-cpf/11122233344')
+      .get('/api/patients/by-cpf/11122233396')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -31,19 +31,19 @@ describe('Patients', () => {
   });
 
   it('rejects creating a patient with a CPF already in use', async () => {
-    await createPatientWithAddress({ cpf: '55566677788' });
+    await createPatientWithAddress({ cpf: '55566677720' });
 
     const res = await request(app)
       .post('/api/patients')
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Outro Nome', phone: '22999991111', cpf: '55566677788', email: 'outro@exemplo.com' });
+      .send({ name: 'Outro Nome', phone: '22999991111', cpf: '55566677720', email: 'outro@exemplo.com' });
 
     expect(res.status).toBe(409);
   });
 
   it('updates a patient and re-validates CPF uniqueness on change', async () => {
-    const { patient } = await createPatientWithAddress({ cpf: '11122233344' });
-    const { patient: other } = await createPatientWithAddress({ cpf: '99988877766' });
+    const { patient } = await createPatientWithAddress({ cpf: '11122233396' });
+    const { patient: other } = await createPatientWithAddress({ cpf: '99988877714' });
 
     const okRes = await request(app)
       .put(`/api/patients/${patient.id}`)
