@@ -214,6 +214,15 @@ export const api = {
   updateMedication: (id, data) =>
     request(`/api/medications/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
+  createMedicationPresentation: (medicationId, data) =>
+    request(`/api/medications/${medicationId}/presentations`, { method: 'POST', body: JSON.stringify(data) }),
+
+  updateMedicationPresentation: (medicationId, presentationId, data) =>
+    request(`/api/medications/${medicationId}/presentations/${presentationId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
   getUsers: () => request('/api/users'),
 
   getCouriers: () => request('/api/couriers'),
