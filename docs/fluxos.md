@@ -34,7 +34,7 @@ Quando o último pedido não-terminal (nem `ENTREGUE` nem `CANCELADO`) de uma ro
 
 ## 3. Despacho em lote e otimização de rota
 
-Reflete o fluxo operacional real (definido explicitamente na issue #69, depois da tela original de "montar rota manualmente" ter sido descartada por não fazer sentido pro dia a dia): o entregador não sai da UPA a cada pedido — pedidos se acumulam em `AGUARDANDO_SAIDA` conforme terminam a separação, e saem todos juntos num despacho, em horários definidos pela operação (ex.: uma saída de manhã, outra à tarde).
+Reflete o fluxo operacional real (definido explicitamente na issue #69, depois da tela original de "montar rota manualmente" ter sido descartada por não fazer sentido pro dia a dia): o entregador não sai da unidade de saúde a cada pedido — pedidos se acumulam em `AGUARDANDO_SAIDA` conforme terminam a separação, e saem todos juntos num despacho, em horários definidos pela operação (ex.: uma saída de manhã, outra à tarde).
 
 ```
 Pedidos em AGUARDANDO_SAIDA

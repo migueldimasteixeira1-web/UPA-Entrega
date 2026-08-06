@@ -10,7 +10,7 @@ cleanup() {
   local exit_code=$?
   if [[ "$SERVICES_STARTED" -eq 1 ]]; then
     echo
-    echo "Encerrando UPA Entrega..."
+    echo "Encerrando SEDOM..."
   fi
   [[ -n "${BACKEND_PID:-}" ]] && kill "$BACKEND_PID" 2>/dev/null || true
   [[ -n "${FRONTEND_PID:-}" ]] && kill "$FRONTEND_PID" 2>/dev/null || true

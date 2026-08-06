@@ -58,7 +58,7 @@ export default function DeliveryRoutes() {
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Rotas de entrega</h1>
         <p className="text-slate-500 mt-1 text-sm sm:text-base">
-          Despache os pedidos prontos para um entregador da UPA
+          Despache os pedidos prontos para um entregador da unidade de saúde
         </p>
       </div>
 

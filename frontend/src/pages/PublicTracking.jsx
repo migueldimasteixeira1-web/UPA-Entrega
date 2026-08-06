@@ -39,7 +39,7 @@ export default function PublicTracking() {
       <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
         <div className="text-center max-w-sm bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
           <p className="text-slate-600">Pedido não encontrado ou link inválido.</p>
-          <p className="text-sm text-slate-400 mt-2">Verifique o link enviado pela UPA.</p>
+          <p className="text-sm text-slate-400 mt-2">Verifique o link enviado pela unidade de saúde.</p>
         </div>
       </div>
     );
@@ -56,7 +56,7 @@ export default function PublicTracking() {
       <main className="max-w-lg mx-auto px-4 py-6 sm:py-8 space-y-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 flex items-start gap-3 text-sm text-blue-900">
           <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" />
-          <p>Esta página é apenas para consulta. Para alterações, entre em contato com a UPA.</p>
+          <p>Esta página é apenas para consulta. Para alterações, entre em contato com a unidade de saúde.</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 text-center">
@@ -126,8 +126,8 @@ export default function PublicTracking() {
           <div className="flex items-start gap-2">
             <Info className="w-4 h-4 shrink-0 mt-0.5" />
             <div>
-              <p>Esta entrega é gratuita, realizada por um entregador da UPA.</p>
-              <p className="mt-3 text-emerald-800/80">Em caso de dúvidas, entre em contato com a UPA.</p>
+              <p>Esta entrega é gratuita, realizada por um entregador da unidade de saúde.</p>
+              <p className="mt-3 text-emerald-800/80">Em caso de dúvidas, entre em contato com a unidade de saúde.</p>
             </div>
           </div>
         </div>

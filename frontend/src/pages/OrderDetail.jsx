@@ -194,7 +194,7 @@ export default function OrderDetail() {
   const sharePublicLink = async () => {
     setCopyLinkError(false);
     const ok = await shareText({
-      title: 'Acompanhamento UPA Entrega',
+      title: 'Acompanhamento SEDOM',
       text: `Acompanhe seu pedido: ${publicUrl}`,
       url: publicUrl,
     });

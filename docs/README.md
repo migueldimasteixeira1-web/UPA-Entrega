@@ -1,4 +1,4 @@
-# Documentação — UPA Entrega
+# Documentação — SEDOM
 
 Documentação técnica do projeto, complementar ao [README](../README.md) da raiz (que cobre instalação, deploy e operação). Aqui o foco é **como o sistema é construído por dentro**.
 

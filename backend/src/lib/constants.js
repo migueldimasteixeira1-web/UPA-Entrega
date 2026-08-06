@@ -81,7 +81,7 @@ export function generateMessages(order, baseUrl) {
   messages.push({
     id: 'recebido',
     title: 'Pedido registrado',
-    text: `Olá, ${name}. Seu pedido de medicamento foi registrado pela UPA e será entregue em seu endereço, sem custo. Acompanhe o andamento por aqui: ${publicLink}.`,
+    text: `Olá, ${name}. Seu pedido de medicamento foi registrado pela unidade de saúde e será entregue em seu endereço, sem custo. Acompanhe o andamento por aqui: ${publicLink}.`,
   });
 
   if (order.status === 'EM_ROTA') {
@@ -99,7 +99,7 @@ export function generateMessages(order, baseUrl) {
     messages.push({
       id: 'entregue',
       title: 'Entrega concluída',
-      text: `Olá, ${name}. Sua entrega de medicamento foi concluída com sucesso. Em caso de dúvidas, entre em contato com a UPA.`,
+      text: `Olá, ${name}. Sua entrega de medicamento foi concluída com sucesso. Em caso de dúvidas, entre em contato com a unidade de saúde.`,
     });
   }
 
@@ -136,7 +136,7 @@ function todayDateKey() {
 
 export async function generateOrderNumber(tx) {
   const dateKey = todayDateKey();
-  const prefix = `UPA-${dateKey}`;
+  const prefix = `SEDOM-${dateKey}`;
   // '\\d' (não '\d'): dentro de um template literal JS, uma barra invertida
   // seguida de um caractere sem significado especial (\d) é descartada
   // silenciosamente — o Postgres recebia o regex "(d+)$" (letra "d" literal),

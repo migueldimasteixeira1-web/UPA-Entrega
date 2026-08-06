@@ -65,7 +65,7 @@ export default function MedicationsStep({ form, fieldErrors, medications, update
         <Plus className="w-4 h-4" /> Adicionar medicamento
       </button>
 
-      <FormField label="Observações internas" htmlFor="internalNotes" hint="Visível só para a equipe da UPA">
+      <FormField label="Observações internas" htmlFor="internalNotes" hint="Visível só para a equipe da unidade de saúde">
         <textarea
           id="internalNotes"
           value={form.internalNotes}

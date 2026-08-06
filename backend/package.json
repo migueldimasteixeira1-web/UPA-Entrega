@@ -1,7 +1,7 @@
 {
-  "name": "upa-entrega-backend",
+  "name": "sedom-backend",
   "version": "1.0.0",
-  "description": "Backend do sistema de entregas de medicamentos da UPA",
+  "description": "Backend do SEDOM — Sistema de Entrega Domiciliar de Medicamentos",
   "main": "src/index.js",
   "type": "module",
   "scripts": {

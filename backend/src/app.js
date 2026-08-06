@@ -118,7 +118,7 @@ export function createApp({ loginRateLimit, confirmDeliveryRateLimit, resendEmai
   app.use(express.json());
 
   app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', service: 'UPA Entrega API' });
+    res.json({ status: 'ok', service: 'SEDOM API' });
   });
 
   // Public routes (somente leitura)

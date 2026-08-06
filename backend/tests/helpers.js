@@ -46,7 +46,7 @@ export async function confirmDelivery(token, orderId, pin, { app: targetApp = ap
 }
 
 export async function createUser({ role = 'OPERADOR', email, password = 'Senha@123', name = 'Usuário Teste', active = true } = {}) {
-  const finalEmail = email || `${role.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2)}@upa.local`;
+  const finalEmail = email || `${role.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2)}@sedom.local`;
   const user = await prisma.user.create({
     data: {
       name,

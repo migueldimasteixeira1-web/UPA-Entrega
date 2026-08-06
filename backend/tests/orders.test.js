@@ -233,7 +233,7 @@ describe('GET /api/orders/report', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/text\/csv/);
-    expect(res.headers['content-disposition']).toMatch(/attachment; filename="upa-entrega-pedidos-.+\.csv"/);
+    expect(res.headers['content-disposition']).toMatch(/attachment; filename="sedom-pedidos-.+\.csv"/);
 
     const lines = res.text.trim().split('\r\n');
     // BOM + cabeçalho + só o pedido cancelado (o outro não bate no filtro de status)
@@ -274,7 +274,7 @@ describe('Order number generation survives a pre-existing, uncounted order', () 
 
     const today = new Date();
     const dateKey = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
-    const prefix = `UPA-${dateKey}`;
+    const prefix = `SEDOM-${dateKey}`;
 
     // Simula um pedido criado antes de qualquer linha existir em
     // DailyCounter para esse dia (cenário real: dado pré-existente na hora

@@ -13,7 +13,7 @@ function wrapEmail(title, bodyHtml) {
     <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; color: #1e293b;">
       <h2 style="color: #0f4c65;">${title}</h2>
       ${bodyHtml}
-      <p style="font-size: 12px; color: #94a3b8; margin-top: 32px;">UPA Entrega — mensagem automática, não responda este e-mail.</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 32px;">SEDOM — mensagem automática, não responda este e-mail.</p>
     </div>
   `;
 }
@@ -31,11 +31,11 @@ export function confirmationEmailTemplate(order, rawPin, baseUrl) {
   const publicLink = getPublicTrackingUrl(order, baseUrl);
   const createdAt = new Date(order.createdAt).toLocaleString('pt-BR');
 
-  const subject = `Pedido ${order.orderNumber} registrado — UPA Entrega`;
+  const subject = `Pedido ${order.orderNumber} registrado — SEDOM`;
   const html = wrapEmail(
     'Pedido registrado',
     `
-      <p>Olá, ${escapeHtml(firstName)}. Seu pedido de medicamento foi registrado pela UPA e será entregue em seu endereço, sem custo.</p>
+      <p>Olá, ${escapeHtml(firstName)}. Seu pedido de medicamento foi registrado pela unidade de saúde e será entregue em seu endereço, sem custo.</p>
       <p><strong>Número do pedido:</strong> ${escapeHtml(order.orderNumber)}<br/>
       <strong>Data:</strong> ${escapeHtml(createdAt)}</p>
       <p style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; text-align: center;">
@@ -55,25 +55,25 @@ export function confirmationEmailTemplate(order, rawPin, baseUrl) {
 // entrada gera o assunto e o corpo a partir do pedido + link público.
 const STATUS_EMAIL_CONTENT = {
   separado: {
-    subject: (order) => `Pedido ${order.orderNumber} separado — UPA Entrega`,
+    subject: (order) => `Pedido ${order.orderNumber} separado — SEDOM`,
     title: 'Medicamento separado',
     body: (firstName) =>
       `<p>Olá, ${firstName}. Seu medicamento já foi separado e será encaminhado para entrega em breve.</p>`,
   },
   em_rota: {
-    subject: (order) => `Pedido ${order.orderNumber} saiu para entrega — UPA Entrega`,
+    subject: (order) => `Pedido ${order.orderNumber} saiu para entrega — SEDOM`,
     title: 'Pedido em rota',
     body: (firstName) =>
       `<p>Olá, ${firstName}. Seu medicamento saiu para entrega. Tenha em mãos o código que você recebeu por e-mail (ou o comprovante impresso) para informar ao entregador.</p>`,
   },
   entregue: {
-    subject: (order) => `Pedido ${order.orderNumber} entregue — UPA Entrega`,
+    subject: (order) => `Pedido ${order.orderNumber} entregue — SEDOM`,
     title: 'Entrega concluída',
     body: (firstName) =>
-      `<p>Olá, ${firstName}. Sua entrega de medicamento foi registrada como concluída. Em caso de dúvidas, entre em contato com a UPA.</p>`,
+      `<p>Olá, ${firstName}. Sua entrega de medicamento foi registrada como concluída. Em caso de dúvidas, entre em contato com a unidade de saúde.</p>`,
   },
   tentativa_falha: {
-    subject: (order) => `Pedido ${order.orderNumber}: entrega não concluída — UPA Entrega`,
+    subject: (order) => `Pedido ${order.orderNumber}: entrega não concluída — SEDOM`,
     title: 'Tentativa de entrega não concluída',
     body: (firstName) =>
       `<p>Olá, ${firstName}. Não foi possível concluir a entrega do seu medicamento nesta tentativa. A unidade poderá entrar em contato para orientar os próximos passos.</p>`,

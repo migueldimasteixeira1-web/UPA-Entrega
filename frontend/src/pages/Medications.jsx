@@ -118,7 +118,7 @@ export default function Medications() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Catálogo de medicamentos</h1>
           <p className="text-slate-500 mt-1">
-            Cada medicamento pode ter várias apresentações (dosagens diferentes). O controle de estoque é feito pela farmácia da UPA, fora deste sistema.
+            Cada medicamento pode ter várias apresentações (dosagens diferentes). O controle de estoque é feito pela farmácia da unidade de saúde, fora deste sistema.
           </p>
         </div>
         <button type="button" onClick={openCreateMed} className={buttonClassName('primary', 'md', 'w-full sm:w-auto')}>

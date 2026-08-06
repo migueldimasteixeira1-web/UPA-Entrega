@@ -30,7 +30,7 @@ function getTransporter() {
 }
 
 export async function sendEmail({ to, subject, html, attachments }) {
-  const from = process.env.SMTP_FROM || 'UPA Entrega <nao-responda@upa-entrega.local>';
+  const from = process.env.SMTP_FROM || 'SEDOM <nao-responda@sedom.local>';
   const client = getTransporter();
 
   if (!client) {

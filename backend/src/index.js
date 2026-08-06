@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3001;
 const app = createApp();
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`UPA Entrega API running on port ${PORT}`);
+  console.log(`SEDOM API running on port ${PORT}`);
 });
 
 startEmailWorker();

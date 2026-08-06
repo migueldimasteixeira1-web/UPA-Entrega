@@ -15,7 +15,7 @@ fi
 mkdir -p "$BACKUP_DIR"
 
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-FILE="$BACKUP_DIR/upa_entrega-storage-$TIMESTAMP.tar.gz"
+FILE="$BACKUP_DIR/sedom-storage-$TIMESTAMP.tar.gz"
 TMP_FILE="$FILE.tmp"
 
 # --volumes-from reaproveita o mount do volume nomeado do container minio,
@@ -29,4 +29,4 @@ mv "$TMP_FILE" "$FILE"
 
 echo "Backup do storage salvo em $FILE ($(du -h "$FILE" | cut -f1))"
 
-find "$BACKUP_DIR" -maxdepth 1 -name 'upa_entrega-storage-*.tar.gz' -mtime "+$RETENTION_DAYS" -print -delete
+find "$BACKUP_DIR" -maxdepth 1 -name 'sedom-storage-*.tar.gz' -mtime "+$RETENTION_DAYS" -print -delete

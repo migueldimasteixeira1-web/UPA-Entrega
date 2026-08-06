@@ -41,7 +41,7 @@ export default function Login() {
       />
 
       <div className="relative w-full max-w-md flex flex-col items-center gap-6 sm:gap-8">
-        <AppBrand variant="login" subtitle="Acesso restrito à equipe da UPA" />
+        <AppBrand variant="login" subtitle="Acesso restrito à equipe da unidade de saúde" />
 
         <div className="w-full bg-white rounded-2xl shadow-xl shadow-slate-900/5 border border-slate-200/80 overflow-hidden">
           <div className="h-1.5 bg-gradient-to-r from-upa-600 via-upa-800 to-upa-900" />
@@ -103,7 +103,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-xs text-slate-400">
-          Sistema interno da UPA — acesso autorizado apenas
+          Sistema interno da unidade de saúde — acesso autorizado apenas
         </p>
 
         <MunicipalityBrand className="pt-2" logoClassName="h-9 w-auto max-w-[180px]" />

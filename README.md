@@ -1,6 +1,6 @@
-# UPA Entrega
+# SEDOM
 
-Sistema interno para gestão da **logística de entrega domiciliar de medicamentos** da UPA. O sistema não interfere no atendimento médico, na emissão de receitas nem na dispensação/estoque de medicamentos — esses processos continuam nos sistemas oficiais da unidade. Aqui é controlado apenas o ciclo da entrega: do registro do pedido até a confirmação do recebimento pelo paciente, por um entregador da própria UPA, sem custo para o paciente.
+Sistema interno para gestão da **logística de entrega domiciliar de medicamentos** da unidade de saúde. O sistema não interfere no atendimento médico, na emissão de receitas nem na dispensação/estoque de medicamentos — esses processos continuam nos sistemas oficiais da unidade. Aqui é controlado apenas o ciclo da entrega: do registro do pedido até a confirmação do recebimento pelo paciente, por um entregador da própria unidade de saúde, sem custo para o paciente.
 
 ## Stack
 
@@ -23,7 +23,7 @@ Sistema interno para gestão da **logística de entrega domiciliar de medicament
 | 9000 / 9001 | MinIO (API / console web)             | Dev (`compose.dev.yaml`); produção não expõe pro host |
 | 3001        | Backend (API)                         | Dev (`compose.dev.yaml` ou `iniciar-local.sh`) |
 | 5173        | Frontend (Vite dev server)            | Dev (`compose.dev.yaml` ou `iniciar-local.sh`) |
-| 80 / 443    | Gateway Nginx (`UPA_PORT`/`UPA_HTTPS_PORT`) | Produção |
+| 80 / 443    | Gateway Nginx (`APP_PORT`/`APP_HTTPS_PORT`) | Produção |
 
 ## Estrutura
 
@@ -64,12 +64,12 @@ Ou: `make vm`
 
 | Serviço  | URL                         |
 |----------|-----------------------------|
-| App      | `https://IP-OU-DNS` (porta `UPA_HTTPS_PORT`, padrão 443; porta 80 redireciona) |
+| App      | `https://IP-OU-DNS` (porta `APP_HTTPS_PORT`, padrão 443; porta 80 redireciona) |
 | Health   | `https://IP-OU-DNS/api/health` |
 
 A API e o frontend ficam na **mesma origem**, atrás de um único Nginx que serve os arquivos estáticos e faz proxy de `/api` para o backend. Isso funciona no celular e em qualquer dispositivo da rede sem CORS especial.
 
-**TLS:** por padrão o script gera um certificado **autoassinado** (`deploy/generate-self-signed-cert.sh`, CN tirado de `PUBLIC_APP_URL`) — o navegador vai alertar que não é confiável, mas o tráfego continua criptografado; é suficiente para uso interno na rede da UPA. Para expor com um domínio público, substitua `deploy/certs/fullchain.pem` e `deploy/certs/privkey.pem` por um certificado real (ex.: Let's Encrypt) e reinicie o serviço `gateway`.
+**TLS:** por padrão o script gera um certificado **autoassinado** (`deploy/generate-self-signed-cert.sh`, CN tirado de `PUBLIC_APP_URL`) — o navegador vai alertar que não é confiável, mas o tráfego continua criptografado; é suficiente para uso interno na rede da unidade de saúde. Para expor com um domínio público, substitua `deploy/certs/fullchain.pem` e `deploy/certs/privkey.pem` por um certificado real (ex.: Let's Encrypt) e reinicie o serviço `gateway`.
 
 Variáveis principais (`.env`):
 
@@ -77,7 +77,7 @@ Variáveis principais (`.env`):
 |----------|--------|
 | `PUBLIC_APP_URL` | URL pública, **https://** (CORS + links de acompanhamento/WhatsApp + CN do certificado) |
 | `CORS_ORIGINS` | Origens extras (vírgula), se necessário |
-| `UPA_PORT` / `UPA_HTTPS_PORT` | Portas publicadas do gateway (padrão 80/443) |
+| `APP_PORT`/`APP_HTTPS_PORT` | Portas publicadas do gateway (padrão 80/443) |
 | `JWT_SECRET` | Secret forte (≥ 32 caracteres) |
 | `POSTGRES_PASSWORD` | Senha do banco (≥ 12 caracteres) |
 | `SEED_DEMO_DATA` | `true` só na 1ª subida / homologação |
@@ -91,21 +91,21 @@ O volume `postgres_data` sozinho não é backup — perder o volume (disco corro
 # ou: make backup
 ```
 
-Gera `backups/upa_entrega-AAAAMMDD-HHMMSS.sql.gz` (fora do volume do container) e apaga automaticamente dumps com mais de 14 dias (`RETENTION_DAYS` no `.env` para mudar). `backups/` é ignorado pelo git — nunca comitar (tem dado de paciente).
+Gera `backups/sedom-AAAAMMDD-HHMMSS.sql.gz` (fora do volume do container) e apaga automaticamente dumps com mais de 14 dias (`RETENTION_DAYS` no `.env` para mudar). `backups/` é ignorado pelo git — nunca comitar (tem dado de paciente).
 
 **Agendar (cron na VM):**
 
 ```bash
 crontab -e
-# Backup diário às 3h, log em /var/log/upa-backup.log:
-0 3 * * * cd /caminho/do/projeto && ./deploy/backup-db.sh >> /var/log/upa-backup.log 2>&1
+# Backup diário às 3h, log em /var/log/sedom-backup.log:
+0 3 * * * cd /caminho/do/projeto && ./deploy/backup-db.sh >> /var/log/sedom-backup.log 2>&1
 ```
 
 **Restaurar:**
 
 ```bash
-./deploy/restore-db.sh backups/upa_entrega-AAAAMMDD-HHMMSS.sql.gz
-# ou: make restore FILE=backups/upa_entrega-AAAAMMDD-HHMMSS.sql.gz
+./deploy/restore-db.sh backups/sedom-AAAAMMDD-HHMMSS.sql.gz
+# ou: make restore FILE=backups/sedom-AAAAMMDD-HHMMSS.sql.gz
 ```
 
 Pede confirmação explícita antes de sobrescrever o banco atual. O dump é gerado com `--clean --if-exists`, então o mesmo arquivo restaura tanto num banco vazio (recuperação de desastre) quanto por cima de um banco já existente.
@@ -119,11 +119,11 @@ Mesmo raciocínio do banco: o volume `minio_data` sozinho não é backup. Anexos
 # ou: make backup-storage
 ```
 
-Gera `backups/upa_entrega-storage-AAAAMMDD-HHMMSS.tar.gz`, mesma retenção/rotação do backup do banco. Restaurar:
+Gera `backups/sedom-storage-AAAAMMDD-HHMMSS.tar.gz`, mesma retenção/rotação do backup do banco. Restaurar:
 
 ```bash
-./deploy/restore-storage.sh backups/upa_entrega-storage-AAAAMMDD-HHMMSS.tar.gz
-# ou: make restore-storage FILE=backups/upa_entrega-storage-AAAAMMDD-HHMMSS.tar.gz
+./deploy/restore-storage.sh backups/sedom-storage-AAAAMMDD-HHMMSS.tar.gz
+# ou: make restore-storage FILE=backups/sedom-storage-AAAAMMDD-HHMMSS.tar.gz
 ```
 
 ## Desenvolvimento local (sem Docker full)
@@ -181,7 +181,7 @@ Backend (`vitest` + `supertest`, integração contra Postgres/MinIO reais — na
 docker compose -f compose.dev.yaml up -d db minio   # se ainda não estiver rodando
 
 cd backend
-TEST_DATABASE_URL="postgresql://upa:upa_secret@localhost:5432/upa_entrega_test?schema=public" \
+TEST_DATABASE_URL="postgresql://sedom:sedom_secret@localhost:5432/sedom_entrega_test?schema=public" \
 TEST_S3_ENDPOINT="http://localhost:9000" \
 npm test
 
@@ -195,11 +195,11 @@ O CI (`.github/workflows/ci.yml`) roda a mesma suíte (backend + frontend + buil
 
 ## Credenciais iniciais (seed)
 
-| Perfil      | E-mail                | Senha           |
-|-------------|------------------------|-----------------|
-| Admin       | admin@upa.local        | Admin@123       |
-| Operador    | operador@upa.local     | Operador@123    |
-| Entregador  | entregador@upa.local   | Entregador@123  |
+| Perfil      | E-mail                  | Senha           |
+|-------------|--------------------------|-----------------|
+| Admin       | admin@sedom.local        | Admin@123       |
+| Operador    | operador@sedom.local     | Operador@123    |
+| Entregador  | entregador@sedom.local   | Entregador@123  |
 
 ## Papéis de usuário
 
