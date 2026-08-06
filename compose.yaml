@@ -39,6 +39,16 @@ services:
       S3_BUCKET: ${S3_BUCKET:-upa-entrega}
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:?Defina S3_ACCESS_KEY no arquivo .env}
       S3_SECRET_KEY: ${S3_SECRET_KEY:?Defina S3_SECRET_KEY no arquivo .env}
+      # Opcionais — sem SMTP_HOST o e-mail só loga (nunca bloqueia a criação
+      # do pedido); sem ORS_API_KEY o despacho cai pra ordem FIFO em vez de
+      # otimizada. Ver docs/integracoes-externas.md.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      ORS_API_KEY: ${ORS_API_KEY:-}
     expose:
       - "3001"
     depends_on:
