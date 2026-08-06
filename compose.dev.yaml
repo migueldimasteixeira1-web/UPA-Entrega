@@ -49,6 +49,18 @@ services:
       S3_BUCKET: upa-entrega
       S3_ACCESS_KEY: minioadmin
       S3_SECRET_KEY: minioadmin
+      # Opcionais — vazios por padrão (mesmo comportamento de sempre: e-mail
+      # só loga no console, otimização de rota cai pro FIFO). Pra testar de
+      # verdade rodando a stack completa em Docker, exporte no shell antes
+      # do `docker compose up` ou crie um `.env` na raiz do projeto (o
+      # Compose lê automaticamente, independente do -f usado).
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      ORS_API_KEY: ${ORS_API_KEY:-}
     ports:
       - "3001:3001"
     depends_on:
