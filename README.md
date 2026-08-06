@@ -60,6 +60,8 @@ chmod +x scripts/iniciar-vm.sh
 
 Ou: `make vm`
 
+**Recomeçar do zero** (apaga volumes — banco e storage — e sobe de novo): `make reset` (ou `docker compose down -v && docker compose up --build`). Destrutivo — faça backup antes se houver dado real (ver "Backup do banco" abaixo).
+
 | Serviço  | URL                         |
 |----------|-----------------------------|
 | App      | `https://IP-OU-DNS` (porta `UPA_HTTPS_PORT`, padrão 443; porta 80 redireciona) |
@@ -149,6 +151,26 @@ cd frontend && npm ci && npm run dev
 ```bash
 docker compose -f compose.dev.yaml up --build
 # ou: make dev-up
+```
+
+### Resetar o banco de desenvolvimento
+
+Apaga tudo (dado de seed incluído) e recomeça do zero — útil depois de mexer em migração ou só pra voltar a um estado limpo.
+
+**Stack completa em Docker:**
+
+```bash
+docker compose -f compose.dev.yaml down -v
+docker compose -f compose.dev.yaml up --build
+# ou: make dev-reset
+```
+
+**DB/MinIO no Docker + processos no host** (fluxo "Só o banco/storage + processos manuais" acima):
+
+```bash
+docker compose -f compose.dev.yaml down -v
+docker compose -f compose.dev.yaml up -d db minio
+cd backend && npx prisma migrate deploy && npm run db:seed
 ```
 
 ## Testes
