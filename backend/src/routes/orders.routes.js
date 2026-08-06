@@ -118,7 +118,7 @@ export async function exportOrdersCsv(req, res) {
     ]);
 
     const csv = toCsv(CSV_HEADERS, rows);
-    const filename = `upa-entrega-pedidos-${new Date().toISOString().slice(0, 10)}.csv`;
+    const filename = `sedom-pedidos-${new Date().toISOString().slice(0, 10)}.csv`;
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);

@@ -21,22 +21,22 @@ async function main() {
   console.log('🌱 Iniciando seed...');
 
   const admin = await ensureUser({
-    name: 'Administrador UPA',
-    email: 'admin@upa.local',
+    name: 'Administrador SEDOM',
+    email: 'admin@sedom.local',
     password: 'Admin@123',
     role: 'ADMIN',
   });
 
   await ensureUser({
-    name: 'Operador UPA',
-    email: 'operador@upa.local',
+    name: 'Operador SEDOM',
+    email: 'operador@sedom.local',
     password: 'Operador@123',
     role: 'OPERADOR',
   });
 
   const courier = await ensureUser({
     name: 'Carlos Entregador',
-    email: 'entregador@upa.local',
+    email: 'entregador@sedom.local',
     password: 'Entregador@123',
     role: 'ENTREGADOR',
   });

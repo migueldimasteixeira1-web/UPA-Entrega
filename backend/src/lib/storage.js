@@ -6,7 +6,7 @@ import sharp from 'sharp';
 // MinIO self-hosted (S3-compatible) — não Postgres bytea, pensado pra não
 // inflar o backup do banco e pra dar um caminho de migração direto pra S3
 // real (mesma API) se um dia sair da VM única. Ver issue #38.
-const BUCKET = process.env.S3_BUCKET || 'upa-entrega';
+const BUCKET = process.env.S3_BUCKET || 'sedom';
 
 const client = new S3Client({
   endpoint: process.env.S3_ENDPOINT || 'http://minio:9000',
