@@ -7,7 +7,7 @@ Fonte de verdade: `backend/prisma/schema.prisma`. Este documento explica o *porq
 ```
 Patient ──< Address ──< Order >── Route
    │                      │  │
-   │                      │  └──< OrderItem >── Medication
+   │                      │  └──< OrderItem >── MedicationPresentation >── Medication
    │                      │
    │                      └──< OrderHistory
    │                      └──< EmailNotification
@@ -37,6 +37,12 @@ Os dois existem e não são a mesma coisa:
 - `Order.latitude/longitude` — copiado do endereço **no momento da criação do pedido** (snapshot, mesmo raciocínio do resto dos campos duplicados).
 
 A otimização de rota (issue #73) usa a coordenada do **pedido**, não do endereço — importante se um dia alguém for debugar "por que essa rota não ficou otimizada direito" e for procurar no lugar errado.
+
+## `Medication` / `MedicationPresentation` — por que medicamento e dosagem são tabelas separadas
+
+`Medication` guarda só o princípio ativo/nome (ex.: "Amoxicilina") + status. `MedicationPresentation` guarda cada dosagem+unidade daquele medicamento (ex.: "500mg"/cápsula, "875mg"/comprimido) como uma linha própria, N:1 com `Medication`. Antes disso (epic #81), esses dois dados viviam numa linha só — cadastrar "Amoxicilina 500mg" e "Amoxicilina 875mg" exigia duas linhas totalmente separadas no catálogo, sem nenhuma relação entre elas. A separação segue o mesmo raciocínio que a própria ANVISA usa entre princípio ativo e apresentação (pesquisa completa no epic #81).
+
+`OrderItem` referencia a **apresentação** (`medicationPresentationId`), não o medicamento direto — e segue o mesmo padrão de snapshot do resto deste documento: `medicationName`/`dosage`/`unit` são copiados no momento da criação do pedido, não recalculados depois. Se a apresentação for desativada ou o medicamento renomeado mais tarde, pedidos antigos continuam mostrando o que tinham na criação.
 
 ## `DailyCounter` — por que existe uma tabela só pra contador
 
