@@ -39,7 +39,7 @@ export function buildReceiptPdf(order) {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    doc.fontSize(18).font('Helvetica-Bold').fillColor('#0f4c65').text('UPA Entrega');
+    doc.fontSize(18).font('Helvetica-Bold').fillColor('#0f4c65').text('SEDOM');
     doc.fontSize(12).font('Helvetica').fillColor('#475569').text('Comprovante de pedido');
     doc.moveDown(0.8);
     doc

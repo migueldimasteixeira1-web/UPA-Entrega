@@ -801,8 +801,8 @@ export async function resendConfirmationEmail(req, res) {
 }
 
 const PUBLIC_STATUS_MESSAGES = {
-  PEDIDO_RECEBIDO: 'Seu pedido foi registrado pela UPA e será separado em breve.',
-  EM_SEPARACAO: 'Seu medicamento está sendo separado na farmácia da UPA.',
+  PEDIDO_RECEBIDO: 'Seu pedido foi registrado pela unidade de saúde e será separado em breve.',
+  EM_SEPARACAO: 'Seu medicamento está sendo separado na farmácia da unidade de saúde.',
   SEPARADO: 'Seu medicamento já foi separado e será encaminhado para entrega.',
   AGUARDANDO_SAIDA: 'Seu pedido está pronto e aguardando saída para entrega.',
   EM_ROTA: 'Seu medicamento está a caminho do seu endereço.',
@@ -856,7 +856,7 @@ export async function getPublicOrder(req, res) {
 
 // Mesmo comprovante de getReceiptPdf, mas pelo token público — o próprio
 // paciente consegue baixar de novo se perder o e-mail, sem login e sem
-// precisar ligar pra UPA (issue #40).
+// precisar ligar pra unidade de saúde (issue #40).
 export async function getPublicReceiptPdf(req, res) {
   try {
     const order = await prisma.order.findUnique({ where: { publicToken: req.params.token }, include: orderInclude });

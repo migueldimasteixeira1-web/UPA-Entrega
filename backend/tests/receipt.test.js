@@ -16,7 +16,7 @@ import prisma from '../src/lib/prisma.js';
 describe('Receipt PDF generation (issue #40)', () => {
   it('builds a valid PDF with the order data, never the PIN', async () => {
     const order = {
-      orderNumber: 'UPA-20260804-001',
+      orderNumber: 'SEDOM-20260804-001',
       createdAt: new Date(),
       createdBy: { name: 'Ana Operadora' },
       patientName: 'João da Silva',
