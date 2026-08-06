@@ -62,7 +62,7 @@ describe('Patient e-mail is required on creation (issue #40)', () => {
     const { address } = await createPatientWithAddress();
 
     const res = await postOrder(token, {
-      patient: { name: 'Novo Paciente', phone: '22999990000', cpf: '32165498700' },
+      patient: { name: 'Novo Paciente', phone: '22999990000', cpf: '32165498791' },
       addressId: address.id,
       items: [{ medicationId: medication.id, quantity: 1 }],
     });
