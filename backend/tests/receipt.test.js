@@ -64,7 +64,7 @@ describe('Patient e-mail is required on creation (issue #40)', () => {
     const res = await postOrder(token, {
       patient: { name: 'Novo Paciente', phone: '22999990000', cpf: '32165498791' },
       addressId: address.id,
-      items: [{ medicationId: medication.id, quantity: 1 }],
+      items: [{ medicationPresentationId: medication.presentationId, quantity: 1 }],
     });
 
     expect(res.status).toBe(400);
@@ -79,7 +79,7 @@ describe('Receipt PDF endpoints', () => {
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       extra: { patientEmail: 'paciente@example.com' },
     });
@@ -144,7 +144,7 @@ describe('Email worker attaches the receipt PDF to the confirmation e-mail', () 
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       extra: { patientEmail: 'paciente@example.com' },
     });
@@ -176,7 +176,7 @@ describe('Email worker attaches the receipt PDF to the confirmation e-mail', () 
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'EM_SEPARACAO',
       extra: { patientEmail: 'paciente@example.com' },

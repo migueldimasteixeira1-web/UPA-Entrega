@@ -86,14 +86,30 @@ model Address {
   orders  Order[]
 }
 
+// Princípio ativo/nome comercial (ex.: "Amoxicilina"), sem dosagem — a
+// dosagem vive em MedicationPresentation, pra não obrigar recadastrar o
+// nome inteiro a cada variação de dosagem (500mg, 875mg, 250mg...). Mesma
+// separação que a própria ANVISA usa (princípio ativo x apresentação).
 model Medication {
   id        String   @id @default(uuid())
   name      String
-  unit      String   @default("unidade")
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  presentations MedicationPresentation[]
+}
+
+model MedicationPresentation {
+  id           String   @id @default(uuid())
+  medicationId String
+  dosage       String
+  unit         String   @default("unidade")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  medication Medication  @relation(fields: [medicationId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]
 }
 
@@ -163,15 +179,19 @@ model Order {
 }
 
 model OrderItem {
-  id             String @id @default(uuid())
-  orderId        String
-  medicationId   String
-  quantity       Int
-  medicationName String
-  unit           String
+  id                       String @id @default(uuid())
+  orderId                  String
+  medicationPresentationId String
+  quantity                 Int
+  // Snapshot no momento da criação do pedido (mesmo padrão do resto do
+  // projeto) — nome/dosagem/unidade não mudam depois mesmo se o catálogo for
+  // editado ou a apresentação desativada.
+  medicationName           String
+  dosage                   String
+  unit                     String
 
-  order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  medication Medication @relation(fields: [medicationId], references: [id])
+  order                  Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  medicationPresentation MedicationPresentation @relation(fields: [medicationPresentationId], references: [id])
 }
 
 model OrderHistory {

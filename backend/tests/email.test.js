@@ -31,7 +31,7 @@ describe('Confirmation email on order creation', () => {
     const res = await postOrder(token, {
       patientId: patient.id,
       addressId: address.id,
-      items: [{ medicationId: medication.id, quantity: 1 }],
+      items: [{ medicationPresentationId: medication.presentationId, quantity: 1 }],
     });
 
     expect(res.status).toBe(201);
@@ -59,7 +59,7 @@ describe('Confirmation email on order creation', () => {
     const res = await postOrder(token, {
       patientId: patient.id,
       addressId: address.id,
-      items: [{ medicationId: medication.id, quantity: 1 }],
+      items: [{ medicationPresentationId: medication.presentationId, quantity: 1 }],
     });
 
     expect(res.status).toBe(201);
@@ -75,7 +75,7 @@ describe('Confirmation email on order creation', () => {
     const res = await postOrder(token, {
       patientId: patient.id,
       addressId: address.id,
-      items: [{ medicationId: medication.id, quantity: 1 }],
+      items: [{ medicationPresentationId: medication.presentationId, quantity: 1 }],
     });
 
     expect(res.body.emails).toBeUndefined();
@@ -98,7 +98,7 @@ describe('Resend confirmation e-mail', () => {
     order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: operator.id,
       extra: { patientEmail: 'paciente@example.com' },
     });
@@ -145,7 +145,7 @@ describe('Resend confirmation e-mail', () => {
     const neverEmailedOrder = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: (await createUser({ role: 'ADMIN' })).id,
       extra: { patientEmail: 'novo@example.com' },
     });
@@ -163,7 +163,7 @@ describe('Resend confirmation e-mail', () => {
     const noEmailOrder = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: (await createUser({ role: 'ADMIN' })).id,
     });
 
@@ -190,7 +190,7 @@ describe('Email worker', () => {
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: (await createUser({ role: 'ADMIN' })).id,
       extra: { patientEmail: 'paciente@example.com' },
     });
@@ -240,7 +240,7 @@ describe('Status update emails', () => {
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'EM_SEPARACAO',
       extra: { patientEmail: 'paciente@example.com' },
@@ -262,7 +262,7 @@ describe('Status update emails', () => {
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'AGUARDANDO_SAIDA',
       extra: { patientEmail: 'paciente@example.com' },
@@ -284,7 +284,7 @@ describe('Status update emails', () => {
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'AGUARDANDO_SAIDA',
       extra: { patientEmail: 'paciente@example.com' },
@@ -310,7 +310,7 @@ describe('Status update emails', () => {
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'AGUARDANDO_SAIDA',
       extra: { patientEmail: 'paciente@example.com' },
@@ -336,7 +336,7 @@ describe('Status update emails', () => {
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'PEDIDO_RECEBIDO',
       extra: { patientEmail: 'paciente@example.com' },

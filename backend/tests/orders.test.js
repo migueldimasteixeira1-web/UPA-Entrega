@@ -19,7 +19,7 @@ describe('Order status transitions', () => {
     const res = await postOrder(token, {
       patientId: patient.id,
       addressId: address.id,
-      items: [{ medicationId: medication.id, quantity: 2 }],
+      items: [{ medicationPresentationId: medication.presentationId, quantity: 2 }],
     });
 
     expect(res.status).toBe(201);
@@ -34,7 +34,7 @@ describe('Order status transitions', () => {
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: (await createUser({ role: 'ADMIN' })).id,
     });
 
@@ -53,7 +53,7 @@ describe('Order status transitions', () => {
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: (await createUser({ role: 'ADMIN' })).id,
     });
 
@@ -70,7 +70,7 @@ describe('Order status transitions', () => {
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: (await createUser({ role: 'ADMIN' })).id,
     });
 
@@ -87,7 +87,7 @@ describe('Order status transitions', () => {
     await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: (await createUser({ role: 'ADMIN' })).id,
       extra: { patientCpf: '12345678900' },
     });
@@ -105,7 +105,7 @@ describe('Order status transitions', () => {
     const payload = {
       patientId: patient.id,
       addressId: address.id,
-      items: [{ medicationId: medication.id, quantity: 1 }],
+      items: [{ medicationPresentationId: medication.presentationId, quantity: 1 }],
     };
 
     const responses = await Promise.all(
@@ -140,7 +140,7 @@ describe('GET /api/orders filters', () => {
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       extra: { patientCpf: '98765432100' },
     });
@@ -161,14 +161,14 @@ describe('GET /api/orders filters', () => {
     const orderForA = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'AGUARDANDO_SAIDA',
     });
     const orderForB = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'AGUARDANDO_SAIDA',
     });
@@ -213,7 +213,7 @@ describe('GET /api/orders/report', () => {
     await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'CANCELADO',
       extra: { cancelReason: 'Paciente desistiu' },
@@ -221,7 +221,7 @@ describe('GET /api/orders/report', () => {
     await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'PEDIDO_RECEBIDO',
     });
@@ -249,7 +249,7 @@ describe('GET /api/orders/report', () => {
     await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'CANCELADO',
       extra: { cancelReason: 'Endereço errado, paciente mudou de bairro' },
@@ -282,7 +282,7 @@ describe('Order number generation survives a pre-existing, uncounted order', () 
     await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       extra: { orderNumber: `${prefix}-001` },
     });
@@ -290,7 +290,7 @@ describe('Order number generation survives a pre-existing, uncounted order', () 
     const res = await postOrder(token, {
       patientId: patient.id,
       addressId: address.id,
-      items: [{ medicationId: medication.id, quantity: 1 }],
+      items: [{ medicationPresentationId: medication.presentationId, quantity: 1 }],
     });
 
     expect(res.status).toBe(201);

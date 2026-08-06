@@ -89,14 +89,26 @@ export async function createPatientWithAddress(overrides = {}) {
   return { patient, address: patient.addresses[0] };
 }
 
+// Cria um Medicamento com uma Apresentação (dosagem+unidade) por baixo e
+// devolve os dois achatados num objeto só: `.id`/`.name`/`.active` são do
+// medicamento (usados pelos testes de CRUD de medicamento), `.presentationId`
+// é o que entra em item de pedido (medicationPresentationId).
 export async function createMedicationRecord(overrides = {}) {
-  return prisma.medication.create({
+  const medication = await prisma.medication.create({
     data: {
-      name: overrides.name || 'Dipirona 500mg',
-      unit: overrides.unit || 'comprimido',
+      name: overrides.name || 'Dipirona',
       active: overrides.active ?? true,
     },
   });
+  const presentation = await prisma.medicationPresentation.create({
+    data: {
+      medicationId: medication.id,
+      dosage: overrides.dosage || '500mg',
+      unit: overrides.unit || 'comprimido',
+      active: overrides.presentationActive ?? true,
+    },
+  });
+  return { ...medication, presentationId: presentation.id, dosage: presentation.dosage, unit: presentation.unit };
 }
 
 // PIN de teste fixo ('123456') — os testes que precisam confirmar entrega
@@ -104,7 +116,7 @@ export async function createMedicationRecord(overrides = {}) {
 // fluxo real (ver issue #37).
 export const TEST_PIN = '123456';
 
-export async function createOrderRecord({ patientId, addressId, medicationId, status = 'PEDIDO_RECEBIDO', createdById, extra = {} }) {
+export async function createOrderRecord({ patientId, addressId, medicationPresentationId, status = 'PEDIDO_RECEBIDO', createdById, extra = {} }) {
   const orderNumber = `TEST-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   return prisma.order.create({
     data: {
@@ -124,8 +136,9 @@ export async function createOrderRecord({ patientId, addressId, medicationId, st
       createdById,
       items: {
         create: {
-          medicationId,
-          medicationName: 'Dipirona 500mg',
+          medicationPresentationId,
+          medicationName: 'Dipirona',
+          dosage: '500mg',
           unit: 'comprimido',
           quantity: 1,
         },

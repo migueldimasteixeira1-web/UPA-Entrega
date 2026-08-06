@@ -31,7 +31,7 @@ describe('GET /api/orders/history', () => {
     const createRes = await postOrder(adminToken, {
       patientId: patient.id,
       addressId: address.id,
-      items: [{ medicationId: medication.id, quantity: 1 }],
+      items: [{ medicationPresentationId: medication.presentationId, quantity: 1 }],
     });
     const orderId = createRes.body.id;
 
@@ -68,12 +68,12 @@ describe('GET /api/orders/history', () => {
     await postOrder(adminToken, {
       patientId: patient.id,
       addressId: address.id,
-      items: [{ medicationId: medication.id, quantity: 1 }],
+      items: [{ medicationPresentationId: medication.presentationId, quantity: 1 }],
     });
     await postOrder(otherToken, {
       patientId: patient.id,
       addressId: address.id,
-      items: [{ medicationId: medication.id, quantity: 1 }],
+      items: [{ medicationPresentationId: medication.presentationId, quantity: 1 }],
     });
 
     const res = await request(app)

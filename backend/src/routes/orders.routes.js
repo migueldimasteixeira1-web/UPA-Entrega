@@ -57,7 +57,7 @@ export async function listOrders(req, res) {
         route: { select: { routeNumber: true, courier: { select: { name: true } } } },
         items: {
           take: 1,
-          select: { medicationName: true, quantity: true, unit: true },
+          select: { medicationName: true, dosage: true, quantity: true, unit: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -375,15 +375,19 @@ export async function createOrder(req, res) {
 
       const orderItemsData = await Promise.all(
         items.map(async (item) => {
-          const med = await tx.medication.findUnique({ where: { id: item.medicationId } });
-          if (!med || !med.active) {
-            throw new Error(`Medicamento inválido: ${item.medicationId}`);
+          const presentation = await tx.medicationPresentation.findUnique({
+            where: { id: item.medicationPresentationId },
+            include: { medication: true },
+          });
+          if (!presentation || !presentation.active || !presentation.medication.active) {
+            throw new Error(`Medicamento inválido: ${item.medicationPresentationId}`);
           }
           return {
-            medicationId: med.id,
-            medicationName: med.name,
+            medicationPresentationId: presentation.id,
+            medicationName: presentation.medication.name,
+            dosage: presentation.dosage,
             quantity: item.quantity,
-            unit: med.unit,
+            unit: presentation.unit,
           };
         })
       );
@@ -483,15 +487,19 @@ export async function updateOrder(req, res) {
       if (body.items) {
         const orderItemsData = await Promise.all(
           body.items.map(async (item) => {
-            const med = await tx.medication.findUnique({ where: { id: item.medicationId } });
-            if (!med || !med.active) {
-              throw new Error(`Medicamento inválido: ${item.medicationId}`);
+            const presentation = await tx.medicationPresentation.findUnique({
+              where: { id: item.medicationPresentationId },
+              include: { medication: true },
+            });
+            if (!presentation || !presentation.active || !presentation.medication.active) {
+              throw new Error(`Medicamento inválido: ${item.medicationPresentationId}`);
             }
             return {
-              medicationId: med.id,
-              medicationName: med.name,
+              medicationPresentationId: presentation.id,
+              medicationName: presentation.medication.name,
+              dosage: presentation.dosage,
               quantity: item.quantity,
-              unit: med.unit,
+              unit: presentation.unit,
             };
           })
         );
@@ -807,7 +815,7 @@ export async function getPublicOrder(req, res) {
     const order = await prisma.order.findUnique({
       where: { publicToken: req.params.token },
       include: {
-        items: { select: { medicationName: true, quantity: true, unit: true } },
+        items: { select: { medicationName: true, dosage: true, quantity: true, unit: true } },
         route: { select: { courier: { select: { name: true } } } },
         history: {
           orderBy: { createdAt: 'asc' },

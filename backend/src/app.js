@@ -13,6 +13,8 @@ import {
   getMedication,
   createMedication,
   updateMedication,
+  createPresentation,
+  updatePresentation,
 } from './routes/medications.routes.js';
 import {
   getPatientByCpf,
@@ -62,6 +64,8 @@ import {
   createRouteSchema,
   createMedicationSchema,
   updateMedicationSchema,
+  createPresentationSchema,
+  updatePresentationSchema,
   createUserSchema,
   updateUserSchema,
   resetPasswordSchema,
@@ -245,6 +249,18 @@ export function createApp({ loginRateLimit, confirmDeliveryRateLimit, resendEmai
     requireRole('ADMIN', 'OPERADOR'),
     validateBody(updateMedicationSchema),
     updateMedication
+  );
+  app.post(
+    '/api/medications/:id/presentations',
+    requireRole('ADMIN', 'OPERADOR'),
+    validateBody(createPresentationSchema),
+    createPresentation
+  );
+  app.put(
+    '/api/medications/:id/presentations/:presentationId',
+    requireRole('ADMIN', 'OPERADOR'),
+    validateBody(updatePresentationSchema),
+    updatePresentation
   );
 
   app.get('/api/users', requireAdmin, listUsers);

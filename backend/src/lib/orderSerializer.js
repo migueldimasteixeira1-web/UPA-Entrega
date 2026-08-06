@@ -16,7 +16,14 @@ export const ORDER_INCLUDE = {
   },
   items: {
     include: {
-      medication: { select: { id: true, name: true, unit: true } },
+      medicationPresentation: {
+        select: {
+          id: true,
+          dosage: true,
+          unit: true,
+          medication: { select: { id: true, name: true } },
+        },
+      },
     },
   },
   history: {
@@ -53,7 +60,7 @@ function computeEmailStatus(order) {
 // comprovante impresso (issue #40).
 export function formatOrder(order) {
   const { deliveryPinHash, emails, prescriptionKey, deliveryProofKey, ...rest } = order;
-  const mainMedication = order.items?.[0]?.medicationName || order.items?.[0]?.medication?.name;
+  const mainMedication = order.items?.[0]?.medicationName || order.items?.[0]?.medicationPresentation?.medication?.name;
   return {
     ...rest,
     patientCpf: maskCpf(order.patientCpf),

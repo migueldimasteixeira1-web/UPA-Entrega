@@ -24,7 +24,7 @@ describe('Prescription upload on order creation', () => {
         JSON.stringify({
           patientId: patient.id,
           addressId: address.id,
-          items: [{ medicationId: medication.id, quantity: 1 }],
+          items: [{ medicationPresentationId: medication.presentationId, quantity: 1 }],
         })
       );
 
@@ -35,7 +35,7 @@ describe('Prescription upload on order creation', () => {
     const res = await postOrder(token, {
       patientId: patient.id,
       addressId: address.id,
-      items: [{ medicationId: medication.id, quantity: 1 }],
+      items: [{ medicationPresentationId: medication.presentationId, quantity: 1 }],
     });
 
     expect(res.status).toBe(201);
@@ -52,7 +52,7 @@ describe('Prescription upload on order creation', () => {
         JSON.stringify({
           patientId: patient.id,
           addressId: address.id,
-          items: [{ medicationId: medication.id, quantity: 1 }],
+          items: [{ medicationPresentationId: medication.presentationId, quantity: 1 }],
         })
       )
       .attach('prescription', Buffer.from('not an image'), { filename: 'receita.txt', contentType: 'text/plain' });
@@ -77,7 +77,7 @@ describe('GET /api/orders/:id/prescription', () => {
     const res = await postOrder(operatorToken, {
       patientId: patient.id,
       addressId: address.id,
-      items: [{ medicationId: medication.id, quantity: 1 }],
+      items: [{ medicationPresentationId: medication.presentationId, quantity: 1 }],
     });
     orderId = res.body.id;
   });
