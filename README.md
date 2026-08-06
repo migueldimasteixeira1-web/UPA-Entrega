@@ -129,6 +129,26 @@ docker compose -f compose.dev.yaml up --build
 # ou: make dev-up
 ```
 
+## Testes
+
+Backend (`vitest` + `supertest`, integração contra Postgres/MinIO reais — nada mockado) e frontend (`vitest` + Testing Library, mockando `fetch`) têm suítes separadas.
+
+```bash
+docker compose -f compose.dev.yaml up -d db minio   # se ainda não estiver rodando
+
+cd backend
+TEST_DATABASE_URL="postgresql://upa:upa_secret@localhost:5432/upa_entrega_test?schema=public" \
+TEST_S3_ENDPOINT="http://localhost:9000" \
+npm test
+
+cd ../frontend
+npm test
+```
+
+**Por que as duas variáveis no backend:** os defaults em `backend/tests/globalSetup.js` (hostnames `db`/`minio`) são internos da rede do Docker Compose — só resolvem de dentro de um container. Rodando `npm test` no host (fora do Docker, que é o caso normal de desenvolvimento), é preciso sobrescrever os dois pra `localhost`; sem isso o teste falha de cara com `P1001: Can't reach database server at db:5432`.
+
+O CI (`.github/workflows/ci.yml`) roda a mesma suíte (backend + frontend + build do frontend) a cada push/PR, com essas variáveis já configuradas via um serviço Postgres/MinIO efêmero — falha lá indica o mesmo problema que falharia localmente.
+
 ## Credenciais iniciais (seed)
 
 | Perfil      | E-mail                | Senha           |
