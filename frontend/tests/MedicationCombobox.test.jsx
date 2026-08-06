@@ -4,9 +4,9 @@ import userEvent from '@testing-library/user-event';
 import MedicationCombobox from '../src/components/MedicationCombobox';
 
 const medications = [
-  { id: '1', name: 'Dipirona 500mg', unit: 'comprimido' },
-  { id: '2', name: 'Paracetamol 750mg', unit: 'comprimido' },
-  { id: '3', name: 'Amoxicilina 500mg', unit: 'cápsula' },
+  { id: '1', name: 'Dipirona', presentations: [{ id: 'p1', dosage: '500mg', unit: 'comprimido', active: true }] },
+  { id: '2', name: 'Paracetamol', presentations: [{ id: 'p2', dosage: '750mg', unit: 'comprimido', active: true }] },
+  { id: '3', name: 'Amoxicilina', presentations: [{ id: 'p3', dosage: '500mg', unit: 'cápsula', active: true }] },
 ];
 
 describe('MedicationCombobox', () => {
@@ -16,9 +16,9 @@ describe('MedicationCombobox', () => {
 
     await user.click(screen.getByRole('combobox'));
 
-    expect(screen.getByText(/Dipirona 500mg/)).toBeInTheDocument();
-    expect(screen.getByText(/Paracetamol 750mg/)).toBeInTheDocument();
-    expect(screen.getByText(/Amoxicilina 500mg/)).toBeInTheDocument();
+    expect(screen.getByText(/Dipirona/)).toBeInTheDocument();
+    expect(screen.getByText(/Paracetamol/)).toBeInTheDocument();
+    expect(screen.getByText(/Amoxicilina/)).toBeInTheDocument();
   });
 
   it('filters the list as the user types part of the name', async () => {
@@ -27,9 +27,9 @@ describe('MedicationCombobox', () => {
 
     await user.type(screen.getByRole('combobox'), 'para');
 
-    expect(screen.getByText(/Paracetamol 750mg/)).toBeInTheDocument();
-    expect(screen.queryByText(/Dipirona 500mg/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Amoxicilina 500mg/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Paracetamol/)).toBeInTheDocument();
+    expect(screen.queryByText(/Dipirona/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Amoxicilina/)).not.toBeInTheDocument();
   });
 
   it('calls onChange with the medication id when an option is clicked', async () => {
@@ -38,7 +38,7 @@ describe('MedicationCombobox', () => {
     render(<MedicationCombobox medications={medications} value="" onChange={onChange} />);
 
     await user.click(screen.getByRole('combobox'));
-    await user.click(screen.getByText(/Paracetamol 750mg/));
+    await user.click(screen.getByText(/Paracetamol/));
 
     expect(onChange).toHaveBeenCalledWith('2');
   });
@@ -46,7 +46,7 @@ describe('MedicationCombobox', () => {
   it('displays the currently selected medication label when not being edited', () => {
     render(<MedicationCombobox medications={medications} value="3" onChange={() => {}} />);
 
-    expect(screen.getByRole('combobox')).toHaveValue('Amoxicilina 500mg (cápsula)');
+    expect(screen.getByRole('combobox')).toHaveValue('Amoxicilina');
   });
 
   it('shows a message when no medication matches the query', async () => {

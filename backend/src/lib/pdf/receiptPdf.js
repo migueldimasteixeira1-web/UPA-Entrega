@@ -76,7 +76,7 @@ export function buildReceiptPdf(order) {
     label(doc, 'Medicamentos');
     doc.fontSize(11);
     for (const item of order.items || []) {
-      value(doc, `${item.quantity}x ${item.medicationName} (${item.unit})`);
+      value(doc, `${item.quantity}x ${item.medicationName} ${item.dosage} (${item.unit})`);
     }
 
     doc.moveDown(2);

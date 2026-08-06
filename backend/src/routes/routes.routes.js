@@ -12,7 +12,7 @@ const routeInclude = {
   orders: {
     orderBy: { routeSequence: 'asc' },
     include: {
-      items: { select: { medicationName: true, quantity: true, unit: true } },
+      items: { select: { medicationName: true, dosage: true, quantity: true, unit: true } },
     },
   },
 };

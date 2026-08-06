@@ -106,7 +106,7 @@ async function main() {
 
   const maria = await ensurePatient({
     name: 'Maria da Silva Santos',
-    cpf: '11122233344',
+    cpf: '11122233396',
     phone: '22999990001',
     addresses: [
       {
@@ -123,7 +123,7 @@ async function main() {
 
   const joao = await ensurePatient({
     name: 'João Pereira Costa',
-    cpf: '55566677788',
+    cpf: '55566677720',
     phone: '22999990002',
     addresses: [
       {

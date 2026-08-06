@@ -41,7 +41,7 @@ const emptyForm = {
   newAddress: emptyNewAddress,
   internalNotes: '',
   patientNotes: '',
-  items: [{ medicationId: '', quantity: 1 }],
+  items: [{ medicationId: '', presentationId: '', quantity: 1 }],
 };
 
 export default function NewOrder() {
@@ -65,10 +65,14 @@ export default function NewOrder() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
-  const { data: medications = [] } = useQuery({
+  const { data: allMedications = [] } = useQuery({
     queryKey: ['medications', { active: true }],
     queryFn: () => api.getMedications({ active: 'true' }),
   });
+  // Só medicamentos com pelo menos uma apresentação ativa aparecem pra
+  // seleção — um medicamento sem nenhuma dosagem disponível não tem o que
+  // escolher no segundo passo (dosagem).
+  const medications = allMedications.filter((m) => m.presentations.some((p) => p.active));
 
   const mutation = useMutation({
     mutationFn: (data) => api.createOrder(data, prescriptionFile),
@@ -151,7 +155,20 @@ export default function NewOrder() {
       items: f.items.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
     }));
   };
-  const addItem = () => setForm((f) => ({ ...f, items: [...f.items, { medicationId: '', quantity: 1 }] }));
+  // Trocar de medicamento invalida a dosagem escolhida antes (era de outro
+  // remédio) — auto-seleciona se só houver uma apresentação ativa, pra não
+  // exigir um clique extra no caso mais comum.
+  const updateItemMedication = (index, medicationId) => {
+    const med = medications.find((m) => m.id === medicationId);
+    const activePresentations = med?.presentations.filter((p) => p.active) || [];
+    const presentationId = activePresentations.length === 1 ? activePresentations[0].id : '';
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((item, i) => (i === index ? { ...item, medicationId, presentationId } : item)),
+    }));
+  };
+  const addItem = () =>
+    setForm((f) => ({ ...f, items: [...f.items, { medicationId: '', presentationId: '', quantity: 1 }] }));
   const removeItem = (index) =>
     setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
 
@@ -281,8 +298,8 @@ export default function NewOrder() {
 
     if (targetStep === 2) {
       const errors = {};
-      const validItems = form.items.filter((i) => i.medicationId && Number(i.quantity) > 0);
-      if (!validItems.length) errors.items = 'Selecione ao menos um medicamento';
+      const validItems = form.items.filter((i) => i.medicationId && i.presentationId && Number(i.quantity) > 0);
+      if (!validItems.length) errors.items = 'Selecione o medicamento e a dosagem de ao menos um item';
       return errors;
     }
 
@@ -338,8 +355,8 @@ export default function NewOrder() {
       internalNotes: form.internalNotes.trim() || undefined,
       patientNotes: form.patientNotes.trim() || undefined,
       items: form.items
-        .filter((i) => i.medicationId)
-        .map((i) => ({ medicationId: i.medicationId, quantity: Number(i.quantity) })),
+        .filter((i) => i.medicationId && i.presentationId)
+        .map((i) => ({ medicationPresentationId: i.presentationId, quantity: Number(i.quantity) })),
     };
 
     if (form.patientMode === 'existing') {
@@ -363,10 +380,11 @@ export default function NewOrder() {
   };
 
   const selectedMeds = form.items
-    .filter((i) => i.medicationId)
+    .filter((i) => i.medicationId && i.presentationId)
     .map((i) => {
       const med = medications.find((m) => m.id === i.medicationId);
-      return { ...med, quantity: i.quantity };
+      const presentation = med?.presentations.find((p) => p.id === i.presentationId);
+      return { id: i.presentationId, name: med?.name, dosage: presentation?.dosage, unit: presentation?.unit, quantity: i.quantity };
     });
 
   const selectedAddress = form.patient?.addresses?.find((a) => a.id === form.selectedAddressId);
@@ -468,6 +486,7 @@ export default function NewOrder() {
             fieldErrors={fieldErrors}
             medications={medications}
             updateField={updateField}
+            updateItemMedication={updateItemMedication}
             updateItem={updateItem}
             addItem={addItem}
             removeItem={removeItem}

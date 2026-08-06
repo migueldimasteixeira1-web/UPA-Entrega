@@ -334,7 +334,7 @@ export default function OrderDetail() {
               <div className="space-y-2">
                 {order.items?.map((item) => (
                   <div key={item.id} className="flex justify-between bg-slate-50 rounded-lg px-4 py-2 text-sm">
-                    <span>{item.medicationName}</span>
+                    <span>{item.medicationName} {item.dosage}</span>
                     <span className="text-slate-500">{item.quantity} {item.unit}(s)</span>
                   </div>
                 ))}

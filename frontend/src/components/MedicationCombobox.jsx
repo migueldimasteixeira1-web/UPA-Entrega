@@ -3,9 +3,12 @@ import { Search } from 'lucide-react';
 import { inputClassName } from './FormField';
 
 function labelFor(medication) {
-  return `${medication.name} (${medication.unit})`;
+  return medication.name;
 }
 
+// Busca só pelo medicamento (princípio ativo/nome) — a dosagem é escolhida
+// depois, num segundo controle (ver MedicationsStep), já que um mesmo
+// medicamento pode ter várias apresentações.
 export default function MedicationCombobox({ medications, value, onChange, placeholder = 'Buscar medicamento...' }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -111,7 +114,7 @@ export default function MedicationCombobox({ medications, value, onChange, place
                     index === highlightedIndex ? 'bg-upa-50 text-upa-900' : 'text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  {med.name} <span className="text-slate-400">({med.unit})</span>
+                  {med.name}
                 </button>
               </li>
             ))

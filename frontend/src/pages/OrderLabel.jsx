@@ -66,7 +66,7 @@ export default function OrderLabel() {
           <div className="pt-2 border-t border-slate-200">
             <p className="text-xs uppercase text-slate-500 font-semibold">Medicamentos</p>
             {order.items?.map((item) => (
-              <p key={item.id}>{item.quantity}x {item.medicationName}</p>
+              <p key={item.id}>{item.quantity}x {item.medicationName} {item.dosage}</p>
             ))}
           </div>
 
