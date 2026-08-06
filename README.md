@@ -8,14 +8,36 @@ Sistema interno para gestão da **logística de entrega domiciliar de medicament
 - **Frontend:** React, Vite, Tailwind CSS, TanStack Query
 - **Infra:** Docker Compose + Nginx (gateway com TLS, serve o frontend e faz proxy da API)
 
+## Requisitos
+
+- **Node.js 20** ou superior ([`iniciar-local.sh`](./iniciar-local.sh) valida isso e recusa rodar com uma versão mais antiga)
+- **Docker** + **Docker Compose v2** (subcomando `docker compose`, não o binário legado `docker-compose`)
+- `openssl` (gera o certificado TLS autoassinado) e `gzip` (backup do banco) — já vêm em qualquer distro Linux/macOS padrão
+- `make` — opcional, todos os alvos do [`Makefile`](./Makefile) têm o comando `docker compose`/script equivalente documentado ao lado
+
+## Portas usadas
+
+| Porta       | Serviço                              | Quando |
+|-------------|---------------------------------------|--------|
+| 5432        | PostgreSQL                            | Dev e produção (produção não expõe pro host) |
+| 9000 / 9001 | MinIO (API / console web)             | Dev (`compose.dev.yaml`); produção não expõe pro host |
+| 3001        | Backend (API)                         | Dev (`compose.dev.yaml` ou `iniciar-local.sh`) |
+| 5173        | Frontend (Vite dev server)            | Dev (`compose.dev.yaml` ou `iniciar-local.sh`) |
+| 80 / 443    | Gateway Nginx (`UPA_PORT`/`UPA_HTTPS_PORT`) | Produção |
+
 ## Estrutura
 
 ```text
 ├── backend/                        # API Express + Prisma
 ├── frontend/                       # React + Vite; a imagem de produção (Dockerfile) é o próprio gateway Nginx
+├── docs/                           # Arquitetura, modelo de dados, fluxos, integrações externas
 ├── deploy/generate-self-signed-cert.sh  # Gera certificado TLS autoassinado (deploy/certs/)
 ├── deploy/backup-db.sh             # Backup do Postgres (pg_dump + rotação)
 ├── deploy/restore-db.sh            # Restaura o Postgres a partir de um backup
+├── deploy/backup-storage.sh        # Backup dos anexos no MinIO (receitas, fotos)
+├── deploy/restore-storage.sh       # Restaura os anexos a partir de um backup
+├── .github/workflows/ci.yml        # CI: testes de backend/frontend + build, a cada push/PR
+├── Makefile                        # Atalhos pros comandos abaixo (make up, make backup, make vm...)
 ├── compose.yaml                    # Produção / VM
 ├── compose.dev.yaml                # Desenvolvimento com hot-reload
 ├── .env.vm.example                 # Modelo de variáveis para VM
