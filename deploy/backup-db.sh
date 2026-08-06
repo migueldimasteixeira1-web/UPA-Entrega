@@ -13,8 +13,8 @@ if [[ -f .env ]]; then
   set +a
 fi
 
-POSTGRES_USER="${POSTGRES_USER:-upa}"
-POSTGRES_DB="${POSTGRES_DB:-upa_entrega}"
+POSTGRES_USER="${POSTGRES_USER:-sedom}"
+POSTGRES_DB="${POSTGRES_DB:-sedom_entrega}"
 
 if ! docker compose ps db 2>/dev/null | grep -q Up; then
   echo "O serviço 'db' não está rodando (docker compose up). Nada para fazer backup."
@@ -24,7 +24,7 @@ fi
 mkdir -p "$BACKUP_DIR"
 
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-FILE="$BACKUP_DIR/upa_entrega-$TIMESTAMP.sql.gz"
+FILE="$BACKUP_DIR/sedom-$TIMESTAMP.sql.gz"
 TMP_FILE="$FILE.tmp"
 
 # --clean --if-exists: o dump inclui DROP antes de cada CREATE, então o
@@ -38,4 +38,4 @@ mv "$TMP_FILE" "$FILE"
 echo "Backup salvo em $FILE ($(du -h "$FILE" | cut -f1))"
 
 # Rotação: mantém só os últimos RETENTION_DAYS dias.
-find "$BACKUP_DIR" -maxdepth 1 -name 'upa_entrega-*.sql.gz' -mtime "+$RETENTION_DAYS" -print -delete
+find "$BACKUP_DIR" -maxdepth 1 -name 'sedom-*.sql.gz' -mtime "+$RETENTION_DAYS" -print -delete

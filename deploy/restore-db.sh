@@ -13,8 +13,8 @@ if [[ -f .env ]]; then
   set +a
 fi
 
-POSTGRES_USER="${POSTGRES_USER:-upa}"
-POSTGRES_DB="${POSTGRES_DB:-upa_entrega}"
+POSTGRES_USER="${POSTGRES_USER:-sedom}"
+POSTGRES_DB="${POSTGRES_DB:-sedom_entrega}"
 
 if ! docker compose ps db 2>/dev/null | grep -q Up; then
   echo "O serviço 'db' não está rodando (docker compose up)."

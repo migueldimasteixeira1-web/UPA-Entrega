@@ -1,7 +1,7 @@
 import { execSync } from 'node:child_process';
 
 const TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL || 'postgresql://upa:upa_secret@db:5432/upa_entrega_test?schema=public';
+  process.env.TEST_DATABASE_URL || 'postgresql://sedom:sedom_secret@db:5432/sedom_entrega_test?schema=public';
 const TEST_S3_ENDPOINT = process.env.TEST_S3_ENDPOINT || 'http://minio:9000';
 
 // Roda uma vez antes de toda a suíte (processo separado, fora do "environment"
@@ -15,7 +15,7 @@ export default async function globalSetup() {
   });
 
   process.env.S3_ENDPOINT = TEST_S3_ENDPOINT;
-  process.env.S3_BUCKET = 'upa-entrega-test';
+  process.env.S3_BUCKET = 'sedom-entrega-test';
   process.env.S3_ACCESS_KEY = 'minioadmin';
   process.env.S3_SECRET_KEY = 'minioadmin';
 

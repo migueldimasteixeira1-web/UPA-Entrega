@@ -25,15 +25,15 @@ Nenhuma integração externa deste projeto pode travar uma operação do usuári
 **O quê:** dois usos distintos, mesma API (`openrouteservice.org`), mesma `ORS_API_KEY`:
 
 1. **Geocodificação por texto** (`GET /geocode/search`, `backend/src/lib/geocoding.js`) — respaldo só pra endereço sem CEP. Usa deliberadamente **só rua+número+cidade+estado** no texto de busca, nunca bairro nem CEP juntos: testado com bairro+CEP incluídos, o ORS devolveu, com confiança máxima, um endereço em Florianópolis/SC pra uma rua de Cabo Frio (bug real, encontrado e corrigido durante a validação da issue #73). Rua não encontrada cai pro centro genérico da cidade — impreciso, mas nunca erra de cidade.
-2. **Otimização de rota** (`POST /optimization`, `backend/src/lib/routing/optimize.js`) — recebe a coordenada da UPA (origem e retorno fixos, constante `UPA_ORIGIN`) e a lista de coordenadas dos pedidos do lote a despachar; usa o motor **VROOM** (resolve o problema do caixeiro-viajante) e devolve a ordem de visita que minimiza deslocamento total.
+2. **Otimização de rota** (`POST /optimization`, `backend/src/lib/routing/optimize.js`) — recebe a coordenada da unidade de saúde (origem e retorno fixos, constante `ORIGIN_COORDINATES`) e a lista de coordenadas dos pedidos do lote a despachar; usa o motor **VROOM** (resolve o problema do caixeiro-viajante) e devolve a ordem de visita que minimiza deslocamento total.
 
 **Se falhar:** geocodificação por texto retorna `null` (endereço fica sem coordenada); otimização retorna `null` e o despacho usa a ordem de chegada dos pedidos (FIFO) em vez de uma ordem calculada. Nenhum dos dois bloqueia nada — só perde precisão/otimização.
 
-**Chave necessária:** `ORS_API_KEY` (`backend/.env`) — grátis, mas exige criar conta em openrouteservice.org. Cota gratuita: 500 requisições/dia só no endpoint de otimização, 2.500/dia e 40 mil/mês no total da conta — folgado pro volume real (uma UPA despachando algumas vezes por dia).
+**Chave necessária:** `ORS_API_KEY` (`backend/.env`) — grátis, mas exige criar conta em openrouteservice.org. Cota gratuita: 500 requisições/dia só no endpoint de otimização, 2.500/dia e 40 mil/mês no total da conta — folgado pro volume real (uma unidade de saúde despachando algumas vezes por dia).
 
 **Se o volume um dia justificar mais:** dá pra auto-hospedar o mesmo motor (VROOM + OSRM) via Docker, sem cota nenhuma — considerado e descartado por enquanto porque a cota gratuita já é suficiente e auto-hospedar significa manter infraestrutura própria (dados de mapa, atualização periódica) sem necessidade real hoje.
 
-**A coordenada da própria UPA** (`UPA_ORIGIN` em `optimize.js`) foi geocodificada manualmente via Nominatim/OpenStreetMap, com precisão de nome de rua (não do número exato do endereço) — suficiente pra distância entre paradas dentro da cidade.
+**A coordenada da própria unidade de saúde** (`ORIGIN_COORDINATES` em `optimize.js`) foi geocodificada manualmente via Nominatim/OpenStreetMap, com precisão de nome de rua (não do número exato do endereço) — suficiente pra distância entre paradas dentro da cidade.
 
 ## SMTP — envio de e-mail
 

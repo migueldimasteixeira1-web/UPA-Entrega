@@ -46,7 +46,7 @@ A otimização de rota (issue #73) usa a coordenada do **pedido**, não do ender
 
 ## `DailyCounter` — por que existe uma tabela só pra contador
 
-`orderNumber` (`UPA-AAAAMMDD-NNN`) e `routeNumber` (`ROTA-AAAAMMDD-NNN`) precisam ser sequenciais por dia. A tentação óbvia — `COUNT(*)` da tabela + 1 — tem uma corrida real: duas criações simultâneas podem ler a mesma contagem e gerar o mesmo número. `DailyCounter` resolve com um único `UPSERT` atômico (`INSERT ... ON CONFLICT ... DO UPDATE`) por escopo (`order`/`route`) e dia, sem `SELECT` prévio.
+`orderNumber` (`SEDOM-AAAAMMDD-NNN`) e `routeNumber` (`ROTA-AAAAMMDD-NNN`) precisam ser sequenciais por dia. A tentação óbvia — `COUNT(*)` da tabela + 1 — tem uma corrida real: duas criações simultâneas podem ler a mesma contagem e gerar o mesmo número. `DailyCounter` resolve com um único `UPSERT` atômico (`INSERT ... ON CONFLICT ... DO UPDATE`) por escopo (`order`/`route`) e dia, sem `SELECT` prévio.
 
 ## `EmailNotification` — por que e-mail é uma tabela, não um envio direto
 

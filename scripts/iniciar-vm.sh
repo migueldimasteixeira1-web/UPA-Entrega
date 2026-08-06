@@ -44,14 +44,14 @@ CERT_CN="$(sed -E 's#^[a-z]+://##; s#[:/].*$##' <<<"$PUBLIC_APP_URL")"
 docker compose config --quiet
 docker compose up -d --build
 
-UPA_HTTPS_PORT="$(read_env UPA_HTTPS_PORT)"
-UPA_HTTPS_PORT="${UPA_HTTPS_PORT:-443}"
-HEALTH_URL="https://127.0.0.1:$UPA_HTTPS_PORT/api/health"
+APP_HTTPS_PORT="$(read_env APP_HTTPS_PORT)"
+APP_HTTPS_PORT="${APP_HTTPS_PORT:-443}"
+HEALTH_URL="https://127.0.0.1:$APP_HTTPS_PORT/api/health"
 
 for _ in {1..60}; do
   # -k: o certificado padrão é autoassinado (ver deploy/generate-self-signed-cert.sh).
   if curl -fsSk "$HEALTH_URL" >/dev/null 2>&1; then
-    echo "UPA Entrega iniciado e saudável na porta $UPA_HTTPS_PORT."
+    echo "SEDOM iniciado e saudável na porta $APP_HTTPS_PORT."
     echo "Acesse: $PUBLIC_APP_URL"
     exit 0
   fi

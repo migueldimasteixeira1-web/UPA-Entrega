@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
 const TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL || 'postgresql://upa:upa_secret@db:5432/upa_entrega_test?schema=public';
+  process.env.TEST_DATABASE_URL || 'postgresql://sedom:sedom_secret@db:5432/sedom_entrega_test?schema=public';
 
 // Mesmo raciocínio do TEST_DATABASE_URL: "minio" é o hostname certo quando
 // os testes rodam dentro da rede do compose (CI, docker exec); rodando do
@@ -20,7 +20,7 @@ export default defineConfig({
       FRONTEND_URL: 'http://localhost:5173',
       NODE_ENV: 'test',
       S3_ENDPOINT: TEST_S3_ENDPOINT,
-      S3_BUCKET: 'upa-entrega-test',
+      S3_BUCKET: 'sedom-entrega-test',
       S3_ACCESS_KEY: 'minioadmin',
       S3_SECRET_KEY: 'minioadmin',
     },

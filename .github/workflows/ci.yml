@@ -12,13 +12,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: upa
-          POSTGRES_PASSWORD: upa_secret
-          POSTGRES_DB: upa_entrega_test
+          POSTGRES_USER: sedom
+          POSTGRES_PASSWORD: sedom_secret
+          POSTGRES_DB: sedom_entrega_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U upa -d upa_entrega_test"
+          --health-cmd "pg_isready -U sedom -d sedom_entrega_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -39,7 +39,7 @@ jobs:
           - 9000:9000
 
     env:
-      TEST_DATABASE_URL: postgresql://upa:upa_secret@localhost:5432/upa_entrega_test?schema=public
+      TEST_DATABASE_URL: postgresql://sedom:sedom_secret@localhost:5432/sedom_entrega_test?schema=public
       JWT_SECRET: ci_jwt_secret_not_for_production
       TEST_S3_ENDPOINT: http://localhost:9000
 

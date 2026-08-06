@@ -15,9 +15,9 @@
                                             otimização de rota)
 ```
 
-Monólito simples de propósito: um backend Express, um frontend React separado (SPA), um Postgres. Nada de microsserviços, filas externas (RabbitMQ/SQS) ou cache distribuído — a escala real (uma UPA, alguns operadores, um punhado de entregadores) não justifica essa complexidade, e adicioná-la seria "poluição sem uso prático".
+Monólito simples de propósito: um backend Express, um frontend React separado (SPA), um Postgres. Nada de microsserviços, filas externas (RabbitMQ/SQS) ou cache distribuído — a escala real (uma unidade de saúde, alguns operadores, um punhado de entregadores) não justifica essa complexidade, e adicioná-la seria "poluição sem uso prático".
 
-Em produção (VM), um único Nginx serve o frontend estático **e** faz proxy de `/api` pro backend, na mesma origem — evita configuração de CORS especial e funciona em qualquer dispositivo da rede da UPA sem VPN. Em desenvolvimento, o Vite dev server e o backend rodam em portas separadas (5173 e 3001), com o Vite fazendo o proxy.
+Em produção (VM), um único Nginx serve o frontend estático **e** faz proxy de `/api` pro backend, na mesma origem — evita configuração de CORS especial e funciona em qualquer dispositivo da rede da unidade de saúde sem VPN. Em desenvolvimento, o Vite dev server e o backend rodam em portas separadas (5173 e 3001), com o Vite fazendo o proxy.
 
 ## Stack
 
