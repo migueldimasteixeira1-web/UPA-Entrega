@@ -53,6 +53,7 @@ export default function NewOrder() {
   const [cepLoading, setCepLoading] = useState(false);
   const [cepMessage, setCepMessage] = useState('');
   const [streetFromCep, setStreetFromCep] = useState(false);
+  const [neighborhoodFromCep, setNeighborhoodFromCep] = useState(false);
   const [touchedAddressFields, setTouchedAddressFields] = useState(() => new Set());
   const [editPatientOpen, setEditPatientOpen] = useState(false);
   const [editPatientForm, setEditPatientForm] = useState({ name: '', phone: '', email: '', notes: '' });
@@ -185,6 +186,7 @@ export default function NewOrder() {
     }));
     setCpfLookup({ status: 'idle' });
     setStreetFromCep(false);
+    setNeighborhoodFromCep(false);
     setCepMessage('');
   };
 
@@ -234,6 +236,7 @@ export default function NewOrder() {
       if (result?.error) {
         setCepMessage(result.error);
         setStreetFromCep(false);
+        setNeighborhoodFromCep(false);
         return;
       }
 
@@ -251,10 +254,12 @@ export default function NewOrder() {
         },
       }));
       setStreetFromCep(!!result.address);
+      setNeighborhoodFromCep(!!result.neighborhood);
       setCepMessage('Rua, bairro, cidade e estado preenchidos pelo CEP. Informe número e complemento.');
     } catch {
       setCepMessage('Não foi possível consultar o CEP. Preencha a rua manualmente.');
       setStreetFromCep(false);
+      setNeighborhoodFromCep(false);
     } finally {
       setCepLoading(false);
     }
@@ -469,6 +474,7 @@ export default function NewOrder() {
             cepLoading={cepLoading}
             cepMessage={cepMessage}
             streetFromCep={streetFromCep}
+            neighborhoodFromCep={neighborhoodFromCep}
             openEditAddress={openEditAddress}
             editingAddress={editingAddress}
             setEditingAddress={setEditingAddress}

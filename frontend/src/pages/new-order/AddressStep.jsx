@@ -49,6 +49,7 @@ export default function AddressStep({
   cepLoading,
   cepMessage,
   streetFromCep,
+  neighborhoodFromCep,
   openEditAddress,
   editingAddress,
   setEditingAddress,
@@ -192,16 +193,25 @@ export default function AddressStep({
             </FormField>
           </div>
 
-          <FormField label="Bairro" required error={fieldErrors.neighborhood} htmlFor="neighborhood">
+          <FormField
+            label="Bairro"
+            required
+            error={fieldErrors.neighborhood}
+            hint={neighborhoodFromCep ? 'Preenchido automaticamente pelo CEP.' : undefined}
+            htmlFor="neighborhood"
+          >
             <input
               id="neighborhood"
               value={form.newAddress.neighborhood}
+              readOnly={neighborhoodFromCep}
               onChange={(e) => {
+                if (neighborhoodFromCep) return;
                 markAddressTouched('neighborhood');
                 updateNewAddress('neighborhood', e.target.value);
               }}
               onBlur={() => onBlurField('neighborhood')}
-              className={inputClassName(fieldErrors.neighborhood)}
+              className={neighborhoodFromCep ? readOnlyInputClassName() : inputClassName(fieldErrors.neighborhood)}
+              placeholder="Informe o CEP acima"
             />
           </FormField>
 
