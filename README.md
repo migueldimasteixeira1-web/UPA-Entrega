@@ -23,6 +23,10 @@ Sistema interno para gestão da **logística de entrega domiciliar de medicament
 └── scripts/iniciar-vm.sh           # Sobe produção com validação de .env + certificado
 ```
 
+## Documentação técnica
+
+Este README cobre instalação, deploy e operação. Para arquitetura, modelo de dados, os fluxos principais (ciclo de vida do pedido, PIN de entrega, despacho e otimização de rota) e as integrações externas (ViaCEP, geocodificação, e-mail, storage) e o que acontece se cada uma sair do ar, veja [`docs/`](./docs/).
+
 ## Produção (VM) — recomendado
 
 ```bash
@@ -136,7 +140,7 @@ docker compose -f compose.dev.yaml up --build
 ## Papéis de usuário
 
 - **Administrador**: acesso total, inclusive gestão de usuários.
-- **Operador**: cria e acompanha pedidos, monta rotas, gerencia o catálogo de medicamentos.
+- **Operador**: cria e acompanha pedidos, despacha rotas de entrega em lote, gerencia o catálogo de medicamentos.
 - **Entregador**: acesso restrito à tela "Minhas entregas" — vê só os pedidos da rota atribuída a ele e confirma a entrega por PIN.
 
 ## Funcionalidades
@@ -148,7 +152,7 @@ docker compose -f compose.dev.yaml up --build
 - PIN de confirmação de entrega gerado automaticamente na criação do pedido
 - Fluxo de status com histórico auditável
 - Impressão de etiqueta de identificação do pedido
-- Montagem de rotas e tela "Minhas entregas"
+- Despacho de rota em lote (todos os pedidos aguardando saída de uma vez, pra um entregador) com sequência de entrega otimizada automaticamente por distância, e tela "Minhas entregas" para o entregador
 - Mensagens prontas para copiar/compartilhar (WhatsApp manual)
 - Página pública do paciente (`/acompanhar/:token`)
 - Catálogo de medicamentos e gestão de usuários (admin)
