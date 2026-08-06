@@ -30,7 +30,7 @@ describe('Delivery proof photo', () => {
     const readyOrder = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'AGUARDANDO_SAIDA',
     });
@@ -101,7 +101,7 @@ describe('GET /api/orders/:id/delivery-proof', () => {
     const readyOrder = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'AGUARDANDO_SAIDA',
     });

@@ -41,24 +41,47 @@ async function main() {
     role: 'ENTREGADOR',
   });
 
-  const medicationNames = [
-    { name: 'Dipirona 500mg', unit: 'comprimido' },
-    { name: 'Paracetamol 750mg', unit: 'comprimido' },
-    { name: 'Ibuprofeno 600mg', unit: 'comprimido' },
-    { name: 'Losartana 50mg', unit: 'comprimido' },
-    { name: 'Metformina 850mg', unit: 'comprimido' },
-    { name: 'Omeprazol 20mg', unit: 'cápsula' },
-    { name: 'Amoxicilina 500mg', unit: 'cápsula' },
-    { name: 'Salbutamol Spray', unit: 'frasco' },
+  // Medicamento (princípio ativo/nome) com uma ou mais apresentações
+  // (dosagem + unidade) — Amoxicilina é o exemplo real de por que essa
+  // separação existe: mesma substância, três dosagens diferentes, sem
+  // recadastrar o nome pra cada uma.
+  const catalog = [
+    { name: 'Dipirona', presentations: [{ dosage: '500mg', unit: 'comprimido' }] },
+    { name: 'Paracetamol', presentations: [{ dosage: '750mg', unit: 'comprimido' }] },
+    { name: 'Ibuprofeno', presentations: [{ dosage: '600mg', unit: 'comprimido' }] },
+    { name: 'Losartana', presentations: [{ dosage: '50mg', unit: 'comprimido' }] },
+    { name: 'Metformina', presentations: [{ dosage: '850mg', unit: 'comprimido' }] },
+    { name: 'Omeprazol', presentations: [{ dosage: '20mg', unit: 'cápsula' }] },
+    {
+      name: 'Amoxicilina',
+      presentations: [
+        { dosage: '250mg', unit: 'cápsula' },
+        { dosage: '500mg', unit: 'cápsula' },
+        { dosage: '875mg', unit: 'comprimido' },
+      ],
+    },
+    { name: 'Salbutamol', presentations: [{ dosage: 'Spray', unit: 'frasco' }] },
   ];
 
-  const medications = [];
-  for (const med of medicationNames) {
-    let record = await prisma.medication.findFirst({ where: { name: med.name } });
-    if (!record) {
-      record = await prisma.medication.create({ data: med });
+  // Indexado por "Nome Dosagem" (ex.: "Amoxicilina 500mg") pra criar os
+  // pedidos de exemplo abaixo sem depender de índice de array frágil.
+  const presentationsByLabel = {};
+  for (const med of catalog) {
+    let medication = await prisma.medication.findFirst({ where: { name: med.name } });
+    if (!medication) {
+      medication = await prisma.medication.create({ data: { name: med.name } });
     }
-    medications.push(record);
+    for (const p of med.presentations) {
+      let presentation = await prisma.medicationPresentation.findFirst({
+        where: { medicationId: medication.id, dosage: p.dosage },
+      });
+      if (!presentation) {
+        presentation = await prisma.medicationPresentation.create({
+          data: { medicationId: medication.id, dosage: p.dosage, unit: p.unit },
+        });
+      }
+      presentationsByLabel[`${med.name} ${p.dosage}`] = { ...presentation, medicationName: med.name };
+    }
   }
   console.log('✅ Catálogo de medicamentos pronto');
 
@@ -156,9 +179,10 @@ async function main() {
         createdById: admin.id,
         items: {
           create: items.map((item) => ({
-            medicationId: item.medication.id,
-            medicationName: item.medication.name,
-            unit: item.medication.unit,
+            medicationPresentationId: item.presentation.id,
+            medicationName: item.presentation.medicationName,
+            dosage: item.presentation.dosage,
+            unit: item.presentation.unit,
             quantity: item.quantity,
           })),
         },
@@ -183,14 +207,17 @@ async function main() {
   const order1 = await createOrder({
     patient: maria,
     address: maria.addresses[0],
-    items: [{ medication: medications[0], quantity: 2 }],
+    items: [{ presentation: presentationsByLabel['Dipirona 500mg'], quantity: 2 }],
     status: 'PEDIDO_RECEBIDO',
   });
 
   const order2 = await createOrder({
     patient: joao,
     address: joao.addresses[0],
-    items: [{ medication: medications[3], quantity: 1 }, { medication: medications[5], quantity: 1 }],
+    items: [
+      { presentation: presentationsByLabel['Losartana 50mg'], quantity: 1 },
+      { presentation: presentationsByLabel['Omeprazol 20mg'], quantity: 1 },
+    ],
     status: 'SEPARADO',
     internalNotes: 'Receita anexada no prontuário',
   });
@@ -198,14 +225,16 @@ async function main() {
   const order3 = await createOrder({
     patient: maria,
     address: maria.addresses[0],
-    items: [{ medication: medications[1], quantity: 1 }],
+    items: [{ presentation: presentationsByLabel['Paracetamol 750mg'], quantity: 1 }],
     status: 'AGUARDANDO_SAIDA',
   });
 
   const order4 = await createOrder({
     patient: joao,
     address: joao.addresses[1],
-    items: [{ medication: medications[6], quantity: 1 }],
+    // Exemplo real da dosagem duplicada que motivou a separação: mesma
+    // Amoxicilina, apresentação diferente do order5 abaixo.
+    items: [{ presentation: presentationsByLabel['Amoxicilina 500mg'], quantity: 1 }],
     status: 'AGUARDANDO_SAIDA',
   });
 
@@ -241,7 +270,7 @@ async function main() {
   const order5 = await createOrder({
     patient: joao,
     address: joao.addresses[0],
-    items: [{ medication: medications[2], quantity: 2 }],
+    items: [{ presentation: presentationsByLabel['Amoxicilina 875mg'], quantity: 2 }],
     status: 'ENTREGUE',
   });
 

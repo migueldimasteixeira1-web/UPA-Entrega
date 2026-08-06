@@ -24,7 +24,7 @@ const unitSchema = z
   .refine((v) => MEDICATION_UNITS.includes(v), { message: 'Unidade inválida' });
 
 const orderItemSchema = z.object({
-  medicationId: requiredString('Medicamento inválido'),
+  medicationPresentationId: requiredString('Medicamento inválido'),
   quantity: z.coerce
     .number()
     .int('Quantidade deve ser um número inteiro')
@@ -129,12 +129,22 @@ export const updateAddressSchema = newAddressSchema.partial();
 
 export const createMedicationSchema = z.object({
   name: requiredString('Nome é obrigatório'),
-  unit: unitSchema.optional(),
   active: z.boolean().optional(),
 });
 
 export const updateMedicationSchema = z.object({
   name: z.string().trim().min(1, 'Nome é obrigatório').optional(),
+  active: z.boolean().optional(),
+});
+
+export const createPresentationSchema = z.object({
+  dosage: requiredString('Dosagem é obrigatória'),
+  unit: unitSchema.optional(),
+  active: z.boolean().optional(),
+});
+
+export const updatePresentationSchema = z.object({
+  dosage: z.string().trim().min(1, 'Dosagem é obrigatória').optional(),
   unit: unitSchema.optional(),
   active: z.boolean().optional(),
 });

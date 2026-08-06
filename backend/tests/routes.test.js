@@ -34,7 +34,7 @@ describe('Delivery routes', () => {
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'AGUARDANDO_SAIDA',
     });
@@ -56,14 +56,14 @@ describe('Delivery routes', () => {
     const orderA = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'AGUARDANDO_SAIDA',
     });
     const orderB = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'AGUARDANDO_SAIDA',
     });
@@ -83,7 +83,7 @@ describe('Delivery routes', () => {
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'PEDIDO_RECEBIDO',
     });
@@ -100,7 +100,7 @@ describe('Delivery routes', () => {
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'AGUARDANDO_SAIDA',
     });
@@ -122,7 +122,7 @@ describe('Delivery routes', () => {
         createOrderRecord({
           patientId: patient.id,
           addressId: address.id,
-          medicationId: medication.id,
+          medicationPresentationId: medication.presentationId,
           createdById: admin.id,
           status: 'AGUARDANDO_SAIDA',
         })
@@ -167,7 +167,7 @@ describe('Delivery PIN security', () => {
     const readyOrder = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'AGUARDANDO_SAIDA',
     });
@@ -212,7 +212,7 @@ describe('Delivery PIN security', () => {
     const readyOrder = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'AGUARDANDO_SAIDA',
     });
@@ -376,7 +376,7 @@ describe('Route number generation survives a pre-existing, uncounted route', () 
     const order = await createOrderRecord({
       patientId: patient.id,
       addressId: address.id,
-      medicationId: medication.id,
+      medicationPresentationId: medication.presentationId,
       createdById: admin.id,
       status: 'AGUARDANDO_SAIDA',
     });
