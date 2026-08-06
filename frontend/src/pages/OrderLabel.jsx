@@ -42,7 +42,7 @@ export default function OrderLabel() {
 
       <div className="max-w-sm mx-auto bg-white border-2 border-slate-800 rounded-lg p-4 print:border-black print:rounded-none print:shadow-none shadow-sm">
         <div className="flex items-center justify-between border-b-2 border-slate-800 pb-2 mb-3">
-          <span className="font-bold text-lg">UPA Entrega</span>
+          <span className="font-bold text-lg">SEDOM</span>
           <span className="font-mono font-bold">{order.orderNumber}</span>
         </div>
 

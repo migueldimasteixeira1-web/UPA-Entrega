@@ -1,19 +1,24 @@
+import { Truck } from 'lucide-react';
+
 const LOGOS = {
-  upa: '/logos/upa-logo.png',
   caboFrio: '/logos/cabo-frio-logo.png',
 };
 
 /**
- * Logo oficial UPA 24h — uso principal em todo o sistema.
+ * Marca do SEDOM — badge com ícone, sem depender de arquivo de imagem.
+ * Reaproveita o mesmo padrão de "ícone em badge colorido" já usado em
+ * Medications.jsx/DeliveryRoutes.jsx etc. Fácil de trocar por um logo de
+ * verdade depois — é um único componente pequeno.
  */
-export function UpaLogo({ className = 'h-10 w-auto', alt = 'UPA 24h — Unidade de Pronto Atendimento' }) {
+export function SedomMark({ className = 'h-10 w-10', iconClassName = 'w-[55%] h-[55%]' }) {
   return (
-    <img
-      src={LOGOS.upa}
-      alt={alt}
-      className={`object-contain ${className}`}
-      decoding="async"
-    />
+    <div
+      role="img"
+      aria-label="SEDOM"
+      className={`inline-flex items-center justify-center rounded-xl bg-upa-800 text-white shrink-0 ${className}`}
+    >
+      <Truck className={iconClassName} />
+    </div>
   );
 }
 
@@ -51,9 +56,9 @@ export default function AppBrand({ variant = 'header', showMunicipality = false,
   if (variant === 'login') {
     return (
       <div className="text-center space-y-4">
-        <UpaLogo className="h-14 sm:h-16 w-auto max-w-[260px] mx-auto" />
+        <SedomMark className="h-16 w-16 sm:h-20 sm:w-20 mx-auto rounded-2xl" />
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-upa-900">UPA Entrega</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-upa-900">SEDOM</h1>
           <p className="text-slate-500 mt-2 text-sm sm:text-base max-w-sm mx-auto leading-relaxed">
             {subtitle || 'Sistema interno de entregas de medicamentos a domicílio'}
           </p>
@@ -65,11 +70,11 @@ export default function AppBrand({ variant = 'header', showMunicipality = false,
   if (variant === 'public') {
     return (
       <div className="flex flex-col sm:flex-row items-center sm:items-center gap-3 sm:gap-4 text-center sm:text-left">
-        <div className="bg-white rounded-xl px-3 py-2 shrink-0 shadow-sm">
-          <UpaLogo className="h-9 sm:h-10 w-auto max-w-[120px] sm:max-w-[140px]" />
+        <div className="bg-white rounded-xl p-2 shrink-0 shadow-sm">
+          <SedomMark className="h-9 w-9 sm:h-10 sm:w-10" />
         </div>
         <div className="min-w-0">
-          <h1 className="font-bold text-base sm:text-lg text-white">UPA Entrega</h1>
+          <h1 className="font-bold text-base sm:text-lg text-white">SEDOM</h1>
           <p className="text-blue-100 text-xs sm:text-sm">{subtitle || 'Acompanhamento informativo'}</p>
         </div>
       </div>
@@ -79,9 +84,9 @@ export default function AppBrand({ variant = 'header', showMunicipality = false,
   // header (painel interno)
   return (
     <div className="flex items-center gap-3 min-w-0">
-      <UpaLogo className="h-9 w-auto max-w-[130px] sm:max-w-[150px] shrink-0 object-left" />
+      <SedomMark className="h-9 w-9 shrink-0" />
       <div className="min-w-0 hidden min-[400px]:block">
-        <h1 className="font-bold text-upa-900 text-base sm:text-lg leading-tight truncate">UPA Entrega</h1>
+        <h1 className="font-bold text-upa-900 text-base sm:text-lg leading-tight truncate">SEDOM</h1>
         <p className="text-xs text-slate-500 hidden sm:block truncate">
           {subtitle || 'Gestão de entregas de medicamentos'}
         </p>

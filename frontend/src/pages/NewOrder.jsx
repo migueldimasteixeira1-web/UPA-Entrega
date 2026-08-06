@@ -401,7 +401,7 @@ export default function NewOrder() {
       <div className="mb-6 sm:mb-8">
         <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Novo pedido</h1>
         <p className="text-slate-500 mt-1 text-sm sm:text-base">
-          Entrega gratuita feita por entregador da UPA. Um PIN de confirmação será gerado automaticamente.
+          Entrega gratuita feita por entregador da unidade de saúde. Um PIN de confirmação será gerado automaticamente.
         </p>
       </div>
 
