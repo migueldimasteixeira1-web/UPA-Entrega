@@ -23,7 +23,7 @@ import {
   Camera,
   Route as RouteIcon,
 } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { api, ApiError, getErrorMessage } from '../lib/api';
 import { formatDate, formatPhone } from '../lib/constants';
 import { formatCpfDisplay, buildMapsUrl } from '../lib/masks';
 import { copyToClipboard, canShare, shareText } from '../lib/clipboard';
@@ -84,7 +84,7 @@ export default function OrderDetail() {
       invalidate();
       showToast('E-mail de confirmação reenviado');
     },
-    onError: (err) => setActionError(err instanceof ApiError ? err.message : 'Erro ao reenviar e-mail'),
+    onError: (err) => setActionError(getErrorMessage(err)),
   });
 
   // URL assinada e de curta duração — busca sob demanda em vez de deixar
@@ -96,7 +96,7 @@ export default function OrderDetail() {
       const { url } = await api.getPrescriptionUrl(id);
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'Erro ao abrir a receita');
+      setActionError(getErrorMessage(err));
     } finally {
       setPrescriptionLoading(false);
     }
@@ -109,7 +109,7 @@ export default function OrderDetail() {
       const { url } = await api.getDeliveryProofUrl(id);
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'Erro ao abrir a foto de comprovação');
+      setActionError(getErrorMessage(err));
     } finally {
       setDeliveryProofLoading(false);
     }
@@ -124,7 +124,7 @@ export default function OrderDetail() {
       const blob = await api.getReceiptPdf(id);
       window.open(URL.createObjectURL(blob), '_blank', 'noopener,noreferrer');
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'Erro ao gerar comprovante');
+      setActionError(getErrorMessage(err));
     } finally {
       setReceiptLoading(false);
     }
@@ -139,7 +139,7 @@ export default function OrderDetail() {
       setCancelModal(false);
       setCancelReason('');
     },
-    onError: (err) => setModalError(err instanceof ApiError ? err.message : 'Erro ao atualizar status'),
+    onError: (err) => setModalError(getErrorMessage(err)),
   });
 
   const addNoteMutation = useMutation({
@@ -149,7 +149,7 @@ export default function OrderDetail() {
       invalidate();
       setNote('');
     },
-    onError: (err) => setActionError(err instanceof ApiError ? err.message : 'Erro ao salvar observação'),
+    onError: (err) => setActionError(getErrorMessage(err)),
   });
 
   const handleStatusAction = (transition) => {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Shield, User, Truck } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { api, getErrorMessage } from '../lib/api';
 import Modal from '../components/Modal';
 import Alert from '../components/Alert';
 import { formatDate } from '../lib/constants';
@@ -35,13 +35,13 @@ export default function Users() {
       setForm(emptyUser);
       setFormError('');
     },
-    onError: (err) => setFormError(err instanceof ApiError ? err.message : 'Erro ao criar usuário'),
+    onError: (err) => setFormError(getErrorMessage(err)),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => api.updateUser(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
-    onError: (err) => setFormError(err instanceof ApiError ? err.message : 'Erro ao atualizar usuário'),
+    onError: (err) => setFormError(getErrorMessage(err)),
   });
 
   const resetMutation = useMutation({
@@ -52,7 +52,7 @@ export default function Users() {
       setNewPassword('');
       setResetError('');
     },
-    onError: (err) => setResetError(err instanceof ApiError ? err.message : 'Erro ao redefinir senha'),
+    onError: (err) => setResetError(getErrorMessage(err)),
   });
 
   return (

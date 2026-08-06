@@ -12,6 +12,26 @@ class ApiError extends Error {
   }
 }
 
+const NETWORK_ERROR_MESSAGE = 'Verifique sua conexão com a internet e tente novamente.';
+
+// fetch() rejeita com um TypeError genérico quando a requisição nem chega a
+// sair (sem conexão, DNS, etc.) — sem isso, esse caso ficava indistinguível
+// de um erro de negócio de verdade na hora de decidir a mensagem pro usuário.
+async function safeFetch(url, options) {
+  try {
+    return await fetch(url, options);
+  } catch {
+    throw new ApiError(NETWORK_ERROR_MESSAGE, 0);
+  }
+}
+
+// Única fonte de mensagem de erro pra ação do usuário: erro de servidor (ou
+// de rede, já que safeFetch os transforma em ApiError também) mostra a
+// mensagem específica; qualquer outra coisa inesperada cai no genérico.
+export function getErrorMessage(err) {
+  return err instanceof ApiError ? err.message : 'Algo deu errado. Tente novamente.';
+}
+
 async function request(path, options = {}) {
   const token = localStorage.getItem('upa_token');
   const headers = {
@@ -20,7 +40,7 @@ async function request(path, options = {}) {
     ...options.headers,
   };
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await safeFetch(`${API_URL}${path}`, {
     ...options,
     headers,
     cache: 'no-store',
@@ -56,7 +76,7 @@ export const api = {
   exportOrdersReport: async (params = {}) => {
     const token = localStorage.getItem('upa_token');
     const query = new URLSearchParams(params).toString();
-    const response = await fetch(`${API_URL}/api/orders/report${query ? `?${query}` : ''}`, {
+    const response = await safeFetch(`${API_URL}/api/orders/report${query ? `?${query}` : ''}`, {
       headers: { ...(token && { Authorization: `Bearer ${token}` }) },
     });
 
@@ -86,7 +106,7 @@ export const api = {
     formData.append('data', JSON.stringify(data));
     formData.append('prescription', prescriptionFile);
 
-    const response = await fetch(`${API_URL}/api/orders`, {
+    const response = await safeFetch(`${API_URL}/api/orders`, {
       method: 'POST',
       headers: { ...(token && { Authorization: `Bearer ${token}` }) },
       body: formData,
@@ -117,7 +137,7 @@ export const api = {
     formData.append('pin', pin);
     formData.append('proof', proofFile);
 
-    const response = await fetch(`${API_URL}/api/orders/${id}/confirm-delivery`, {
+    const response = await safeFetch(`${API_URL}/api/orders/${id}/confirm-delivery`, {
       method: 'POST',
       headers: { ...(token && { Authorization: `Bearer ${token}` }) },
       body: formData,
@@ -143,7 +163,7 @@ export const api = {
   // exportOrdersReport) — issue #40.
   getReceiptPdf: async (id) => {
     const token = localStorage.getItem('upa_token');
-    const response = await fetch(`${API_URL}/api/orders/${id}/receipt-pdf`, {
+    const response = await safeFetch(`${API_URL}/api/orders/${id}/receipt-pdf`, {
       headers: { ...(token && { Authorization: `Bearer ${token}` }) },
     });
 

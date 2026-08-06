@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Truck, Package, CheckCircle2, Circle, Route as RouteIcon } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { api, getErrorMessage } from '../lib/api';
 import { formatDate } from '../lib/constants';
 import { useToast } from '../lib/toast';
 import Alert from '../components/Alert';
@@ -45,7 +45,7 @@ export default function DeliveryRoutes() {
       queryClient.invalidateQueries({ queryKey: ['stats'] });
       showToast(`Rota ${route.routeNumber} despachada com ${route.orders.length} pedido(s)`);
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : 'Erro ao despachar rota'),
+    onError: (err) => setError(getErrorMessage(err)),
   });
 
   const handleDispatch = () => {

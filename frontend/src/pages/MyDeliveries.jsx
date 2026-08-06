@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MapPin, Phone, Package, KeyRound, Camera, CheckCircle2, Navigation, ChevronLeft } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { api, getErrorMessage } from '../lib/api';
 import { formatPhone } from '../lib/constants';
 import { buildMapsUrl } from '../lib/masks';
 import { useToast } from '../lib/toast';
@@ -38,7 +38,7 @@ export default function MyDeliveries() {
       setModalError('');
       setConfirmStep('photo');
     },
-    onError: (err) => setModalError(err instanceof ApiError ? err.message : 'Erro ao verificar PIN'),
+    onError: (err) => setModalError(getErrorMessage(err)),
   });
 
   const confirmMutation = useMutation({
@@ -52,7 +52,7 @@ export default function MyDeliveries() {
       setProofFile(null);
       setModalError('');
     },
-    onError: (err) => setModalError(err instanceof ApiError ? err.message : 'Erro ao confirmar entrega'),
+    onError: (err) => setModalError(getErrorMessage(err)),
   });
 
   const openConfirm = (order) => {
