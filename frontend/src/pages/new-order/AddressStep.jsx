@@ -197,7 +197,7 @@ export default function AddressStep({
             label="Bairro"
             required
             error={fieldErrors.neighborhood}
-            hint={neighborhoodFromCep ? 'Preenchido automaticamente pelo CEP.' : undefined}
+            hint="Preenchido automaticamente pelo CEP."
             htmlFor="neighborhood"
           >
             <input
