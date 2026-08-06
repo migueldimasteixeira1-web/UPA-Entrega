@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, AlertCircle } from 'lucide-react';
-import { useAuth, ApiError } from '../lib/auth';
+import { useAuth } from '../lib/auth';
+import { getErrorMessage } from '../lib/api';
 import { buttonClassName } from '../components/Button';
 import AppBrand, { MunicipalityBrand } from '../components/AppBrand';
 
@@ -22,7 +23,7 @@ export default function Login() {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Erro ao entrar. Tente novamente.');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

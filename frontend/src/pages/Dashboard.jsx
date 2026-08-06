@@ -18,7 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { api, getErrorMessage } from '../lib/api';
 import { formatDate, KANBAN_COLUMNS, STATUS_LABELS, STATUS_DOT_COLORS } from '../lib/constants';
 import { useDebouncedValue } from '../lib/useDebouncedValue';
 import { useToast } from '../lib/toast';
@@ -152,7 +152,7 @@ export default function Dashboard() {
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : 'Erro ao exportar relatório', { type: 'error' });
+      showToast(getErrorMessage(err), { type: 'error' });
     } finally {
       setIsExporting(false);
     }

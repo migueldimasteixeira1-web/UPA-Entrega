@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Plus, Check, User, MapPin } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { api, ApiError, getErrorMessage } from '../lib/api';
 import { maskCep, maskCpf, maskPhone, onlyDigits } from '../lib/masks';
 import { fetchAddressByCep } from '../lib/viacep';
 import { useToast } from '../lib/toast';
@@ -77,7 +77,7 @@ export default function NewOrder() {
       queryClient.invalidateQueries({ queryKey: ['stats'] });
       navigate(`/pedidos/${order.id}`);
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : 'Erro ao criar pedido. Tente novamente.'),
+    onError: (err) => setError(getErrorMessage(err)),
   });
 
   const updatePatientMutation = useMutation({
@@ -89,7 +89,7 @@ export default function NewOrder() {
       showToast('Dados do paciente atualizados');
     },
     onError: (err) =>
-      setEditPatientError(err instanceof ApiError ? err.message : 'Erro ao atualizar paciente'),
+      setEditPatientError(getErrorMessage(err)),
   });
 
   const updateAddressMutation = useMutation({
@@ -107,7 +107,7 @@ export default function NewOrder() {
       showToast('Endereço atualizado');
     },
     onError: (err) =>
-      setEditAddressError(err instanceof ApiError ? err.message : 'Erro ao atualizar endereço'),
+      setEditAddressError(getErrorMessage(err)),
   });
 
   const openEditPatient = () => {

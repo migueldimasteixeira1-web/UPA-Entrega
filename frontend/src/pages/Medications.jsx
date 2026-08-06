@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pill, Edit2 } from 'lucide-react';
-import { api, ApiError } from '../lib/api';
+import { api, getErrorMessage } from '../lib/api';
 import { MEDICATION_UNITS } from '../lib/constants';
 import { useToast } from '../lib/toast';
 import Modal from '../components/Modal';
@@ -40,7 +40,7 @@ export default function Medications() {
       setForm(emptyMed);
       setFormError('');
     },
-    onError: (err) => setFormError(err instanceof ApiError ? err.message : 'Erro ao salvar medicamento'),
+    onError: (err) => setFormError(getErrorMessage(err)),
   });
 
   const openCreate = () => {

@@ -4,6 +4,7 @@ import { AuthProvider } from './lib/auth';
 import { ToastProvider } from './lib/toast';
 import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
+import OfflineBanner from './components/OfflineBanner';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -32,6 +33,7 @@ export default function App() {
       <ToastProvider>
         <AuthProvider>
           <ErrorBoundary>
+            <OfflineBanner />
             <BrowserRouter>
               <Routes>
                 <Route element={<PublicRoute />}>
