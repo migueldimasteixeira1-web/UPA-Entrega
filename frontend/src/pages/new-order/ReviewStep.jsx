@@ -74,7 +74,7 @@ export default function ReviewStep({
         <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 sm:col-span-2">
           <h3 className="font-semibold text-slate-800 mb-2">Medicamentos</h3>
           {selectedMeds.map((m) => (
-            <p key={m.id}>{m.quantity}x {m.name}</p>
+            <p key={m.id}>{m.quantity}x {m.name} {m.dosage}</p>
           ))}
         </div>
 

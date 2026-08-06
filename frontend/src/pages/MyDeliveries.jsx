@@ -125,7 +125,7 @@ export default function MyDeliveries() {
                   <Package className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                   <div>
                     {order.items?.map((item, i) => (
-                      <p key={i}>{item.quantity}x {item.medicationName}</p>
+                      <p key={i}>{item.quantity}x {item.medicationName} {item.dosage}</p>
                     ))}
                   </div>
                 </div>
