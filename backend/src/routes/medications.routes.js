@@ -46,11 +46,12 @@ export async function getMedication(req, res) {
 
 export async function createMedication(req, res) {
   try {
-    const { name, active } = req.body;
+    const { name, notes, active } = req.body;
 
     const medication = await prisma.medication.create({
       data: {
         name: name.trim(),
+        notes: notes?.trim() || null,
         active: active !== false,
       },
       include: presentationsInclude,
@@ -66,7 +67,7 @@ export async function createMedication(req, res) {
 export async function updateMedication(req, res) {
   try {
     const { id } = req.params;
-    const { name, active } = req.body;
+    const { name, notes, active } = req.body;
 
     const existing = await prisma.medication.findUnique({ where: { id } });
     if (!existing) {
@@ -77,6 +78,7 @@ export async function updateMedication(req, res) {
       where: { id },
       data: {
         ...(name !== undefined && { name: name.trim() }),
+        ...(notes !== undefined && { notes: notes?.trim() || null }),
         ...(active !== undefined && { active }),
       },
       include: presentationsInclude,

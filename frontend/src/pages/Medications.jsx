@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pill, Edit2 } from 'lucide-react';
+import { Plus, Pill, ChevronRight, Edit2 } from 'lucide-react';
 import { api, getErrorMessage } from '../lib/api';
 import { MEDICATION_UNITS } from '../lib/constants';
 import { useToast } from '../lib/toast';
@@ -10,7 +10,7 @@ import EmptyState from '../components/EmptyState';
 import { SkeletonTableRows } from '../components/Skeleton';
 import { buttonClassName } from '../components/Button';
 
-const emptyMed = { name: '', active: true };
+const emptyMed = { name: '', notes: '', active: true };
 const emptyPresentation = { dosage: '', unit: 'unidade', active: true };
 
 function StatusPill({ active }) {
@@ -26,14 +26,22 @@ function StatusPill({ active }) {
 }
 
 export default function Medications() {
-  const [medModalOpen, setMedModalOpen] = useState(false);
-  const [editingMed, setEditingMed] = useState(null);
-  const [medForm, setMedForm] = useState(emptyMed);
-  const [medFormError, setMedFormError] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState(emptyMed);
+  const [createError, setCreateError] = useState('');
 
-  // presentationTarget: o Medicamento dono da apresentação sendo criada/editada.
-  const [presentationTarget, setPresentationTarget] = useState(null);
-  const [editingPresentation, setEditingPresentation] = useState(null);
+  // Medicamento aberto no modal de detalhe (objeto vindo da lista) — os
+  // dados de verdade exibidos são sempre relidos de `medications` (ver
+  // `detailMedFresh`), esse estado só guarda qual id está aberto.
+  const [detailMed, setDetailMed] = useState(null);
+  const [detailForm, setDetailForm] = useState(emptyMed);
+  const [detailError, setDetailError] = useState('');
+
+  // Apresentação sendo criada/editada dentro do modal de detalhe — 'new',
+  // o objeto da apresentação, ou null (formulário fechado). Fica inline no
+  // mesmo modal em vez de abrir um segundo Modal por cima: dois Modal
+  // simultâneos disputariam o mesmo listener de Escape.
+  const [presentationEditing, setPresentationEditing] = useState(null);
   const [presentationForm, setPresentationForm] = useState(emptyPresentation);
   const [presentationFormError, setPresentationFormError] = useState('');
 
@@ -47,68 +55,78 @@ export default function Medications() {
 
   const invalidateMedications = () => queryClient.invalidateQueries({ queryKey: ['medications'] });
 
-  const saveMedMutation = useMutation({
-    mutationFn: (data) =>
-      editingMed ? api.updateMedication(editingMed.id, data) : api.createMedication(data),
+  // Depois de salvar uma apresentação a lista é invalidada e refeita — o
+  // modal de detalhe continua aberto, então relê os dados atuais daquele
+  // medicamento em vez de ficar com a cópia antiga em `detailMed`.
+  const detailMedFresh = detailMed ? medications.find((m) => m.id === detailMed.id) || detailMed : null;
+
+  const createMutation = useMutation({
+    mutationFn: (data) => api.createMedication(data),
     onSuccess: () => {
       invalidateMedications();
-      showToast(editingMed ? 'Medicamento atualizado' : 'Medicamento criado');
-      setMedModalOpen(false);
-      setEditingMed(null);
-      setMedForm(emptyMed);
-      setMedFormError('');
+      showToast('Medicamento criado');
+      setCreateOpen(false);
+      setCreateForm(emptyMed);
+      setCreateError('');
     },
-    onError: (err) => setMedFormError(getErrorMessage(err)),
+    onError: (err) => setCreateError(getErrorMessage(err)),
+  });
+
+  const updateMedMutation = useMutation({
+    mutationFn: (data) => api.updateMedication(detailMed.id, data),
+    onSuccess: () => {
+      invalidateMedications();
+      showToast('Medicamento atualizado');
+      setDetailError('');
+    },
+    onError: (err) => setDetailError(getErrorMessage(err)),
   });
 
   const savePresentationMutation = useMutation({
     mutationFn: (data) =>
-      editingPresentation
-        ? api.updateMedicationPresentation(presentationTarget.id, editingPresentation.id, data)
-        : api.createMedicationPresentation(presentationTarget.id, data),
+      presentationEditing && presentationEditing !== 'new'
+        ? api.updateMedicationPresentation(detailMed.id, presentationEditing.id, data)
+        : api.createMedicationPresentation(detailMed.id, data),
     onSuccess: () => {
       invalidateMedications();
-      showToast(editingPresentation ? 'Apresentação atualizada' : 'Apresentação criada');
-      setPresentationTarget(null);
-      setEditingPresentation(null);
+      showToast(presentationEditing !== 'new' ? 'Apresentação atualizada' : 'Apresentação criada');
+      setPresentationEditing(null);
       setPresentationForm(emptyPresentation);
       setPresentationFormError('');
     },
-    onError: (err) =>
-      setPresentationFormError(getErrorMessage(err)),
+    onError: (err) => setPresentationFormError(getErrorMessage(err)),
   });
 
-  const openCreateMed = () => {
-    setEditingMed(null);
-    setMedForm(emptyMed);
-    setMedFormError('');
-    setMedModalOpen(true);
+  const openCreate = () => {
+    setCreateForm(emptyMed);
+    setCreateError('');
+    setCreateOpen(true);
   };
 
-  const openEditMed = (med) => {
-    setEditingMed(med);
-    setMedFormError('');
-    setMedForm({ name: med.name, active: med.active });
-    setMedModalOpen(true);
+  const openDetail = (med) => {
+    setDetailMed(med);
+    setDetailForm({ name: med.name, notes: med.notes || '', active: med.active });
+    setDetailError('');
+    setPresentationEditing(null);
+    setPresentationFormError('');
   };
 
-  const openCreatePresentation = (med) => {
-    setPresentationTarget(med);
-    setEditingPresentation(null);
+  const closeDetail = () => setDetailMed(null);
+
+  const openNewPresentation = () => {
+    setPresentationEditing('new');
     setPresentationForm(emptyPresentation);
     setPresentationFormError('');
   };
 
-  const openEditPresentation = (med, presentation) => {
-    setPresentationTarget(med);
-    setEditingPresentation(presentation);
-    setPresentationFormError('');
+  const openEditPresentation = (presentation) => {
+    setPresentationEditing(presentation);
     setPresentationForm({ dosage: presentation.dosage, unit: presentation.unit, active: presentation.active });
+    setPresentationFormError('');
   };
 
-  const closePresentationModal = () => {
-    setPresentationTarget(null);
-    setEditingPresentation(null);
+  const cancelPresentationForm = () => {
+    setPresentationEditing(null);
     setPresentationFormError('');
   };
 
@@ -121,7 +139,7 @@ export default function Medications() {
             Cada medicamento pode ter várias apresentações (dosagens diferentes). O controle de estoque é feito pela farmácia da unidade de saúde, fora deste sistema.
           </p>
         </div>
-        <button type="button" onClick={openCreateMed} className={buttonClassName('primary', 'md', 'w-full sm:w-auto')}>
+        <button type="button" onClick={openCreate} className={buttonClassName('primary', 'md', 'w-full sm:w-auto')}>
           <Plus className="w-4 h-4" /> Novo medicamento
         </button>
       </div>
@@ -138,33 +156,133 @@ export default function Medications() {
         <EmptyState icon={Pill} title="Nenhum medicamento cadastrado" className="bg-white py-16" />
       ) : (
         <div className="space-y-3">
-          {medications.map((med) => (
-            <div key={med.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
-              <div className="flex items-center justify-between gap-3">
+          {medications.map((med) => {
+            const activeCount = med.presentations.filter((p) => p.active).length;
+            return (
+              <button
+                key={med.id}
+                type="button"
+                onClick={() => openDetail(med)}
+                className="w-full text-left bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex items-center justify-between gap-3 hover:border-upa-300 transition-colors"
+              >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-upa-50 shrink-0">
                     <Pill className="w-5 h-5 text-upa-600" />
                   </div>
                   <div className="min-w-0">
                     <p className="font-medium text-slate-800 truncate">{med.name}</p>
-                    <StatusPill active={med.active} />
+                    <div className="flex items-center gap-2 mt-1">
+                      <StatusPill active={med.active} />
+                      <span className="text-xs text-slate-400">
+                        {activeCount === 0 ? 'Nenhuma apresentação ativa' : `${activeCount} apresentação(ões) ativa(s)`}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => openEditMed(med)}
-                  className="inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg text-slate-400 hover:text-upa-700 hover:bg-upa-50 shrink-0"
-                  aria-label={`Editar ${med.name}`}
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-              </div>
+                <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-              <div className="mt-4 pl-1 space-y-2">
-                {med.presentations.length === 0 ? (
-                  <p className="text-sm text-slate-400">Nenhuma apresentação cadastrada ainda.</p>
-                ) : (
-                  med.presentations.map((p) => (
+      <Modal
+        open={createOpen}
+        onClose={() => { setCreateOpen(false); setCreateError(''); }}
+        title="Novo medicamento"
+      >
+        <div className="space-y-4">
+          {createError && <Alert message={createError} onDismiss={() => setCreateError('')} />}
+          <div>
+            <label className="block text-sm font-medium mb-1">Nome *</label>
+            <input
+              value={createForm.name}
+              onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+              placeholder="Ex.: Amoxicilina"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-upa-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Observações</label>
+            <textarea
+              value={createForm.notes}
+              onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })}
+              placeholder="Opcional"
+              rows={2}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-upa-500 resize-none"
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={createForm.active}
+              onChange={(e) => setCreateForm({ ...createForm, active: e.target.checked })}
+              className="rounded border-slate-300"
+            />
+            Medicamento ativo
+          </label>
+          <button
+            type="button"
+            onClick={() => createMutation.mutate(createForm)}
+            disabled={!createForm.name.trim() || createMutation.isPending}
+            className={buttonClassName('primary', 'md', 'w-full')}
+          >
+            {createMutation.isPending ? 'Salvando...' : 'Salvar'}
+          </button>
+        </div>
+      </Modal>
+
+      <Modal open={!!detailMed} onClose={closeDetail} title={detailMedFresh?.name || 'Medicamento'} size="lg">
+        {detailMedFresh && (
+          <div className="space-y-6">
+            {detailError && <Alert message={detailError} onDismiss={() => setDetailError('')} />}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Nome *</label>
+                <input
+                  value={detailForm.name}
+                  onChange={(e) => setDetailForm({ ...detailForm, name: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-upa-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Observações</label>
+                <textarea
+                  value={detailForm.notes}
+                  onChange={(e) => setDetailForm({ ...detailForm, notes: e.target.value })}
+                  placeholder="Opcional"
+                  rows={2}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-upa-500 resize-none"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={detailForm.active}
+                  onChange={(e) => setDetailForm({ ...detailForm, active: e.target.checked })}
+                  className="rounded border-slate-300"
+                />
+                Medicamento ativo
+              </label>
+              <button
+                type="button"
+                onClick={() => updateMedMutation.mutate(detailForm)}
+                disabled={!detailForm.name.trim() || updateMedMutation.isPending}
+                className={buttonClassName('secondary', 'md', 'w-full')}
+              >
+                {updateMedMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
+              </button>
+            </div>
+
+            <div className="pt-5 border-t border-slate-100 space-y-3">
+              <h3 className="text-sm font-semibold text-slate-700">Apresentações</h3>
+
+              {detailMedFresh.presentations.length === 0 ? (
+                <p className="text-sm text-slate-400">Nenhuma apresentação cadastrada ainda.</p>
+              ) : (
+                <div className="space-y-2">
+                  {detailMedFresh.presentations.map((p) => (
                     <div
                       key={p.id}
                       className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 px-3 py-2 text-sm"
@@ -176,115 +294,83 @@ export default function Medications() {
                         <StatusPill active={p.active} />
                         <button
                           type="button"
-                          onClick={() => openEditPresentation(med, p)}
+                          onClick={() => openEditPresentation(p)}
                           className="inline-flex items-center justify-center min-h-9 min-w-9 rounded-lg text-slate-400 hover:text-upa-700 hover:bg-upa-50"
-                          aria-label={`Editar apresentação ${p.dosage} de ${med.name}`}
+                          aria-label={`Editar apresentação ${p.dosage}`}
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
-                  ))
-                )}
+                  ))}
+                </div>
+              )}
+
+              {presentationEditing ? (
+                <div className="rounded-xl border border-upa-100 bg-upa-50/40 p-3 space-y-3">
+                  {presentationFormError && (
+                    <Alert message={presentationFormError} onDismiss={() => setPresentationFormError('')} />
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Dosagem *</label>
+                    <input
+                      value={presentationForm.dosage}
+                      onChange={(e) => setPresentationForm({ ...presentationForm, dosage: e.target.value })}
+                      placeholder="Ex.: 500mg"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-upa-500 bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Unidade</label>
+                    <select
+                      value={presentationForm.unit}
+                      onChange={(e) => setPresentationForm({ ...presentationForm, unit: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none bg-white"
+                    >
+                      {MEDICATION_UNITS.map((unit) => (
+                        <option key={unit} value={unit}>{unit}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={presentationForm.active}
+                      onChange={(e) => setPresentationForm({ ...presentationForm, active: e.target.checked })}
+                      className="rounded border-slate-300"
+                    />
+                    Apresentação ativa
+                  </label>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={cancelPresentationForm}
+                      className={buttonClassName('secondary', 'sm', 'flex-1')}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => savePresentationMutation.mutate(presentationForm)}
+                      disabled={!presentationForm.dosage.trim() || savePresentationMutation.isPending}
+                      className={buttonClassName('primary', 'sm', 'flex-1')}
+                    >
+                      {savePresentationMutation.isPending ? 'Salvando...' : 'Salvar'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
                 <button
                   type="button"
-                  onClick={() => openCreatePresentation(med)}
+                  onClick={openNewPresentation}
                   className="inline-flex items-center gap-1.5 text-sm font-medium text-upa-700 hover:text-upa-900 px-1 py-1"
                 >
                   <Plus className="w-3.5 h-3.5" /> Nova apresentação
                 </button>
-              </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
-
-      <Modal
-        open={medModalOpen}
-        onClose={() => { setMedModalOpen(false); setEditingMed(null); setMedFormError(''); }}
-        title={editingMed ? 'Editar medicamento' : 'Novo medicamento'}
-      >
-        <div className="space-y-4">
-          {medFormError && <Alert message={medFormError} onDismiss={() => setMedFormError('')} />}
-          <div>
-            <label className="block text-sm font-medium mb-1">Nome *</label>
-            <input
-              value={medForm.name}
-              onChange={(e) => setMedForm({ ...medForm, name: e.target.value })}
-              placeholder="Ex.: Amoxicilina"
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-upa-500"
-            />
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={medForm.active}
-              onChange={(e) => setMedForm({ ...medForm, active: e.target.checked })}
-              className="rounded border-slate-300"
-            />
-            Medicamento ativo
-          </label>
-          <button
-            type="button"
-            onClick={() => saveMedMutation.mutate(medForm)}
-            disabled={!medForm.name.trim() || saveMedMutation.isPending}
-            className={buttonClassName('primary', 'md', 'w-full')}
-          >
-            {saveMedMutation.isPending ? 'Salvando...' : 'Salvar'}
-          </button>
-        </div>
-      </Modal>
-
-      <Modal
-        open={!!presentationTarget}
-        onClose={closePresentationModal}
-        title={
-          editingPresentation
-            ? `Editar apresentação — ${presentationTarget?.name}`
-            : `Nova apresentação — ${presentationTarget?.name}`
-        }
-      >
-        <div className="space-y-4">
-          {presentationFormError && <Alert message={presentationFormError} onDismiss={() => setPresentationFormError('')} />}
-          <div>
-            <label className="block text-sm font-medium mb-1">Dosagem *</label>
-            <input
-              value={presentationForm.dosage}
-              onChange={(e) => setPresentationForm({ ...presentationForm, dosage: e.target.value })}
-              placeholder="Ex.: 500mg"
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-upa-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Unidade</label>
-            <select
-              value={presentationForm.unit}
-              onChange={(e) => setPresentationForm({ ...presentationForm, unit: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none bg-white"
-            >
-              {MEDICATION_UNITS.map((unit) => (
-                <option key={unit} value={unit}>{unit}</option>
-              ))}
-            </select>
-          </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={presentationForm.active}
-              onChange={(e) => setPresentationForm({ ...presentationForm, active: e.target.checked })}
-              className="rounded border-slate-300"
-            />
-            Apresentação ativa
-          </label>
-          <button
-            type="button"
-            onClick={() => savePresentationMutation.mutate(presentationForm)}
-            disabled={!presentationForm.dosage.trim() || savePresentationMutation.isPending}
-            className={buttonClassName('primary', 'md', 'w-full')}
-          >
-            {savePresentationMutation.isPending ? 'Salvando...' : 'Salvar'}
-          </button>
-        </div>
+        )}
       </Modal>
     </div>
   );
