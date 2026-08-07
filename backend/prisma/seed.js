@@ -61,6 +61,260 @@ async function main() {
       ],
     },
     { name: 'Salbutamol', presentations: [{ dosage: 'Spray', unit: 'frasco' }] },
+    // Elenco ampliado de medicamentos comuns em unidades de saúde,
+    // compatíveis com continuidade de tratamento/doenças crônicas — base
+    // pra entrega domiciliar além dos itens de exemplo acima.
+    { name: 'Ácido acetilsalicílico', presentations: [{ dosage: '100mg', unit: 'comprimido' }] },
+    { name: 'Aciclovir', presentations: [{ dosage: '200mg', unit: 'comprimido' }] },
+    {
+      name: 'Albendazol',
+      presentations: [
+        { dosage: '400mg', unit: 'comprimido' },
+        { dosage: '40mg/mL', unit: 'frasco' },
+      ],
+    },
+    { name: 'Alendronato de sódio', presentations: [{ dosage: '70mg', unit: 'comprimido' }] },
+    {
+      name: 'Alopurinol',
+      presentations: [
+        { dosage: '100mg', unit: 'comprimido' },
+        { dosage: '300mg', unit: 'comprimido' },
+      ],
+    },
+    { name: 'Amitriptilina', presentations: [{ dosage: '25mg', unit: 'comprimido' }] },
+    {
+      name: 'Amlodipino',
+      presentations: [
+        { dosage: '5mg', unit: 'comprimido' },
+        { dosage: '10mg', unit: 'comprimido' },
+      ],
+    },
+    {
+      name: 'Atenolol',
+      presentations: [
+        { dosage: '25mg', unit: 'comprimido' },
+        { dosage: '50mg', unit: 'comprimido' },
+        { dosage: '100mg', unit: 'comprimido' },
+      ],
+    },
+    {
+      name: 'Azitromicina',
+      presentations: [
+        { dosage: '500mg', unit: 'comprimido' },
+        { dosage: '40mg/mL', unit: 'frasco' },
+      ],
+    },
+    { name: 'Biperideno', presentations: [{ dosage: '2mg', unit: 'comprimido' }] },
+    { name: 'Bromexina', presentations: [{ dosage: '0,8mg/mL', unit: 'frasco' }] },
+    { name: 'Butilbrometo de escopolamina', presentations: [{ dosage: '10mg', unit: 'comprimido' }] },
+    { name: 'Captopril', presentations: [{ dosage: '25mg', unit: 'comprimido' }] },
+    {
+      name: 'Carbamazepina',
+      presentations: [
+        { dosage: '200mg', unit: 'comprimido' },
+        { dosage: '20mg/mL', unit: 'frasco' },
+      ],
+    },
+    { name: 'Carbonato de cálcio', presentations: [{ dosage: '500mg', unit: 'comprimido' }] },
+    { name: 'Carbonato de lítio', presentations: [{ dosage: '300mg', unit: 'comprimido' }] },
+    {
+      name: 'Cefalexina',
+      presentations: [
+        { dosage: '500mg', unit: 'cápsula' },
+        { dosage: '50mg/mL', unit: 'frasco' },
+      ],
+    },
+    { name: 'Cetirizina', presentations: [{ dosage: '10mg', unit: 'comprimido' }] },
+    { name: 'Clomipramina', presentations: [{ dosage: '25mg', unit: 'comprimido' }] },
+    { name: 'Clopidogrel', presentations: [{ dosage: '75mg', unit: 'comprimido' }] },
+    { name: 'Clotrimazol', presentations: [{ dosage: '500mg', unit: 'comprimido' }] },
+    { name: 'Colchicina', presentations: [{ dosage: '0,5mg', unit: 'comprimido' }] },
+    {
+      name: 'Dexametasona',
+      presentations: [
+        { dosage: '4mg', unit: 'comprimido' },
+        { dosage: '0,5mg/mL', unit: 'frasco' },
+      ],
+    },
+    {
+      name: 'Dexclorfeniramina',
+      presentations: [
+        { dosage: '2mg', unit: 'comprimido' },
+        { dosage: '0,4mg/mL', unit: 'frasco' },
+      ],
+    },
+    {
+      name: 'Diazepam',
+      presentations: [
+        { dosage: '5mg', unit: 'comprimido' },
+        { dosage: '10mg', unit: 'comprimido' },
+      ],
+    },
+    { name: 'Diclofenaco sódico', presentations: [{ dosage: '50mg', unit: 'comprimido' }] },
+    { name: 'Digoxina', presentations: [{ dosage: '0,25mg', unit: 'comprimido' }] },
+    { name: 'Dimenidrinato', presentations: [{ dosage: '50mg', unit: 'comprimido' }] },
+    {
+      name: 'Doxazosina',
+      presentations: [
+        { dosage: '2mg', unit: 'comprimido' },
+        { dosage: '4mg', unit: 'comprimido' },
+      ],
+    },
+    { name: 'Doxiciclina', presentations: [{ dosage: '100mg', unit: 'comprimido' }] },
+    {
+      name: 'Enalapril',
+      presentations: [
+        { dosage: '5mg', unit: 'comprimido' },
+        { dosage: '10mg', unit: 'comprimido' },
+        { dosage: '20mg', unit: 'comprimido' },
+      ],
+    },
+    {
+      name: 'Espironolactona',
+      presentations: [
+        { dosage: '25mg', unit: 'comprimido' },
+        { dosage: '100mg', unit: 'comprimido' },
+      ],
+    },
+    {
+      name: 'Etinilestradiol + levonorgestrel',
+      presentations: [{ dosage: '0,03mg + 0,15mg', unit: 'comprimido' }],
+    },
+    { name: 'Fenitoína', presentations: [{ dosage: '100mg', unit: 'cápsula' }] },
+    {
+      name: 'Fenobarbital',
+      presentations: [
+        { dosage: '100mg', unit: 'comprimido' },
+        { dosage: '40mg/mL', unit: 'gotas' },
+      ],
+    },
+    { name: 'Finasterida', presentations: [{ dosage: '5mg', unit: 'comprimido' }] },
+    { name: 'Fluconazol', presentations: [{ dosage: '150mg', unit: 'cápsula' }] },
+    { name: 'Fluoxetina', presentations: [{ dosage: '20mg', unit: 'cápsula' }] },
+    { name: 'Furosemida', presentations: [{ dosage: '40mg', unit: 'comprimido' }] },
+    {
+      name: 'Gliclazida',
+      presentations: [
+        { dosage: '30mg', unit: 'comprimido' },
+        { dosage: '60mg', unit: 'comprimido' },
+      ],
+    },
+    { name: 'Glibenclamida', presentations: [{ dosage: '5mg', unit: 'comprimido' }] },
+    {
+      name: 'Haloperidol',
+      presentations: [
+        { dosage: '1mg', unit: 'comprimido' },
+        { dosage: '5mg', unit: 'comprimido' },
+        { dosage: '2mg/mL', unit: 'gotas' },
+      ],
+    },
+    { name: 'Hidroclorotiazida', presentations: [{ dosage: '25mg', unit: 'comprimido' }] },
+    { name: 'Ivermectina', presentations: [{ dosage: '6mg', unit: 'comprimido' }] },
+    { name: 'Lactulose', presentations: [{ dosage: '667mg/mL', unit: 'frasco' }] },
+    {
+      name: 'Levodopa + benserazida',
+      presentations: [
+        { dosage: '100mg + 25mg', unit: 'comprimido' },
+        { dosage: '200mg + 50mg', unit: 'comprimido' },
+      ],
+    },
+    {
+      name: 'Loratadina',
+      presentations: [
+        { dosage: '10mg', unit: 'comprimido' },
+        { dosage: '1mg/mL', unit: 'frasco' },
+      ],
+    },
+    {
+      name: 'Mebendazol',
+      presentations: [
+        { dosage: '100mg', unit: 'comprimido' },
+        { dosage: '20mg/mL', unit: 'frasco' },
+      ],
+    },
+    {
+      name: 'Metildopa',
+      presentations: [
+        { dosage: '250mg', unit: 'comprimido' },
+        { dosage: '500mg', unit: 'comprimido' },
+      ],
+    },
+    {
+      name: 'Metoclopramida',
+      presentations: [
+        { dosage: '10mg', unit: 'comprimido' },
+        { dosage: '4mg/mL', unit: 'gotas' },
+      ],
+    },
+    {
+      name: 'Metronidazol',
+      presentations: [
+        { dosage: '250mg', unit: 'comprimido' },
+        { dosage: '400mg', unit: 'comprimido' },
+      ],
+    },
+    { name: 'Naproxeno', presentations: [{ dosage: '500mg', unit: 'comprimido' }] },
+    { name: 'Nitrofurantoína', presentations: [{ dosage: '100mg', unit: 'cápsula' }] },
+    // Concentração real é em UI/mL (unidades internacionais), não mg/mL —
+    // "mg/mL" não faz sentido pra nistatina. Unidade cadastral continua
+    // "frasco" (mesmo padrão de Bromexina/Prednisolona), a concentração em
+    // UI vai só no texto livre da dosagem.
+    { name: 'Nistatina', presentations: [{ dosage: '100.000 UI/mL', unit: 'frasco' }] },
+    { name: 'Noretisterona', presentations: [{ dosage: '0,35mg', unit: 'comprimido' }] },
+    {
+      name: 'Ondansetrona',
+      presentations: [
+        { dosage: '4mg', unit: 'comprimido' },
+        { dosage: '8mg', unit: 'comprimido' },
+      ],
+    },
+    { name: 'Permetrina', presentations: [{ dosage: '10mg/mL', unit: 'frasco' }] },
+    { name: 'Prednisolona', presentations: [{ dosage: '3mg/mL', unit: 'frasco' }] },
+    {
+      name: 'Prednisona',
+      presentations: [
+        { dosage: '5mg', unit: 'comprimido' },
+        { dosage: '20mg', unit: 'comprimido' },
+      ],
+    },
+    { name: 'Prometazina', presentations: [{ dosage: '25mg', unit: 'comprimido' }] },
+    { name: 'Propranolol', presentations: [{ dosage: '40mg', unit: 'comprimido' }] },
+    { name: 'Sertralina', presentations: [{ dosage: '50mg', unit: 'comprimido' }] },
+    {
+      name: 'Simeticona',
+      presentations: [
+        { dosage: '40mg', unit: 'comprimido' },
+        { dosage: '75mg/mL', unit: 'gotas' },
+      ],
+    },
+    {
+      name: 'Sinvastatina',
+      presentations: [
+        { dosage: '20mg', unit: 'comprimido' },
+        { dosage: '40mg', unit: 'comprimido' },
+      ],
+    },
+    {
+      name: 'Sulfametoxazol + trimetoprima',
+      presentations: [
+        { dosage: '400mg + 80mg', unit: 'comprimido' },
+        { dosage: '40mg/mL + 8mg/mL', unit: 'frasco' },
+      ],
+    },
+    {
+      name: 'Valproato de sódio',
+      presentations: [
+        { dosage: '250mg', unit: 'cápsula' },
+        { dosage: '50mg/mL', unit: 'frasco' },
+      ],
+    },
+    {
+      name: 'Varfarina sódica',
+      presentations: [
+        { dosage: '2,5mg', unit: 'comprimido' },
+        { dosage: '5mg', unit: 'comprimido' },
+      ],
+    },
   ];
 
   // Indexado por "Nome Dosagem" (ex.: "Amoxicilina 500mg") pra criar os

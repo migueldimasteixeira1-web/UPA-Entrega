@@ -89,6 +89,17 @@ describe('Medications', () => {
       expect(res.body.name).toBe('Amoxicilina');
       expect(res.body.active).toBe(true);
       expect(res.body.presentations).toEqual([]);
+      expect(res.body.notes).toBeNull();
+    });
+
+    it('creates a medication with notes', async () => {
+      const res = await request(app)
+        .post('/api/medications')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'Amoxicilina', notes: 'Manter refrigerado' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.notes).toBe('Manter refrigerado');
     });
 
     it('rejects a missing name', async () => {
@@ -125,6 +136,24 @@ describe('Medications', () => {
       expect(res.status).toBe(200);
       expect(res.body.name).toBe('Atualizado');
       expect(res.body.active).toBe(false);
+    });
+
+    it('updates notes, and clears it back to null with an empty string', async () => {
+      const medication = await createMedicationRecord({ name: 'Original' });
+
+      const withNotes = await request(app)
+        .put(`/api/medications/${medication.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ notes: 'Guardar em local seco' });
+      expect(withNotes.status).toBe(200);
+      expect(withNotes.body.notes).toBe('Guardar em local seco');
+
+      const cleared = await request(app)
+        .put(`/api/medications/${medication.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ notes: '' });
+      expect(cleared.status).toBe(200);
+      expect(cleared.body.notes).toBeNull();
     });
 
     it('returns 404 for an unknown id', async () => {

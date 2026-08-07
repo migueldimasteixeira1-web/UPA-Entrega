@@ -129,11 +129,13 @@ export const updateAddressSchema = newAddressSchema.partial();
 
 export const createMedicationSchema = z.object({
   name: requiredString('Nome é obrigatório'),
+  notes: z.string().trim().optional().nullable(),
   active: z.boolean().optional(),
 });
 
 export const updateMedicationSchema = z.object({
   name: z.string().trim().min(1, 'Nome é obrigatório').optional(),
+  notes: z.string().trim().optional().nullable(),
   active: z.boolean().optional(),
 });
 
