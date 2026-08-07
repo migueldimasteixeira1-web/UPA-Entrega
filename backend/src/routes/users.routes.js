@@ -11,6 +11,10 @@ function normalizeRole(role) {
 // um seletor de entregador. ADMIN e OPERADOR podem chamar (montar rota e
 // filtrar o painel são tarefas de ambos), diferente de listUsers, que é
 // gestão de usuário de verdade e continua restrita a ADMIN.
+//
+// activeDeliveries: quantos pedidos EM_ROTA esse entregador tem agora —
+// informativo pro despachante escolher entre vários entregadores
+// disponíveis (issue #102), não é usado pra nenhuma sugestão automática.
 export async function listCouriers(req, res) {
   try {
     const couriers = await prisma.user.findMany({
@@ -18,7 +22,17 @@ export async function listCouriers(req, res) {
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     });
-    res.json(couriers);
+
+    const pendingOrders = await prisma.order.findMany({
+      where: { status: 'EM_ROTA', route: { courierId: { in: couriers.map((c) => c.id) } } },
+      select: { route: { select: { courierId: true } } },
+    });
+    const loadByCourier = pendingOrders.reduce((acc, order) => {
+      acc[order.route.courierId] = (acc[order.route.courierId] || 0) + 1;
+      return acc;
+    }, {});
+
+    res.json(couriers.map((c) => ({ ...c, activeDeliveries: loadByCourier[c.id] || 0 })));
   } catch (error) {
     console.error('List couriers error:', error);
     res.status(500).json({ error: 'Erro ao listar entregadores' });

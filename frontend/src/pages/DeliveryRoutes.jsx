@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Truck, Package, CheckCircle2, Circle, Route as RouteIcon } from 'lucide-react';
@@ -13,6 +13,7 @@ import { buttonClassName } from '../components/Button';
 export default function DeliveryRoutes() {
   const [courierId, setCourierId] = useState('');
   const [error, setError] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
@@ -23,6 +24,27 @@ export default function DeliveryRoutes() {
     queryFn: () => api.getOrders({ status: 'AGUARDANDO_SAIDA' }),
   });
   const readyOrders = [...readyOrdersDesc].reverse();
+
+  // Todos marcados por padrão a cada nova leva de pedidos prontos — o
+  // despachante com um único entregador continua clicando "Despachar" sem
+  // tocar em nada (issue #102). Só quem quer dividir entre vários
+  // entregadores precisa desmarcar.
+  const readyIds = readyOrders.map((o) => o.id).join(',');
+  useEffect(() => {
+    setSelectedIds(new Set(readyOrders.map((o) => o.id)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readyIds]);
+
+  const toggleSelected = (orderId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  };
+
+  const selectedOrders = readyOrders.filter((o) => selectedIds.has(o.id));
 
   const { data: couriers = [] } = useQuery({
     queryKey: ['couriers'],
@@ -43,14 +65,15 @@ export default function DeliveryRoutes() {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['delivery-routes'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: ['couriers'] });
       showToast(`Rota ${route.routeNumber} despachada com ${route.orders.length} pedido(s)`);
     },
     onError: (err) => setError(getErrorMessage(err)),
   });
 
   const handleDispatch = () => {
-    if (!courierId || !readyOrders.length) return;
-    dispatchMutation.mutate({ courierId, orderIds: readyOrders.map((o) => o.id) });
+    if (!courierId || !selectedOrders.length) return;
+    dispatchMutation.mutate({ courierId, orderIds: selectedOrders.map((o) => o.id) });
   };
 
   return (
@@ -75,12 +98,36 @@ export default function DeliveryRoutes() {
           <EmptyState icon={Package} title="Nenhum pedido aguardando saída no momento." />
         ) : (
           <div className="space-y-2 mb-6">
+            {readyOrders.length > 1 && (
+              <label className="flex items-center gap-2 text-xs text-slate-500 px-1 pb-1">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === readyOrders.length}
+                  onChange={(e) =>
+                    setSelectedIds(e.target.checked ? new Set(readyOrders.map((o) => o.id)) : new Set())
+                  }
+                  className="rounded border-slate-300"
+                />
+                Selecionar todos
+              </label>
+            )}
             {readyOrders.map((order) => (
-              <div key={order.id} className="rounded-xl border border-slate-200 p-3">
-                <p className="text-sm font-semibold text-slate-800">{order.patientName}</p>
-                <p className="text-xs text-slate-500">{order.orderNumber} · {order.neighborhood}</p>
-                <p className="text-xs text-slate-500">{order.mainMedication}</p>
-              </div>
+              <label
+                key={order.id}
+                className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 cursor-pointer hover:border-upa-300"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(order.id)}
+                  onChange={() => toggleSelected(order.id)}
+                  className="mt-1 rounded border-slate-300 shrink-0"
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-800">{order.patientName}</p>
+                  <p className="text-xs text-slate-500">{order.orderNumber} · {order.neighborhood}</p>
+                  <p className="text-xs text-slate-500">{order.mainMedication}</p>
+                </div>
+              </label>
             ))}
           </div>
         )}
@@ -93,17 +140,19 @@ export default function DeliveryRoutes() {
           >
             <option value="">Selecione o entregador...</option>
             {couriers.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>
+                {c.name}{c.activeDeliveries > 0 ? ` — ${c.activeDeliveries} entrega(s) em rota` : ''}
+              </option>
             ))}
           </select>
           <button
             type="button"
             onClick={handleDispatch}
-            disabled={!courierId || !readyOrders.length || dispatchMutation.isPending}
+            disabled={!courierId || !selectedOrders.length || dispatchMutation.isPending}
             className={buttonClassName('primary', 'md', 'px-6')}
           >
             <Truck className="w-4 h-4" />
-            {dispatchMutation.isPending ? 'Despachando...' : `Despachar (${readyOrders.length})`}
+            {dispatchMutation.isPending ? 'Despachando...' : `Despachar (${selectedOrders.length})`}
           </button>
         </div>
         {couriers.length === 0 && (
