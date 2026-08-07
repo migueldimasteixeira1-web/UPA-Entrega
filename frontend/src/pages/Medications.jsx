@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pill, ChevronRight, Edit2 } from 'lucide-react';
+import { Plus, Pill, Search, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api, getErrorMessage } from '../lib/api';
 import { MEDICATION_UNITS } from '../lib/constants';
 import { useToast } from '../lib/toast';
@@ -12,6 +12,7 @@ import { buttonClassName } from '../components/Button';
 
 const emptyMed = { name: '', notes: '', active: true };
 const emptyPresentation = { dosage: '', unit: 'unidade', active: true };
+const PAGE_SIZE = 15;
 
 function StatusPill({ active }) {
   return (
@@ -26,6 +27,9 @@ function StatusPill({ active }) {
 }
 
 export default function Medications() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(emptyMed);
   const [createError, setCreateError] = useState('');
@@ -54,6 +58,24 @@ export default function Medications() {
   });
 
   const invalidateMedications = () => queryClient.invalidateQueries({ queryKey: ['medications'] });
+
+  const filteredMedications = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return medications;
+    return medications.filter((med) => med.name.toLowerCase().includes(term));
+  }, [medications, searchTerm]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredMedications.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedMedications = filteredMedications.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  const updateSearch = (value) => {
+    setSearchTerm(value);
+    setPage(1);
+  };
 
   // Depois de salvar uma apresentação a lista é invalidada e refeita — o
   // modal de detalhe continua aberto, então relê os dados atuais daquele
@@ -144,6 +166,19 @@ export default function Medications() {
         </button>
       </div>
 
+      {!isLoading && medications.length > 0 && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => updateSearch(e.target.value)}
+            placeholder="Buscar medicamento por nome..."
+            className="w-full sm:max-w-sm pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-upa-500 focus:ring-2 focus:ring-upa-100"
+          />
+        </div>
+      )}
+
       {isLoading ? (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <table className="w-full text-sm">
@@ -154,36 +189,63 @@ export default function Medications() {
         </div>
       ) : medications.length === 0 ? (
         <EmptyState icon={Pill} title="Nenhum medicamento cadastrado" className="bg-white py-16" />
+      ) : filteredMedications.length === 0 ? (
+        <EmptyState icon={Search} title={`Nenhum medicamento encontrado para "${searchTerm.trim()}"`} className="bg-white py-16" />
       ) : (
-        <div className="space-y-3">
-          {medications.map((med) => {
-            const activeCount = med.presentations.filter((p) => p.active).length;
-            return (
-              <button
-                key={med.id}
-                type="button"
-                onClick={() => openDetail(med)}
-                className="w-full text-left bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex items-center justify-between gap-3 hover:border-upa-300 transition-colors"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-upa-50 shrink-0">
-                    <Pill className="w-5 h-5 text-upa-600" />
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {pagedMedications.map((med) => {
+              const activeCount = med.presentations.filter((p) => p.active).length;
+              return (
+                <button
+                  key={med.id}
+                  type="button"
+                  onClick={() => openDetail(med)}
+                  className="text-left bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 flex items-start gap-2.5 hover:border-upa-300 transition-colors min-w-0"
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-upa-50 shrink-0">
+                    <Pill className="w-4 h-4 text-upa-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-medium text-slate-800 truncate">{med.name}</p>
-                    <div className="flex items-center gap-2 mt-1">
+                    <p className="font-medium text-sm text-slate-800 truncate">{med.name}</p>
+                    <div className="flex flex-col items-start gap-1 mt-1">
                       <StatusPill active={med.active} />
                       <span className="text-xs text-slate-400">
                         {activeCount === 0 ? 'Nenhuma apresentação ativa' : `${activeCount} apresentação(ões) ativa(s)`}
                       </span>
                     </div>
                   </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
-              </button>
-            );
-          })}
-        </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between gap-4 pt-2">
+              <p className="text-xs text-slate-500">
+                Página {currentPage} de {totalPages} · {filteredMedications.length} medicamento(s)
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className={buttonClassName('secondary', 'sm')}
+                >
+                  <ChevronLeft className="w-4 h-4" /> Anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className={buttonClassName('secondary', 'sm')}
+                >
+                  Próxima <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <Modal
